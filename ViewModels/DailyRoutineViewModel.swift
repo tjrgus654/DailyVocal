@@ -168,10 +168,10 @@ public final class DailyRoutineViewModel {
     /// computed property, so it cannot live inside a SwiftData predicate.
     private func refreshSessionsToday() {
         guard let context = modelContext else { return }
-        let todayKey = ProgressViewModel.practiceDayKey(for: .now)
+        let todayKey = VocalLogic.practiceDayKey(for: .now)
         let sessions = (try? context.fetch(FetchDescriptor<PracticeSession>())) ?? []
         sessionsCompletedToday = sessions.filter {
-            ProgressViewModel.practiceDayKey(for: $0.date) == todayKey
+            VocalLogic.practiceDayKey(for: $0.date) == todayKey
                 && ($0.isFullCompletion || $0.durationSeconds >= 300)
         }.count
     }
