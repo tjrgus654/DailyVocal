@@ -1,5 +1,5 @@
 //
-//  VocalCategory.swift
+//  VocalCategoryTheme.swift
 //  5VocalMaster
 //
 //  SwiftUI presentation layer of the category enum defined in Core/Logic.
