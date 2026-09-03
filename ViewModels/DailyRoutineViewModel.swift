@@ -79,6 +79,7 @@ public final class DailyRoutineViewModel {
     }
     /// One-shot message surfaced by the view after an automatic rest switch.
     public private(set) var restNotice: String?
+    public func clearRestNotice() { restNotice = nil }
 
     /// Accumulated 0-based indices of steps practiced >= 70% of their duration.
     public private(set) var completedStepIndices: Set<Int> = []

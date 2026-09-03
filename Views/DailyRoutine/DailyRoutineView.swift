@@ -62,10 +62,10 @@ public struct DailyRoutineView: View {
             "오늘 성대 컨디션",
             isPresented: Binding(
                 get: { viewModel.restNotice != nil },
-                set: { if !$0 { viewModel.restNotice = nil } }
+                set: { if !$0 { viewModel.clearRestNotice() } }
             )
         ) {
-            Button("확인", role: .cancel) { viewModel.restNotice = nil }
+            Button("확인", role: .cancel) { viewModel.clearRestNotice() }
         } message: {
             Text(viewModel.restNotice ?? "")
         }
