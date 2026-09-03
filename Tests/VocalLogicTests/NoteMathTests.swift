@@ -40,6 +40,37 @@ final class NoteMathTests: XCTestCase {
         XCTAssertEqual(VocalLogic.noteAndCents(fromFrequency: 0).note, "--")
     }
 
+    func testNoteNameParsingEdgeCases() {
+        // Valid: sharp and flat accidentals, lowercase-flat requires a base.
+        XCTAssertEqual(VocalLogic.midiNumber(forNoteName: "Bb4"), 70)
+        XCTAssertEqual(VocalLogic.midiNumber(forNoteName: "A#4"), 70)
+        XCTAssertEqual(VocalLogic.midiNumber(forNoteName: "C4"), 60)
+        // Leading accidental without a base letter is rejected.
+        XCTAssertNil(VocalLogic.midiNumber(forNoteName: "#4"))
+        // Lone letter without an octave is rejected.
+        XCTAssertNil(VocalLogic.midiNumber(forNoteName: "C"))
+        // Interleaved garbage is rejected.
+        XCTAssertNil(VocalLogic.midiNumber(forNoteName: "C4b4"))
+        XCTAssertNil(VocalLogic.midiNumber(forNoteName: "H4"))
+        // Multi-digit octaves are rejected (0...9 guard keeps "C10" out).
+        XCTAssertNil(VocalLogic.midiNumber(forNoteName: "C10"))
+        XCTAssertNil(VocalLogic.midiNumber(forNoteName: "C44"))
+        // Whitespace around a valid name is trimmed; embedded space is rejected.
+        XCTAssertEqual(VocalLogic.midiNumber(forNoteName: "  C4  "), 60)
+        XCTAssertNil(VocalLogic.midiNumber(forNoteName: "C 4"))
+        // Double accidentals compose.
+        XCTAssertEqual(VocalLogic.midiNumber(forNoteName: "C##4"), 62)
+        XCTAssertEqual(VocalLogic.midiNumber(forNoteName: "Bbb4"), 69)  // B(71) - 2 = A4
+        // Round trip: every sharp name in the app's note set parses back.
+        for name in ["C3", "E3", "G3", "A3", "C4", "D4", "E4", "F4", "G4", "A4", "C5"] {
+            let midi = VocalLogic.midiNumber(forNoteName: name)!
+            let roundTrip = VocalLogic.noteAndCents(fromFrequency: VocalLogic.frequency(forMidi: Double(midi))).note
+            // Sharp notes renormalize to their canonical spelling (D# -> equivalent),
+            // so compare midi rather than spelling.
+            XCTAssertEqual(VocalLogic.midiNumber(forNoteName: roundTrip), midi, name)
+        }
+    }
+
     func testDegenerateFrequencyInputs() {
         // Negative and zero frequencies return the silent placeholder tuple.
         for bad in [0.0, -1.0, -440.0] {
