@@ -5,6 +5,12 @@
 
 ---
 
+## 소스 구조 (2026-09-04 기준)
+
+- 순수 로직(테스트 대상): `Core/Logic/` — VocalLogic·YINPitchDetector·RoutineStep(프리셋)·VocalTip·VocalCategory
+- SwiftUI 표현: `Models/VocalCategoryTheme.swift`(색) 등
+- 팁 데이터: `Resources/vocal_tips.json` 52종(48 쇼츠 + 4 연구 기반)
+
 ## 📱 1. 프로젝트 구조
 
 ```
