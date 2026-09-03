@@ -230,6 +230,15 @@ public enum VocalLogic {
         return [clampedBase, second, third]
     }
 
+    /// Stored-record label for an echo sequence: "C4-E4-G4" (empty when the
+    /// list isn't a real 3-note sequence). Single sessions keep their note.
+    public static func echoLabel(midis: [Int]) -> String {
+        guard midis.count == 3 else { return "" }
+        return midis
+            .map { noteAndCents(fromFrequency: frequency(forMidi: Double($0))).note }
+            .joined(separator: "-")
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.

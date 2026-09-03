@@ -58,10 +58,7 @@ public final class PitchTrackerViewModel {
     /// (empty in single mode). Used by the completion alert and the stored
     /// record so both always agree.
     public var echoTargetLabel: String {
-        guard mode == .echo, echoTargetMidis.count == 3 else { return "" }
-        return echoTargetMidis
-            .map { VocalAudioEngine.noteAndCents(fromFrequency: VocalAudioEngine.frequency(forMidi: Double($0))).note }
-            .joined(separator: "-")
+        mode == .echo ? VocalLogic.echoLabel(midis: echoTargetMidis) : ""
     }
 
     /// Listen-first ear training (SingTrue-style, strongest research backing):

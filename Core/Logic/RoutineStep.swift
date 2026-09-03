@@ -14,7 +14,7 @@
 //  5–10 min warm-ups sufficient, so no session ever exceeds 15 minutes.
 //
 
-import SwiftUI
+import Foundation
 
 public struct RoutineStep: Identifiable, Hashable {
 
@@ -49,7 +49,7 @@ public enum RoutinePresets {
 
     /// Week-specific routine. `week` is clamped to 1...4.
     public static func defaultRoutine(forWeek week: Int) -> [RoutineStep] {
-        switch week.clamped(to: 1...4) {
+        switch min(4, max(1, week)) {
         case 1: return week1
         case 2: return week2
         case 3: return week3
