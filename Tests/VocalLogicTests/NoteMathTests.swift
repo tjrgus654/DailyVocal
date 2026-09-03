@@ -40,6 +40,29 @@ final class NoteMathTests: XCTestCase {
         XCTAssertEqual(VocalLogic.noteAndCents(fromFrequency: 0).note, "--")
     }
 
+    func testDegenerateFrequencyInputs() {
+        // Negative and zero frequencies return the silent placeholder tuple.
+        for bad in [0.0, -1.0, -440.0] {
+            let result = VocalLogic.noteAndCents(fromFrequency: bad)
+            XCTAssertEqual(result.note, "--")
+            XCTAssertEqual(result.midi, 0)
+            XCTAssertEqual(result.cents, 0)
+            XCTAssertEqual(VocalLogic.midiNumber(forFrequency: bad), 0)
+        }
+        // Extreme-but-valid input stays representable.
+        XCTAssertTrue(VocalLogic.midiNumber(forFrequency: 1.0) < 0) // sub-audio -> negative midi is fine
+        XCTAssertGreaterThan(VocalLogic.midiNumber(forFrequency: 21000.0), 135)
+    }
+
+    func testDurationLabelBoundaries() {
+        XCTAssertEqual(VocalLogic.durationLabel(seconds: 0), "0초")
+        XCTAssertEqual(VocalLogic.durationLabel(seconds: 59), "59초")
+        XCTAssertEqual(VocalLogic.durationLabel(seconds: 60), "1분 0초")
+        XCTAssertEqual(VocalLogic.durationLabel(seconds: 61), "1분 1초")
+        XCTAssertEqual(VocalLogic.durationLabel(seconds: 900), "15분 0초")
+        XCTAssertEqual(VocalLogic.durationLabel(seconds: 3599), "59분 59초")
+    }
+
     func testClampBoundsRespectedByEchoBand() {
         // The echo band 43...72 must map inside the canvas display band G2...D5.
         XCTAssertTrue((43...72).contains(VocalLogic.midiNumber(forNoteName: "G2")!))

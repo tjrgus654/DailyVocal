@@ -51,8 +51,6 @@ public final class PracticeSession {
     }
 
     public var formattedDuration: String {
-        let mins = durationSeconds / 60
-        let secs = durationSeconds % 60
-        return mins > 0 ? "\(mins)분 \(secs)초" : "\(secs)초"
+        VocalLogic.durationLabel(seconds: durationSeconds)
     }
 }

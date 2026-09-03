@@ -292,6 +292,13 @@ public enum VocalLogic {
         return Double(elapsedSeconds) >= Double(durationSeconds) * 0.7
     }
 
+    /// "N분 S초" / "S초" duration label (minutes hidden when zero).
+    public static func durationLabel(seconds: Int) -> String {
+        let mins = seconds / 60
+        let secs = seconds % 60
+        return mins > 0 ? "\(mins)분 \(secs)초" : "\(secs)초"
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.
