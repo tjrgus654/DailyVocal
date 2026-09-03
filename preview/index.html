@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5분 보컬 — 프리뷰 v3 (디자인 오버홀: 라운드 타이포·오로라 배경·아일랜드 프레임)</title>
+<style>
+ /* ===== DesignTokens.swift v2 반영 ===== */
+ :root {
+ --brand-primary: #6366F1;
+ --brand-secondary: #06B6D4;
+ --brand-accent: #A855F7;
+ --bg-top: #0A0E27;
+ --bg-bottom: #000000;
+ --surface-dark: #121633;
+ --border-glass: rgba(255,255,255,0.10);
+ --text-secondary: #94A3B8;
+ --vocal-success: #10B981;
+ --vocal-warning: #F59E0B;
+ --vocal-alert: #EF4444;
+ }
+ * { margin:0; padding:0; box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+ body {
+ background:#14142a; display:flex; flex-direction:column; align-items:center;
+ font-family:-apple-system, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI', 'Malgun Gothic', sans-serif;
+ padding:24px; gap:14px;
+ }
+ .meta { color:#8b93b0; font-size:12px; }
+
+ /* ===== iPhone 15 Pro Max 프레임 (다이내믹 아일랜드 + 상태바) ===== */
+ .phone {
+ width:430px; height:932px; border-radius:55px; background:#000;
+ border:3px solid #2a2d3f;
+ padding:0; box-shadow:0 30px 90px rgba(0,0,0,.7); position:relative; flex-shrink:0; overflow:hidden;
+ }
+ .island {
+ position:absolute; top:11px; left:50%; transform:translateX(-50%);
+ width:125px; height:36px; background:#000; border-radius:20px; z-index:50;
+ }
+ .statusbar {
+ position:absolute; top:0; left:0; right:0; height:54px; z-index:40;
+ display:flex; align-items:center; justify-content:space-between;
+ padding:14px 32px 0; font-size:15px; font-weight:700; color:#fff;
+ }
+ .statusbar .right { display:flex; gap:6px; align-items:center; font-size:12px; }
+ .screen {
+ position:absolute; inset:0; overflow:hidden; display:flex; flex-direction:column; color:#fff;
+ padding-top:54px; /* safe area (status bar) */
+ padding-bottom:0;
+ background:
+ radial-gradient(900px 500px at 50% -12%, rgba(99,102,241,.20), transparent 62%),
+ radial-gradient(700px 460px at 96% 108%, rgba(6,182,212,.12), transparent 60%),
+ linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+ }
+ .content { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+ .scroll { flex:1; overflow-y:auto; padding-bottom:12px; }
+ .scroll::-webkit-scrollbar { display:none; }
+
+ /* ===== 글래스 카드 v2: 상단 광택 ===== */
+ .glass {
+ position:relative;
+ background:rgba(18,22,51,.42); backdrop-filter:blur(22px);
+ border:1px solid var(--border-glass); border-radius:22px;
+ box-shadow:0 8px 16px rgba(0,0,0,.30);
+ }
+ .glass::before {
+ content:''; position:absolute; inset:0; border-radius:22px; pointer-events:none;
+ border-top:1px solid rgba(255,255,255,.22);
+ -webkit-mask:linear-gradient(180deg,#000 0%,transparent 42%);
+ mask:linear-gradient(180deg,#000 0%,transparent 42%);
+ }
+
+ /* ===== 타이포 (SF Pro Rounded 계열 컨셉) ===== */
+ .eyebrow { font-size:12px; font-weight:800; letter-spacing:.02em; }
+ .screen-title { font-size:24px; font-weight:900; letter-spacing:-.01em; }
+ .section-title { font-size:17px; font-weight:800; }
+ .caption { font-size:12px; font-weight:800; }
+ .cap2 { font-size:11px; }
+ .timer-display { font-size:60px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.03em; }
+ .note-display { font-size:52px; font-weight:900; letter-spacing:-.02em; }
+
+ .tabbar {
+ height:82px; border-top:1px solid var(--border-glass);
+ background:rgba(6,9,24,.86); backdrop-filter:blur(24px);
+ display:flex; align-items:flex-start; padding-top:10px;
+ }
+ .tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+ color:var(--text-secondary); font-size:10px; font-weight:700; }
+ .tab svg { width:23px; height:23px; }
+ .tab.active { color:var(--brand-primary); }
+
+ .chip { padding:8px 12px; border-radius:999px; font-size:12px; font-weight:700; color:var(--text-secondary);
+ background:var(--surface-dark); white-space:nowrap; border:1px solid transparent; }
+ .chip.on { background:var(--brand-primary); color:#fff; }
+
+ .btn-primary {
+ display:flex; align-items:center; justify-content:center; gap:8px; height:56px; border-radius:28px;
+ background:linear-gradient(90deg, var(--brand-primary), var(--brand-accent));
+ color:#fff; font-size:17px; font-weight:800; letter-spacing:-.01em;
+ box-shadow:0 6px 18px rgba(99,102,241,.45);
+ }
+ .segmented { display:flex; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.06);
+ border-radius:12px; padding:3px; }
+ .segmented span { flex:1; text-align:center; font-size:12.5px; font-weight:700; padding:7px 0; color:var(--text-secondary); border-radius:9px; }
+ .segmented span.on { background:var(--brand-primary); color:#fff; box-shadow:0 2px 8px rgba(99,102,241,.4); }
+
+ .toggle { width:46px; height:28px; border-radius:14px; background:var(--brand-primary); position:relative; flex-shrink:0; }
+ .toggle::after { content:''; position:absolute; top:2px; right:2px; width:24px; height:24px; border-radius:50%; background:#fff; }
+
+ .badge-note { display:inline-flex; align-items:center; gap:4px; padding:4px 9px; border-radius:999px;
+ background:rgba(168,85,247,.16); color:var(--brand-accent); font-size:12px; font-weight:800; }
+ .capsule-cat { display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:999px; font-size:12px; font-weight:800; }
+
+ .piano { display:flex; gap:2px; padding:8px; }
+ .pkey { flex:1; display:flex; flex-direction:column; gap:4px; align-items:center; }
+ .pkey b { height:34px; width:100%; border-radius:5px; background:rgba(255,255,255,.10); }
+ .pkey.cur b { background:var(--brand-secondary); box-shadow:0 0 10px rgba(6,182,212,.5); }
+ .pkey.tgt b { background:rgba(99,102,241,.85); }
+ .pkey span { font-size:9px; font-weight:800; color:var(--text-secondary); }
+ .pkey.cur span { color:var(--brand-secondary); }
+
+ .hm { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+ .hm i { height:15px; border-radius:3.5px; background:rgba(255,255,255,.055); display:block; }
+ .hm i.l1 { background:rgba(99,102,241,.55); } .hm i.l2 { background:var(--brand-primary); }
+ .hm i.l3 { background:var(--brand-secondary); }
+
+ .rangerow { height:16px; border-radius:6px; background:rgba(255,255,255,.07); position:relative; overflow:hidden; }
+ .rangerow b { position:absolute; left:0; top:0; bottom:0; border-radius:6px; }
+ .pagefoot { padding:20px 24px 34px; display:flex; flex-direction:column; gap:14px; }
+ .pageind { display:flex; gap:8px; justify-content:center; }
+ .pageind i { width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.22); }
+ .pageind i.on { background:#fff; }
+</style>
+</head>
+<body>
+<div class="meta">5분 보컬 프리뷰 v3 — 재구현 DesignTokens 기준 · 화면: <span id="scrname">routine</span></div>
+<div class="phone">
+ <div class="island"></div>
+ <div class="statusbar"><span>9:41</span><span class="right">●●●● 5G <b>▮</b> 87%</span></div>
+ <div class="screen" id="app"></div>
+</div>
+<div class="meta">intro / rangetest / routine / quick / tracker / lab / lab_fav / tipdetail / progress</div>
+
+<script>
+const CATS = {
+ breathing:{name:'호흡 & 복압',emoji:'🫁',c:'#3C95F6'},
+ falsetto:{name:'가성 스위치 & 접지',emoji:'🔊',c:'#22C588'},
+ direction:{name:'소리 방향 OUT',emoji:'🎯',c:'#F47272'},
+ jaw:{name:'턱 & 후두 릴랙스',emoji:'🦴',c:'#A855F7'},
+ nasal:{name:'비강공명 vs 생목',emoji:'👃',c:'#F5C530'},
+ practical:{name:'실전 팁 & 코노 치트키',emoji:'🎤',c:'#06B6D4'},
+};
+const icon = n => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="${n}"/></svg>`;
+const TABS = [
+ ['일일 루틴','M3 8h4l2 3 4-6 2 3h6M3 16h18'],
+ ['피치 트래커','M2 12h3l2-6 3 12 2-6h2l2-3 2 3h4'],
+ ['발성 연구소','M4 4h4v16H4zM10 4h4v8h-4zM16 4h4v12h-4z'],
+ ['성장 기록','M4 20V10M10 20V4M16 20v-8M22 20h-20'],
+];
+const tabbar = active => `<div class="tabbar">${TABS.map((t,i)=>`
+ <div class="tab ${i===active?'active':''}">${icon(t[1])}<span>${t[0]}</span></div>`).join('')}</div>`;
+const hmGrid = seed => { let s=seed, out='<div class="hm">';
+ const rnd=()=>{s=(s*9301+49297)%233280;return s/233280;};
+ for(let i=0;i<84;i++){ const future=i>76, r=rnd();
+ let cls=''; if(!future&&r>0.70)cls='l1'; else if(!future&&r>0.87)cls='l2'; else if(!future&&r>0.955)cls='l3';
+ out+=`<i class="${cls}"></i>`; }
+ return out+'</div>'; };
+
+const header = (eyebrow, title, right) => `
+ <div style="display:flex;align-items:center;padding:4px 24px 2px;">
+ <div>
+ <div class="eyebrow" style="color:var(--brand-secondary);">${eyebrow}</div>
+ <div class="screen-title">${title}</div>
+ </div><div style="flex:1"></div>${right || ''}
+ </div>`;
+
+const SCREENS = {};
+
+SCREENS.intro = () => `
+ <div class="content" style="justify-content:flex-end;">
+ <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:0 32px;">
+ <div style="position:relative;width:216px;height:216px;border-radius:50%;background:rgba(99,102,241,.14);display:flex;align-items:center;justify-content:center;">
+ <div style="position:absolute;inset:24px;border-radius:50%;border:3px solid rgba(99,102,241,.7);box-shadow:0 0 26px rgba(99,102,241,.45);"></div>
+ <div style="font-size:96px;filter:drop-shadow(0 6px 18px rgba(99,102,241,.6));">🎤</div>
+ </div>
+ <div class="screen-title" style="font-size:26px;text-align:center;line-height:1.35;">하루 15분,<br>목소리가 달라집니다</div>
+ <div style="color:var(--text-secondary);text-align:center;font-size:15px;line-height:1.7;">발성 이론을 몰라도 괜찮습니다.<br>오보컬 48개 비법과 실시간 피치 가이드로<br>혼자서도 고음을 편안하게 뚫어보세요.</div>
+ </div>
+ <div class="pagefoot">
+ <div class="btn-primary">다음 <span style="font-size:15px;">→</span></div>
+ <div class="cap2" style="text-align:center;color:var(--text-secondary);">로그인 없이 모든 기능이 기기 내에 안전하게 저장됩니다.</div>
+ <div class="pageind"><i class="on"></i><i></i><i></i><i></i></div>
+ </div>
+ </div>`;
+
+SCREENS.rangetest = () => `
+ <div class="content" style="justify-content:flex-end;">
+ <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:0 28px;">
+ <div class="screen-title">내 음역대 측정</div>
+ <div style="color:var(--text-secondary);text-align:center;font-size:15px;line-height:1.7;">마이크를 켜고, 가장 낮은 목소리부터<br>천천히 올라가 최고음까지 gliding 해보세요.<br>이 측정이 성장 기록의 기준선이 됩니다.</div>
+ <div class="glass" style="width:100%;padding:22px;display:flex;flex-direction:column;align-items:center;gap:10px;">
+ <div class="note-display" style="color:var(--brand-secondary);">F3</div>
+ <div class="cap2" style="color:var(--text-secondary);font-variant-numeric:tabular-nums;">174.6 Hz</div>
+ <div style="display:flex;align-items:center;gap:24px;margin-top:4px;">
+ <div style="text-align:center;"><div class="cap2" style="color:var(--text-secondary);">최저음</div>
+ <div style="font-size:23px;font-weight:900;font-variant-numeric:tabular-nums;">G2</div></div>
+ <div style="width:1px;height:34px;background:rgba(255,255,255,.12);"></div>
+ <div style="text-align:center;"><div class="cap2" style="color:var(--text-secondary);">최고음</div>
+ <div style="font-size:23px;font-weight:900;font-variant-numeric:tabular-nums;">A4</div></div>
+ </div>
+ </div>
+ <div style="display:flex;gap:12px;align-items:center;">
+ <div style="padding:12px 22px;border-radius:999px;background:var(--vocal-alert);font-size:13px;font-weight:800;">⏸ 일시정지</div>
+ <div style="font-size:13px;font-weight:800;color:var(--vocal-success);">✓ 측정 완료!</div>
+ </div>
+ </div>
+ <div class="pagefoot">
+ <div class="btn-primary">다음 <span style="font-size:15px;">→</span></div>
+ <div class="pageind"><i></i><i></i><i class="on"></i><i></i></div>
+ </div>
+ </div>`;
+
+const routineBody = (opt) => {
+ const step = opt.step, total = opt.total, remaining = opt.remaining, note = opt.note,
+ cat = opt.cat, subtitle = opt.subtitle, sound = opt.sound, emoji = opt.emoji,
+ analogyTitle = opt.analogyTitle, analogyDesc = opt.analogyDesc, mode = opt.mode;
+ const pct = 0.62;
+ const dots = Array.from({length: total}, (_, i) =>
+ `<div class="dot" style="width:${i===step-1?14:9}px;height:${i===step-1?14:9}px;
+ background:${i<step-1?'var(--vocal-success)':i===step-1?'var(--brand-primary)':'rgba(255,255,255,.18)'};
+ ${i===step-1?'box-shadow:0 0 8px rgba(99,102,241,.85);border:2px solid var(--brand-secondary);':''}"></div>`).join('');
+ return `
+ <div class="content">
+ <div class="scroll">
+ ${header('5분 보컬 · 일일 루틴', mode, `
+ <div style="display:flex;align-items:center;gap:8px;">
+ <div style="display:flex;gap:4px;align-items:center;">
+ <div style="width:6px;height:6px;border-radius:50%;background:var(--vocal-alert);"></div>
+ <span style="font-size:10px;color:var(--text-secondary);font-weight:700;">분석 중</span>
+ </div>
+ <div class="glass" style="border-radius:12px;padding:6px 12px;display:flex;gap:4px;align-items:center;font-size:12px;font-weight:800;">
+ 🔥 <span>${opt.badge}</span>
+ </div>
+ </div>`)}
+
+ <div class="segmented" style="margin:10px 20px 6px;">
+ <span class="${mode.includes('퀵')?'':'on'}">15분 풀코스</span><span class="${mode.includes('퀵')?'on':''}">2분 퀵</span>
+ </div>
+
+ <div style="position:relative;width:258px;height:258px;margin:8px auto 2px;">
+ <div style="position:absolute;inset:0;border-radius:50%;border:13px solid rgba(255,255,255,.06);"></div>
+ <div style="position:absolute;inset:0;border-radius:50%;border:13px solid transparent;
+ background:conic-gradient(from 270deg, var(--brand-secondary), var(--brand-primary), var(--brand-accent) ${pct*360}deg, rgba(255,255,255,.06) ${pct*360}deg 360deg);
+ -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 13.5px),#000 calc(100% - 13px));
+ mask:radial-gradient(farthest-side,transparent calc(100% - 13.5px),#000 calc(100% - 13px));
+ filter:drop-shadow(0 2px 14px rgba(99,102,241,.4));"></div>
+ <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
+ <div class="eyebrow" style="color:var(--brand-secondary);">STEP ${step}/${total}</div>
+ <div class="timer-display">${remaining}</div>
+ <div class="badge-note">🎵 ${note}</div>
+ </div>
+ </div>
+
+ <div style="display:flex;gap:12px;justify-content:center;margin:8px 0 16px;">${dots}</div>
+
+ <div class="glass" style="margin:0 20px;padding:18px;display:flex;flex-direction:column;gap:13px;">
+ <div style="display:flex;align-items:center;">
+ <span class="capsule-cat" style="background:${cat.c}33;color:${cat.c};">${cat.emoji} ${cat.name}</span>
+ <div style="flex:1"></div>
+ <div style="display:flex;gap:4px;align-items:flex-end;">
+ <span style="font-size:11px;color:var(--brand-accent);font-weight:800;">♪</span>
+ <span style="font-size:13px;color:var(--brand-accent);font-weight:900;font-variant-numeric:tabular-nums;">${note}</span>
+ </div>
+ </div>
+ <div>
+ <div class="section-title">${subtitle}</div>
+ <div style="font-size:12px;margin-top:5px;color:var(--text-secondary);">소리 형태: <b style="color:var(--brand-secondary);">${sound}</b></div>
+ </div>
+ <div style="display:flex;gap:12px;">
+ <div style="font-size:27px;width:44px;height:44px;border-radius:50%;background:var(--surface-dark);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${emoji}</div>
+ <div>
+ <div style="font-size:14px;font-weight:800;color:var(--brand-primary);">${analogyTitle}</div>
+ <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-top:4px;">${analogyDesc}</div>
+ </div>
+ </div>
+ <div style="text-align:center;color:var(--brand-secondary);font-size:12px;font-weight:700;">실천 요령 더보기 ⌄</div>
+ </div>
+
+ <div class="glass" style="margin:14px 20px 6px;padding:14px;">
+ <div style="display:flex;align-items:center;gap:8px;">
+ <span style="font-size:18px;color:var(--brand-secondary);">🎹</span>
+ <div style="flex:1">
+ <div style="font-size:12px;font-weight:800;">피아노 가이드 톤 자동 재생</div>
+ <div class="cap2" style="color:var(--text-secondary);">스텝별 최적 스케일을 들으며 따라 부르기</div>
+ </div>
+ <div class="toggle"></div>
+ </div>
+ <div style="height:1px;background:rgba(255,255,255,.08);margin:12px 0;"></div>
+ <div class="segmented"><span>남성 키 (C3)</span><span class="on">여성 키 (C4)</span></div>
+ <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
+ <span style="font-size:12px;font-weight:800;">키 미세조정</span>
+ <div style="display:flex;align-items:center;gap:10px;font-size:12px;font-weight:800;color:var(--brand-secondary);">
+ <span style="width:26px;height:26px;border-radius:50%;background:var(--surface-dark);display:flex;align-items:center;justify-content:center;">−</span>
+ <span style="min-width:36px;text-align:center;">+2키</span>
+ <span style="width:26px;height:26px;border-radius:50%;background:var(--surface-dark);display:flex;align-items:center;justify-content:center;">+</span>
+ </div>
+ </div>
+ </div>
+ </div>
+
+ <div style="display:flex;gap:20px;align-items:center;padding:0 24px 16px;">
+ <div style="width:52px;height:52px;border-radius:50%;background:var(--surface-dark);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:17px;">⏮</div>
+ <div class="btn-primary" style="flex:1;">⏸ 일시정지</div>
+ <div style="width:52px;height:52px;border-radius:50%;background:var(--surface-dark);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:17px;">⏭</div>
+ </div>
+ </div>
+ ${tabbar(0)}`;
+};
+
+SCREENS.routine = () => routineBody({
+ mode:'3주차: 파사지오', badge:'3주차: 파사지오', step:3, total:5, remaining:'02:47', note:'A#3',
+ cat:CATS.falsetto, subtitle:'파사지오(2옥 솔/라) 돌파', sound:'네이 네이 (Nay)', emoji:'🦆',
+ analogyTitle:'마녀 웃음 & 오리 소리 비유',
+ analogyDesc:'과장된 코맹맹이 \'네이\'로 성대를 얇게 유지하면, 힘을 쓰지 않고도 2옥타브 후반을 통과할 수 있습니다.',
+});
+
+SCREENS.quick = () => routineBody({
+ mode:'퀵 2분', badge:'⚡ 퀵 모드', step:1, total:1, remaining:'01:12', note:'G3',
+ cat:CATS.breathing, subtitle:'립트릴 → 허밍 → 사이렌 압축 세트', sound:'부르르 → 음- → 우에에엥', emoji:'⚡',
+ analogyTitle:'엔진 예열 비유',
+ analogyDesc:'노래방 가기 전 2분. 차가운 엔진으로 출발하면 1곡 만에 목이 나갑니다. 세 동작만 빠르게 돌리면 성대가 깨어납니다.',
+});
+
+SCREENS.tracker = () => {
+ const keys=['C3','D3','E3','F3','G3','A3','B3','C4','D4','E4','F4','G4','A4','B4','C5'];
+ return `
+ <div class="content">
+ <div class="scroll">
+ ${header('실시간 음정 코칭', '피치 트래커', `
+ <div class="glass" style="border-radius:10px;padding:4px 10px;display:flex;gap:6px;align-items:center;font-size:12px;font-weight:700;">
+ <i style="width:8px;height:8px;border-radius:50%;background:var(--vocal-success);box-shadow:0 0 6px var(--vocal-success);"></i>감지 중</div>`)}
+
+ <div style="height:64px;display:flex;align-items:baseline;gap:12px;justify-content:center;">
+ <div class="note-display" style="color:var(--vocal-success);text-shadow:0 0 24px rgba(16,185,129,.35);">E4</div>
+ <div>
+ <div style="font-size:20px;font-weight:800;color:var(--vocal-success);font-variant-numeric:tabular-nums;">+12¢</div>
+ <div class="cap2" style="color:var(--text-secondary);font-variant-numeric:tabular-nums;">331.9 Hz</div>
+ </div>
+ </div>
+
+ <div class="glass" style="margin:8px 20px 0;border-radius:14px;">
+ <div class="piano">${keys.map(k=>{
+ const cls=k==='E4'?'cur':k==='F4'?'tgt':'';
+ return `<div class="pkey ${cls}"><b></b><span>${k}</span></div>`;}).join('')}</div>
+ </div>
+
+ <div class="glass" style="margin:14px 20px 0;height:206px;border-radius:18px;position:relative;overflow:hidden;">
+ <svg width="100%" height="100%" viewBox="0 0 390 206" preserveAspectRatio="none">
+ <defs><linearGradient id="pg" x1="0" y1="1" x2="1" y2="0">
+ <stop offset="0" stop-color="#06B6D4"/><stop offset="1" stop-color="#A855F7"/></linearGradient></defs>
+ ${[1,2,3,4].map(i=>`<line x1="0" y1="${i*41}" x2="390" y2="${i*41}" stroke="rgba(255,255,255,.05)"/>`).join('')}
+ <line x1="0" y1="150" x2="390" y2="150" stroke="rgba(255,255,255,.10)"/>
+ <text x="380" y="144" fill="rgba(255,255,255,.35)" font-size="9" font-weight="600" text-anchor="end">C3</text>
+ <line x1="0" y1="75" x2="390" y2="75" stroke="rgba(255,255,255,.10)"/>
+ <text x="380" y="69" fill="rgba(255,255,255,.35)" font-size="9" font-weight="600" text-anchor="end">C4</text>
+ <line x1="0" y1="84" x2="390" y2="84" stroke="#06B6D4" stroke-opacity=".55" stroke-dasharray="6 4" stroke-width="1.5"/>
+ <text x="8" y="76" fill="#06B6D4" font-size="10" font-weight="800">E4</text>
+ <path d="M20,168 C60,166 80,120 110,116 S150,132 170,92 S210,84 240,88 S300,90 330,84"
+ fill="none" stroke="url(#pg)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+ <circle cx="330" cy="84" r="9" fill="rgba(16,185,129,.30)"/>
+ <circle cx="330" cy="84" r="5" fill="#10B981"/>
+ </svg>
+ </div>
+
+ <div class="glass" style="margin:14px 20px 0;padding:10px 14px;display:flex;align-items:center;gap:8px;">
+ <span class="caption" style="color:var(--text-secondary);">목표음:</span>
+ <div style="flex:1;display:flex;gap:8px;overflow:hidden;">
+ ${['C3','E3','G3','A3','C4','D4'].map(k=>`<span class="chip" style="padding:6px 10px;">${k}</span>`).join('')}
+ </div>
+ <div style="width:32px;height:32px;border-radius:50%;background:var(--brand-accent);display:flex;align-items:center;justify-content:center;font-size:13px;">🔊</div>
+ </div>
+
+ <div class="glass" style="margin:14px 20px 4px;padding:14px;display:flex;align-items:center;">
+ <div style="flex:1">
+ <div class="cap2" style="color:var(--text-secondary);">목표음 주파수</div>
+ <div style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;">329.6 Hz</div>
+ </div>
+ <div style="width:1px;height:30px;background:rgba(255,255,255,.10);margin:0 12px;"></div>
+ <div style="flex:1;text-align:right;">
+ <div class="cap2" style="color:var(--text-secondary);">이번 세션 정확도</div>
+ <div style="font-size:20px;font-weight:900;color:var(--vocal-success);font-variant-numeric:tabular-nums;">74%</div>
+ </div>
+ </div>
+ </div>
+
+ <div style="padding:0 24px 16px;">
+ <div style="height:54px;border-radius:16px;background:var(--vocal-alert);display:flex;align-items:center;justify-content:center;gap:8px;font-size:17px;font-weight:800;box-shadow:0 4px 14px rgba(239,68,68,.4);">
+ ⏹ 측정 종료</div>
+ </div>
+ </div>
+ ${tabbar(1)}`;
+};
+
+const labRow = (r, fav) => `
+ <div class="glass" style="margin:0 20px 12px;padding:14px;display:flex;gap:14px;align-items:center;border-radius:16px;">
+ <div style="font-size:20px;width:44px;height:44px;border-radius:50%;background:var(--surface-dark);display:flex;align-items:center;justify-content:center;">${r[1]}</div>
+ <div style="flex:1;min-width:0;">
+ <div style="font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r[2]}</div>
+ <div class="cap2" style="color:var(--brand-secondary);margin-top:3px;">${r[3]}</div>
+ </div>
+ <span style="font-size:13px;color:${fav?'var(--vocal-warning)':'var(--text-secondary)'};">${fav?'★':'☆'}</span>
+ <span style="color:var(--text-secondary);font-size:12px;">›</span>
+ </div>`;
+
+SCREENS.lab = () => {
+ const tips=[
+ ['#4','📐','가장 빠르고 영리하게 노래가 느는 지름길','레고 블록 조립 비유'],
+ ['#8','🚴','고음은 타고나는 거라고??','자전거 기어 변속 비유'],
+ ['#18','⚡','삑사리 고치려고 10년 날렸는데','볼트 너트 조이기'],
+ ['#32','🎨','3옥타브 뚫고 안믿는 레슨생','밑그림 스케치 비유'],
+ ['#46','📻','이거 되는분?','주파수 다이얼'],
+ ];
+ return `
+ <div class="content">
+ <div class="scroll">
+ ${header('오보컬 48개 쇼츠 비법', '발성 연구소', `
+ <div class="glass" style="border-radius:10px;padding:4px 10px;font-size:12px;color:var(--text-secondary);font-weight:700;">총 48개 비법</div>`)}
+
+ <div class="glass" style="margin:10px 20px 0;padding:12px 14px;display:flex;gap:10px;align-items:center;border-radius:14px;">
+ <span style="color:var(--text-secondary);">🔍</span>
+ <span style="flex:1;font-size:14px;color:var(--text-secondary);">비법 검색 (예: 가성, 호흡, 삑사리)</span>
+ </div>
+
+ <div style="display:flex;gap:8px;padding:12px 20px 4px;overflow:hidden;">
+ <span class="chip on">전체 보기</span>
+ <span class="chip" style="border:1px solid rgba(245,158,11,.4);">★ 즐겨찾기 3</span>
+ ${Object.values(CATS).slice(0,3).map(c=>`<span class="chip">${c.emoji} ${c.name}</span>`).join('')}
+ </div>
+
+ <div class="glass" style="margin:12px 20px 0;padding:16px;">
+ <div style="display:flex;align-items:center;">
+ <span class="caption" style="color:var(--vocal-warning);">⭐ 오늘의 추천 비법</span>
+ <div style="flex:1"></div><span class="cap2" style="color:var(--text-secondary);">쇼츠 #32</span>
+ </div>
+ <div style="font-size:17px;font-weight:800;margin-top:10px;">3옥타브 뚫고 안믿는 레슨생</div>
+ <div style="font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.55;">🎨 밑그림 스케치 비유: 처음부터 유화 물감을 바르면 번집니다. 1) 네이로 연필 스케치 ➔ 2) 모음 채색…</div>
+ </div>
+
+ <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 20px;">
+ ${Object.entries(CATS).map(([k,c],i)=>`
+ <div class="glass" style="border-radius:18px;padding:14px;height:118px;display:flex;flex-direction:column;gap:8px;">
+ <div style="display:flex;align-items:center;"><span style="font-size:21px;">${c.emoji}</span><div style="flex:1"></div>
+ <span class="cap2" style="color:var(--text-secondary);">${[5,11,5,12,6,9][i]}개 팁</span></div>
+ <div style="font-size:14px;font-weight:800;">${c.name}</div>
+ <div class="cap2" style="color:var(--text-secondary);line-height:1.45;">${['배에 무작정 힘주지 않고 풍선 주둥이처럼','진성으로만 버티지 않고 가성을 켠 뒤','목으로 소리를 삼키지 않고 앞니 30cm','고음 갈 때 턱 내밀지 않고 엘리베이터','코를 쥐어짜는 생목 콧소리가 아닌','노래방 1분 웜업, 삑사리 즉시 교정'][i]}</div>
+ </div>`).join('')}
+ </div>
+
+ ${tips.map((t,i)=>labRow(t, i===1||i===3)).join('')}
+ </div>
+ </div>
+ ${tabbar(2)}`;
+};
+
+SCREENS.lab_fav = () => `
+ <div class="content">
+ <div class="scroll">
+ ${header('오보컬 48개 쇼츠 비법', '발성 연구소', `
+ <div class="glass" style="border-radius:10px;padding:4px 10px;font-size:12px;color:var(--text-secondary);font-weight:700;">총 48개 비법</div>`)}
+ <div style="display:flex;gap:8px;padding:12px 20px 6px;overflow:hidden;">
+ <span class="chip">전체 보기</span>
+ <span class="chip on" style="background:var(--vocal-warning);">★ 즐겨찾기 3</span>
+ ${Object.values(CATS).slice(0,2).map(c=>`<span class="chip">${c.emoji} ${c.name}</span>`).join('')}
+ </div>
+ <div class="caption" style="color:var(--text-secondary);padding:4px 20px;">3개의 발성 비법</div>
+ ${labRow(['#8','🚴','고음은 타고나는 거라고??','자전거 기어 변속 비유'], true)}
+ ${labRow(['#32','🎨','3옥타브 뚫고 안믿는 레슨생','밑그림 스케치 비유'], true)}
+ ${labRow(['#47','🎤','박효신되는법','멈 멈 밸런스 5:5'], true)}
+ </div>
+ </div>
+ ${tabbar(2)}`;
+
+SCREENS.tipdetail = () => `
+ <div class="content">
+ <div class="scroll" style="padding:14px 24px 20px;">
+ <div style="display:flex;align-items:center;">
+ <span style="font-size:17px;color:var(--vocal-warning);">★</span>
+ <div style="flex:1"></div>
+ <span style="font-size:22px;color:var(--text-secondary);">✕</span>
+ </div>
+ <div style="display:flex;align-items:center;margin:10px 0 14px;">
+ <span class="capsule-cat" style="background:${CATS.falsetto.c}33;color:${CATS.falsetto.c};">${CATS.falsetto.emoji} ${CATS.falsetto.name}</span>
+ <div style="flex:1"></div><span class="cap2" style="color:var(--text-secondary);">쇼츠 조회수 6.4천회</span>
+ </div>
+ <div class="screen-title" style="font-size:22px;line-height:1.4;">가성 쓰면 바로 뚫리는데 안쓰고 뭐해요</div>
+
+ ${[
+ ['','오보컬 핵심 진단','오보컬 레슨 #2: 가성 쓰면 바로 뚫리는데 안쓰고 뭐해요. 잘못된 보컬 상식을 깨고 몸으로 바로 느껴지는 감각적 해결책을 제시합니다.','var(--brand-secondary)'],
+ ['💡','초보자 찰떡 비유','👏 손바닥 포개기 비유: 진성으로만 억지로 때리면 성대가 다칩니다. 높은 가성을 먼저 켜고 손바닥을 살짝 포개듯 부드럽게 붙여줍니다.','var(--vocal-warning)'],
+ ['🚶','이렇게 따라해보세요','1. 부엉이처럼 편안하게 높은 음으로 \'후~\' 가성을 냅니다.<br>2. 그 소리 앞에 \'응\'을 붙여 \'응-후-\'로 연결하며 성대를 살짝 닫아줍니다.<br>3. 소리가 뒤로 빠지지 않고 앞니 뒤쪽에서 진동이 느껴지는지 확인합니다.','var(--vocal-success)'],
+ ].map(s=>`
+ <div class="glass" style="margin-top:14px;padding:16px;">
+ <div class="section-title">${s[0]} ${s[1]}</div>
+ <div style="font-size:14px;margin-top:8px;line-height:1.65;color:rgba(255,255,255,.92);">${s[2]}</div>
+ </div>`).join('')}
+
+ <div class="glass" style="margin-top:14px;padding:16px;">
+ <div class="section-title">함께 보면 좋은 비법</div>
+ <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+ ${[['🦆','3옥타브 뚫고 안믿는 레슨생','네이 네이 5도 스케일'],['👏','레슨생이 저보다 잘하는데요?','립트릴로 목 힘 체크'],['⚡','삑사리 고치려고 10년 날렸는데','C3→G4 5도 스케일 5회']].map(r=>`
+ <div style="display:flex;gap:12px;align-items:center;background:rgba(18,22,51,.6);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:12px;">
+ <span style="font-size:18px;">${r[0]}</span>
+ <div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r[1]}</div>
+ <div class="cap2" style="color:var(--brand-secondary);">${r[2]}</div></div>
+ <span style="color:var(--text-secondary);font-size:12px;">›</span>
+ </div>`).join('')}
+ </div>
+ </div>
+
+ <div class="glass" style="margin-top:14px;height:52px;display:flex;align-items:center;padding:0 16px;gap:10px;border-radius:16px;">
+ <span style="font-size:17px;">▶️</span><span style="font-size:16px;font-weight:800;flex:1;">오보컬 유튜브 쇼츠 원본 보기</span><span style="color:var(--text-secondary);">↗</span>
+ </div>
+ </div>
+ </div>`;
+
+SCREENS.progress = () => `
+ <div class="content">
+ <div class="scroll">
+ ${header('나의 보컬 여정', '성장 &amp; 통계', `
+ <div class="glass" style="border-radius:10px;padding:4px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--brand-secondary);font-size:15px;">🔔</div>`)}
+
+ <div class="glass" style="margin:10px 20px 0;padding:16px;display:flex;align-items:flex-start;border:1px solid rgba(245,158,11,.35);">
+ <div style="flex:1">
+ <div class="cap2" style="color:var(--text-secondary);font-weight:600;">연속 실천 기록</div>
+ <div style="font-size:25px;font-weight:900;margin-top:4px;letter-spacing:-.01em;">6일 연속 <span style="font-size:22px;">🔥</span></div>
+ <div class="cap2" style="color:var(--text-secondary);margin-top:3px;">🧊 보호권으로 이어진 날 1일 포함</div>
+ <div style="margin-top:10px;">
+ <div style="display:flex;align-items:center;">
+ <span class="cap2" style="color:var(--text-secondary);">이번 주 목표</span><div style="flex:1"></div>
+ <span class="cap2" style="font-weight:800;color:var(--brand-secondary);font-variant-numeric:tabular-nums;">3/5일</span>
+ </div>
+ <div style="height:5px;border-radius:3px;background:rgba(255,255,255,.10);margin-top:5px;overflow:hidden;">
+ <div style="height:100%;width:60%;border-radius:3px;background:linear-gradient(90deg,var(--brand-primary),var(--brand-accent));"></div>
+ </div>
+ </div>
+ </div>
+ <div style="text-align:right;padding-left:12px;">
+ <div class="cap2" style="color:var(--text-secondary);">스트릭 보호권</div>
+ <div class="caption" style="color:var(--brand-secondary);margin-top:2px;">1개 보유 🛡️</div>
+ </div>
+ </div>
+
+ <div class="glass" style="margin:14px 20px 0;padding:16px;">
+ <div style="display:flex;align-items:center;">
+ <span class="caption" style="font-size:14px;">연습 활동 (최근 12주)</span><div style="flex:1"></div>
+ <span class="cap2" style="color:var(--brand-secondary);font-weight:700;">총 23일 실천</span>
+ </div>
+ <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:12px 0 4px;">
+ ${['월','화','수','목','금','토','일'].map(d=>`<span style="font-size:10px;font-weight:800;color:var(--text-secondary);text-align:center;">${d}</span>`).join('')}
+ </div>
+ ${hmGrid(42)}
+ <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;margin-top:8px;">
+ <span style="font-size:9px;color:var(--text-secondary);">적음</span>
+ <i style="width:10px;height:10px;border-radius:2.5px;background:rgba(255,255,255,.055);"></i>
+ <i style="width:10px;height:10px;border-radius:2.5px;background:rgba(99,102,241,.55);"></i>
+ <i style="width:10px;height:10px;border-radius:2.5px;background:var(--brand-primary);"></i>
+ <i style="width:10px;height:10px;border-radius:2.5px;background:var(--brand-secondary);"></i>
+ <span style="font-size:9px;color:var(--text-secondary);">많음</span>
+ </div>
+ </div>
+
+ <div class="glass" style="margin:14px 20px 0;padding:16px;">
+ <div style="display:flex;align-items:center;">
+ <span class="caption" style="font-size:14px;">음역대 변화</span><div style="flex:1"></div>
+ <span class="cap2" style="color:var(--vocal-success);font-weight:800;">+3 반음 확장</span>
+ </div>
+ <div style="margin-top:14px;">
+ <div style="display:flex;"><span class="cap2" style="color:var(--text-secondary);">시작 (측정 당시)</span><div style="flex:1"></div><span class="caption">G2 ~ F4</span></div>
+ <div class="rangerow" style="margin-top:6px;"><b style="width:53%;background:linear-gradient(90deg,rgba(99,102,241,.55),var(--brand-primary));"></b></div>
+ </div>
+ <div style="margin-top:12px;">
+ <div style="display:flex;"><span class="cap2" style="color:var(--brand-secondary);">현재</span><div style="flex:1"></div><span class="caption" style="color:var(--brand-secondary);">G2 ~ A4</span></div>
+ <div class="rangerow" style="margin-top:6px;"><b style="width:61%;background:linear-gradient(90deg,var(--brand-primary),var(--brand-secondary));"></b></div>
+ </div>
+ <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:9px;color:var(--text-secondary);">
+ <span>C2</span><span>C3</span><span>C4</span><span>C5</span>
+ </div>
+ </div>
+
+ <div style="display:flex;gap:14px;margin:14px 20px 0;">
+ <div class="glass" style="flex:1;padding:14px;border-radius:18px;">
+ <div class="cap2" style="color:var(--text-secondary);">🕰 총 연습 시간</div>
+ <div style="font-size:17px;font-weight:800;margin-top:6px;">2시간 47분</div>
+ </div>
+ <div class="glass" style="flex:1;padding:14px;border-radius:18px;">
+ <div class="cap2" style="color:var(--text-secondary);">✅ 완료 세션</div>
+ <div style="font-size:17px;font-weight:800;margin-top:6px;">11회 완료</div>
+ </div>
+ </div>
+
+ <div class="glass" style="margin:14px 20px 4px;padding:14px;display:flex;gap:10px;align-items:center;border-radius:18px;">
+ <span style="font-size:17px;color:var(--brand-accent);">📈</span>
+ <div>
+ <div class="cap2" style="color:var(--text-secondary);">최근 피치 측정</div>
+ <div class="caption" style="margin-top:2px;">87점 · A등급 · 목표음 E4</div>
+ </div>
+ </div>
+ </div>
+ </div>
+ ${tabbar(3)}`;
+
+function render(name){
+ document.getElementById('app').innerHTML = SCREENS[name]();
+ document.getElementById('scrname').textContent = name;
+}
+window.showScreen = render;
+render('routine');
+</script>
+</body>
+</html>

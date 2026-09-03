@@ -1,0 +1,31 @@
+# Xcode/Mac 없이 iOS 코드를 타입 수준까지 검증하는 무료 CI.
+# 공개(public) 저장소면 macOS 러너가 무료·무제한 (2026-09 기준).
+# Apple Developer 계정, .xcodeproj, 코드 서명 전부 불필요.
+#
+# 로컬 Windows 사전 단계(구문 검사)는 verify_swift_parse.sh 참고.
+name: iOS typecheck
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  typecheck:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show SDKs (sanity)
+        run: xcodebuild -showsdks
+
+      # 앱 타깃 32파일 (위젯 제외: @main 이중 선언 충돌 방지)
+      - name: Typecheck app sources
+        run: |
+          xcrun --sdk iphonesimulator swiftc -typecheck \
+            -target arm64-apple-ios17.0-simulator \
+            $(find . -name '*.swift' -not -path './.git/*' -not -path './preview/*' -not -path '*Widget*')
+
+      # 위젯 익스텐션 (Attributes 공유 파일 포함)
+      - name: Typecheck widget extension
+        run: |
+          xcrun --sdk iphonesimulator swiftc -typecheck \
+            -target arm64-apple-ios17.0-simulator \
+            Widget/VocalWidgetBundle.swift Core/LiveActivity/VocalActivityAttributes.swift

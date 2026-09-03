@@ -1,0 +1,18 @@
+# macOS / Xcode
+.DS_Store
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+*.xcworkspace/xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Node (프리뷰 도구 사용 시)
+node_modules/
+
+# 로컬 실험용
+*.log
+tmp/

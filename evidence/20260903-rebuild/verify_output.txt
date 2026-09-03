@@ -1,0 +1,60 @@
+=== A. Ghost API residue (old symbols must be gone) ===
+  [PASS] detectedPitchHz absent
+  [PASS] detectedOctave absent
+  [PASS] centsOffset absent
+  [PASS] isTargetMatched absent
+  [PASS] setTarget(note absent
+  [PASS] toggleListening absent
+  [PASS] toggleContinuousPlay absent
+  [PASS] ScaleType absent
+  [PASS] currentBPM absent
+  [PASS] SynthToneGenerator absent
+  [PASS] ScalePlayerEngine absent
+  [PASS] PitchTrackerLiveView absent
+  [PASS] ScalePlayerView absent
+  [PASS] ChallengeView absent
+  [PASS] WaveformBarView absent
+  [PASS] ProgressViewDashboard absent
+  [PASS] RoutineStage absent
+  [PASS] ShortsTip absent
+
+=== B. Brace/paren balance after stripping strings & comments ===
+  [PASS] 32 files checked, 0 unbalanced
+
+=== C. @main placement (comments stripped) ===
+  [PASS] exactly one @main in app entry and one in widget bundle
+
+=== D. Type member cross-references ===
+  VocalAudioEngine: 95 members defined
+  ScaleSequencer: 25 members defined
+  DailyRoutineViewModel: 50 members defined
+  PitchTrackerViewModel: 37 members defined
+  ProgressViewModel: 38 members defined
+  VocalLabViewModel: 17 members defined
+  YINPitchDetector: 26 members defined
+  NotificationManager: 15 members defined
+  LiveActivityManager: 10 members defined
+  [PASS] 92 instance-member references all resolve
+
+=== E. Custom type definitions ===
+  [PASS] all 44 custom types defined
+
+=== F. Key API signatures ===
+  [PASS] vDSP_vsub 8-arg call
+  [PASS] vDSP_svesq call
+  [PASS] vDSP_rmsqv call
+  [PASS] iOS 17 permission API
+  [PASS] tone scheduling
+  [PASS] widget timer interval
+
+=== G. vocal_tips.json <-> VocalTip Codable consistency ===
+  [PASS] 48 tips; fields/categories/relatedShorts consistent
+  [PASS] beginnerAnalogy: 0 duplicates
+  [PASS] howTo: 0 duplicates
+  [PASS] keyActionWord: 0 duplicates
+  [PASS] shortsSummary: 0 duplicates
+  [PASS] category distribution: {'breathing': 5, 'falsetto_switch': 11, 'sound_direction': 5, 'practical_tips': 9, 'jaw_larynx': 12, 'nasal_resonance': 6}
+  [PASS] same-category relatedShorts: 120/144
+
+============================================================
+RESULT: ALL CHECKS PASSED

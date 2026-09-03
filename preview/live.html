@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5분 보컬 — 실제 동작 프로토타입 (마이크 YIN · 가이드 톤 · 영속화)</title>
+<style>
+ :root {
+ --brand-primary:#6366F1; --brand-secondary:#06B6D4; --brand-accent:#A855F7;
+ --bg-top:#0A0E27; --surface-dark:#121633; --border-glass:rgba(255,255,255,.10);
+ --text-secondary:#94A3B8; --vocal-success:#10B981; --vocal-warning:#F59E0B; --vocal-alert:#EF4444;
+ }
+ *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+ body{background:#14142a;display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px;
+ font-family:-apple-system,'SF Pro Text','Segoe UI Variable Text','Segoe UI','Malgun Gothic',sans-serif;}
+ .meta{color:#8b93b0;font-size:12px;}
+ .phone{width:430px;height:932px;border-radius:55px;background:#000;border:3px solid #2a2d3f;
+ box-shadow:0 30px 90px rgba(0,0,0,.7);position:relative;flex-shrink:0;overflow:hidden;}
+ .island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:125px;height:36px;background:#000;border-radius:20px;z-index:50;}
+ .statusbar{position:absolute;top:0;left:0;right:0;height:54px;z-index:40;display:flex;align-items:center;
+ justify-content:space-between;padding:14px 32px 0;font-size:15px;font-weight:700;color:#fff;}
+ .screen{position:absolute;inset:0;overflow:hidden;display:flex;flex-direction:column;color:#fff;padding-top:54px;
+ background:radial-gradient(900px 500px at 50% -12%,rgba(99,102,241,.20),transparent 62%),
+ radial-gradient(700px 460px at 96% 108%,rgba(6,182,212,.12),transparent 60%),
+ linear-gradient(180deg,var(--bg-top) 0%,#000 100%);}
+ .content{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+ .scroll{flex:1;overflow-y:auto;padding-bottom:14px;}
+ .scroll::-webkit-scrollbar{display:none;}
+ .glass{position:relative;background:rgba(18,22,51,.42);backdrop-filter:blur(22px);
+ border:1px solid var(--border-glass);border-radius:22px;box-shadow:0 8px 16px rgba(0,0,0,.30);}
+ .glass::before{content:'';position:absolute;inset:0;border-radius:22px;pointer-events:none;
+ border-top:1px solid rgba(255,255,255,.22);
+ -webkit-mask:linear-gradient(180deg,#000 0%,transparent 42%);mask:linear-gradient(180deg,#000 0%,transparent 42%);}
+ .eyebrow{font-size:12px;font-weight:800;letter-spacing:.02em;}
+ .screen-title{font-size:24px;font-weight:900;letter-spacing:-.01em;}
+ .caption{font-size:12px;font-weight:800;}
+ .cap2{font-size:11px;}
+ .timer-display{font-size:60px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.03em;}
+ .note-display{font-size:52px;font-weight:900;letter-spacing:-.02em;}
+ .tabbar{height:82px;border-top:1px solid var(--border-glass);background:rgba(6,9,24,.86);
+ backdrop-filter:blur(24px);display:flex;align-items:flex-start;padding-top:10px;}
+ .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-secondary);
+ font-size:10px;font-weight:700;cursor:pointer;background:none;border:none;}
+ .tab svg{width:23px;height:23px;}
+ .tab.active{color:var(--brand-primary);}
+ .chip{padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700;color:var(--text-secondary);
+ background:var(--surface-dark);white-space:nowrap;border:1px solid transparent;cursor:pointer;}
+ .chip.on{background:var(--brand-primary);color:#fff;}
+ .btn-primary{display:flex;align-items:center;justify-content:center;gap:8px;height:56px;border-radius:28px;
+ background:linear-gradient(90deg,var(--brand-primary),var(--brand-accent));color:#fff;font-size:17px;
+ font-weight:800;border:none;cursor:pointer;box-shadow:0 6px 18px rgba(99,102,241,.45);width:100%;}
+ .btn-ghost{height:44px;border-radius:22px;background:var(--surface-dark);border:1px solid rgba(255,255,255,.10);
+ color:#fff;font-size:14px;font-weight:800;cursor:pointer;padding:0 20px;}
+ .segmented{display:flex;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:3px;}
+ .segmented span{flex:1;text-align:center;font-size:12.5px;font-weight:700;padding:7px 0;color:var(--text-secondary);border-radius:9px;cursor:pointer;}
+ .segmented span.on{background:var(--brand-primary);color:#fff;box-shadow:0 2px 8px rgba(99,102,241,.4);}
+ .toggle{width:46px;height:28px;border-radius:14px;background:rgba(255,255,255,.15);position:relative;flex-shrink:0;cursor:pointer;transition:background .2s;}
+ .toggle.on{background:var(--brand-primary);}
+ .toggle::after{content:'';position:absolute;top:2px;left:2px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s;}
+ .toggle.on::after{left:20px;}
+ .badge-note{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:999px;
+ background:rgba(168,85,247,.16);color:var(--brand-accent);font-size:12px;font-weight:800;}
+ .capsule-cat{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:800;}
+ .hm{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+ .hm i{height:15px;border-radius:3.5px;background:rgba(255,255,255,.055);display:block;}
+ .hm i.l1{background:rgba(99,102,241,.55);} .hm i.l2{background:var(--brand-primary);} .hm i.l3{background:var(--brand-secondary);}
+ .toast{position:absolute;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);opacity:0;
+ background:rgba(18,22,51,.92);border:1px solid var(--border-glass);border-radius:16px;padding:14px 20px;
+ z-index:60;transition:all .25s;max-width:340px;text-align:center;font-size:14px;line-height:1.5;}
+ .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+ .pkey{flex:1;display:flex;flex-direction:column;gap:4px;align-items:center;}
+ .pkey b{height:34px;width:100%;border-radius:5px;background:rgba(255,255,255,.10);}
+ .pkey.cur b{background:var(--brand-secondary);box-shadow:0 0 10px rgba(6,182,212,.5);}
+ .pkey.tgt b{background:rgba(99,102,241,.85);}
+ .pkey span{font-size:9px;font-weight:800;color:var(--text-secondary);}
+</style>
+</head>
+<body>
+<div class="meta">5분 보컬 — <b>실제 동작 프로토타입</b> · 마이크 YIN 피치 감지 · WebAudio 가이드 톤 · localStorage 영속화 · 화면: <span id="scrname">onboarding</span></div>
+<div class="phone">
+ <div class="island"></div>
+ <div class="statusbar"><span>9:41</span><span style="font-size:12px;">●●●● 5G ▮ 87%</span></div>
+ <div class="screen"><div class="content" id="app"></div></div>
+ <div class="toast" id="toast"></div>
+</div>
+<div class="meta">프레임 하단 탭으로 이동 · 우측 하단 "엔진 자가진단"으로 마이크 없이 YIN 정확도 검증</div>
+<button id="selftest" style="position:fixed;right:24px;bottom:24px;z-index:99;" class="btn-ghost">🔧 엔진 자가진단</button>
+
+<script>
+"use strict";
+// ============================================================
+// 1) 음악 유틸 (VocalAudioEngine statics 와 동일 스펙)
+// ============================================================
+const NOTE_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const a4Ref = () => { const v = (typeof Store !== "undefined" && Store.data && Store.data.prefs && Store.data.prefs.a4) || 440; return Math.min(445, Math.max(435, v)); };
+const midiToFreq = m => a4Ref() * Math.pow(2.0, (m - 69.0) / 12.0);
+function freqToNoteCents(f){
+ if (f <= 0) return {note:"--", midi:0, cents:0};
+ const exact = 69.0 + 12.0 * Math.log2(f / a4Ref());
+ const midi = Math.round(exact);
+ return {note: NOTE_NAMES[((midi%12)+12)%12] + (Math.floor(midi/12)-1), midi, cents:(exact-midi)*100};
+}
+const fmtClock = s => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(Math.floor(s%60)).padStart(2,"0")}`;
+
+// ============================================================
+// 2) YIN 피치 감지기 (Core/Audio/YINPitchDetector.swift 의 JS 포팅)
+// 차분함수는 순수 루프(Swift 은 vDSP SIMD — 결과 동일 스펙)
+// ============================================================
+function yinDetect(samples, sampleRate, minF=65, maxF=1050, threshold=0.15, fallbackMax=0.45){
+ const W = Math.floor(samples.length / 2);
+ if (W < 256 || sampleRate <= 0) return {frequency:0, confidence:0};
+ const maxTau = Math.min(Math.floor(sampleRate / minF), W - 2);
+ const minTau = Math.max(2, Math.floor(sampleRate / maxF));
+ if (maxTau - minTau < 3 || samples.length < W + maxTau + 1) return {frequency:0, confidence:0};
+
+ // Step 1: 차분함수
+ const d = new Float32Array(maxTau + 2);
+ for (let tau = 1; tau <= maxTau; tau++){
+ let sum = 0;
+ for (let i = 0; i < W; i++){ const dx = samples[i] - samples[i+tau]; sum += dx*dx; }
+ d[tau] = sum;
+ }
+ // Step 2: CMNDF
+ const cmndf = new Float32Array(maxTau + 2); cmndf.fill(1);
+ let run = 0;
+ for (let tau = 1; tau <= maxTau; tau++){
+ run += d[tau];
+ cmndf[tau] = run > 0 ? d[tau] * tau / run : 1;
+ }
+ // Step 3: 임계값 탐색 → 로컬 최소로 하강
+ let est = 0, tau = minTau;
+ while (tau < maxTau){
+ if (cmndf[tau] < threshold){
+ while (tau + 1 < maxTau && cmndf[tau+1] < cmndf[tau]) tau++;
+ est = tau; break;
+ }
+ tau++;
+ }
+ if (est === 0){
+ let minVal = Infinity;
+ for (let t = minTau; t < maxTau; t++) if (cmndf[t] < minVal){ minVal = cmndf[t]; est = t; }
+ if (minVal >= fallbackMax) return {frequency:0, confidence:0};
+ }
+ if (est < 1 || est + 1 > maxTau) return {frequency:0, confidence:0};
+ // Step 4: 포물선 보간
+ const s0 = cmndf[est-1], s1 = cmndf[est], s2 = cmndf[est+1];
+ const den = 2 * (2*s1 - s2 - s0);
+ let shift = 0;
+ if (Math.abs(den) > 1e-9) shift = (s2 - s0) / den;
+ const refined = est + shift;
+ if (refined <= 1) return {frequency:0, confidence:0};
+ const f0 = sampleRate / refined;
+ if (f0 < minF*0.95 || f0 > maxF*1.05) return {frequency:0, confidence:0};
+ return {frequency: f0, confidence: Math.max(0, Math.min(1, 1 - s1))};
+}
+
+// ============================================================
+// 3) 오디오 엔진 (마이크 + 가이드 톤) — VocalAudioEngine 미러
+// ============================================================
+const Audio5 = {
+ ctx: null, analyser: null, micStream: null, buf: null,
+ running: false, amplitude: 0, freq: 0, noteName: "--", cents: 0,
+ prev1: 0, prev2: 0, lastVoiced: 0, listeners: [],
+ SILENCE_GATE: 0.02,
+
+ ensureCtx(){
+ if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+ if (this.ctx.state === "suspended") this.ctx.resume();
+ return this.ctx;
+ },
+
+ async startMic(){
+ if (this.running) return true;
+ try {
+ const ctx = this.ensureCtx();
+ this.micStream = await navigator.mediaDevices.getUserMedia({
+ audio: {echoCancellation:false, noiseSuppression:false, autoGainControl:false}
+ });
+ const src = ctx.createMediaStreamSource(this.micStream);
+ this.analyser = ctx.createAnalyser();
+ this.analyser.fftSize = 2048;
+ this.buf = new Float32Array(this.analyser.fftSize);
+ src.connect(this.analyser);
+ this.running = true;
+ this.loop();
+ return true;
+ } catch (e) {
+ this.running = false;
+ return false;
+ }
+ },
+ stopMic(){
+ this.running = false;
+ if (this.micStream){ this.micStream.getTracks().forEach(t => t.stop()); this.micStream = null; }
+ this.amplitude = 0; this.freq = 0; this.noteName = "--"; this.cents = 0;
+ this.prev1 = this.prev2 = this.lastVoiced = 0;
+ this.listeners.forEach(fn => fn(0, "--", 0, false));
+ },
+
+ loop(){
+ if (!this.running) return;
+ requestAnimationFrame(() => this.loop());
+ this.analyser.getFloatTimeDomainData(this.buf);
+ // RMS
+ let sum = 0;
+ for (let i = 0; i < this.buf.length; i++) sum += this.buf[i]*this.buf[i];
+ const rms = Math.sqrt(sum / this.buf.length);
+ this.amplitude = this.amplitude * 0.6 + rms * 0.4;
+ const voicedFrame = rms > this.SILENCE_GATE;
+ if (!voicedFrame){
+ this.freq = 0; this.noteName = "--"; this.cents = 0;
+ this.prev1 = this.prev2 = this.lastVoiced = 0;
+ this.listeners.forEach(fn => fn(0, "--", 0, false));
+ return;
+ }
+ const est = yinDetect(this.buf, this.ctx.sampleRate);
+ if (est.frequency <= 0 || est.confidence < 0.55){
+ this.listeners.forEach(fn => fn(0, "--", 0, false));
+ return;
+ }
+ // 옥타브 점프 거부 (앱 엔진과 동일 규칙)
+ if (this.lastVoiced > 0){
+ const ratio = est.frequency / this.lastVoiced;
+ if ((ratio > 1.9 || ratio < 0.55) && est.confidence < 0.85) return;
+ }
+ // 중앙값-3 스무딩
+ const cands = [est.frequency];
+ if (this.prev1 > 0) cands.push(this.prev1);
+ if (this.prev2 > 0) cands.push(this.prev2);
+ cands.sort((a,b)=>a-b);
+ const stable = cands[Math.floor(cands.length/2)];
+ this.prev2 = this.prev1; this.prev1 = stable; this.lastVoiced = stable;
+ const conv = freqToNoteCents(stable);
+ this.freq = stable; this.noteName = conv.note; this.cents = conv.cents;
+ this.listeners.forEach(fn => fn(stable, conv.note, conv.cents, true));
+ },
+
+ onPitch(fn){ this.listeners.push(fn); },
+
+ // 가이드 톤: 삼각파+2배음+ADSR (makeToneBuffer 미러)
+ playTone(freq, dur=0.7, vol=0.5){
+ if (freq < 20 || freq > 8000) return;
+ const ctx = this.ensureCtx();
+ const t0 = ctx.currentTime + 0.02;
+ const oscs = [[1, 1.0], [2, 0.3], [3, 0.12]].map(([h, g]) => {
+ const o = ctx.createOscillator();
+ o.type = "sine"; o.frequency.value = freq * h;
+ const gain = ctx.createGain();
+ gain.gain.value = g;
+ o.connect(gain);
+ return {o, gain};
+ });
+ const master = ctx.createGain();
+ const attack = 0.03, decay = 0.15, sustain = 0.65, release = Math.min(0.2, dur*0.3);
+ master.gain.setValueAtTime(0.0001, t0);
+ master.gain.linearRampToValueAtTime(vol, t0 + attack);
+ master.gain.linearRampToValueAtTime(vol * sustain, t0 + attack + decay);
+ master.gain.setValueAtTime(vol * sustain, t0 + Math.max(attack+decay, dur - release));
+ master.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+ oscs.forEach(({gain}) => gain.connect(master));
+ master.connect(ctx.destination);
+ oscs.forEach(({o}) => { o.start(t0); o.stop(t0 + dur + 0.05); });
+ },
+ playNoteMidi(m, dur){ this.playTone(midiToFreq(m), dur); },
+};
+
+// ============================================================
+// 4) 영속 저장소 (SwiftData UserProfile/Session/PitchRecord 미러)
+// ============================================================
+const Store = {
+ KEY: "vocal5_live_v1",
+ data: null,
+ defaults(){
+ return {
+ onboardingDone:false, measured:false,
+ baseline:{lo:0, hi:0}, range:{lo:0, hi:0},
+ sessions:[], pitchRecords:[], frozenDays:[], freezeTokens:2,
+ favorites:[], prefs:{femaleKey:false, transpose:0, autoplay:true},
+ };
+ },
+ load(){
+ try { this.data = Object.assign(this.defaults(), JSON.parse(localStorage.getItem(this.KEY) || "{}")); }
+ catch(e){ this.data = this.defaults(); }
+ return this.data;
+ },
+ save(){ localStorage.setItem(this.KEY, JSON.stringify(this.data)); },
+};
+Store.load();
+
+// 4시 롤오버 실천일 키 (ProgressViewModel.practiceDayKey 미러)
+function practiceDayKey(date){
+ const d = new Date(date.getTime() - 4*3600*1000);
+ return rawKey(d);
+}
+// 실천일 공간의 "그날 시작" 정규화 키 (롤오버 재적용 금지)
+function rawKey(date){
+ return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
+}
+// 스트릭 + 보호권 자동 소모 (calculateStreak 미러)
+function calcStreak(){
+ const days = new Set(Store.data.sessions.map(s => practiceDayKey(new Date(s.date))));
+ const frozen = new Set(Store.data.frozenDays);
+ let tokens = Store.data.freezeTokens, streak = 0, consumed = null, frozenUsed = 0;
+ let cursor = new Date(Date.now() - 4*3600*1000); cursor.setHours(0,0,0,0); // 현재 실천일 시작(이중 시프트 금지)
+ const key = d => rawKey(d);
+ // 오늘을 아직 안 했다면 스트릭은 어제 기준으로 살아 있을 수 있음.
+ // 어제 결석이라도 프리즈가 브리지할 수 있으므로 조기 종료하지 않고 루프에서 판정.
+ if (!days.has(key(cursor))) cursor.setDate(cursor.getDate() - 1);
+ for (let i = 0; i < 366; i++){
+ const k = key(cursor);
+ const prev = new Date(cursor); prev.setDate(prev.getDate() - 1);
+ if (days.has(k)) streak++;
+ else if (frozen.has(k)) frozenUsed++;
+ else if (tokens > 0 && (days.has(key(prev)) || frozen.has(key(prev)))){ tokens--; consumed = k; }
+ else break;
+ cursor = prev;
+ }
+ if (consumed){
+ Store.data.frozenDays.push(consumed);
+ Store.data.freezeTokens = Math.max(0, Store.data.freezeTokens - 1);
+ Store.save();
+ }
+ return {streak, frozenUsed: frozenUsed + (consumed ? 1 : 0)};
+}
+function weeklyDays(){
+ const days = new Set(Store.data.sessions.map(s => practiceDayKey(new Date(s.date))));
+ const now = new Date(); now.setHours(0,0,0,0);
+ const ws = new Date(now); ws.setDate(ws.getDate() - ((ws.getDay() + 6) % 7)); // 월요일
+ let c = 0;
+ for (let i = 0; i < 7; i++){
+ const d = new Date(ws); d.setDate(ws.getDate() + i);
+ if (days.has(rawKey(d))) c++;
+ }
+ return c;
+}
+function heatmapData(){
+ const counts = {};
+ Store.data.sessions.forEach(s => { const k = practiceDayKey(new Date(s.date)); counts[k] = (counts[k]||0)+1; });
+ const now = new Date(); now.setHours(0,0,0,0);
+ const ws = new Date(now); ws.setDate(ws.getDate() - ((ws.getDay() + 6) % 7));
+ const start = new Date(ws); start.setDate(ws.getDate() - 11 * 7);
+ const cells = [];
+ for (let i = 0; i < 84; i++){
+ const d = new Date(start); d.setDate(start.getDate() + i);
+ const k = rawKey(d);
+ cells.push(`<i class="${counts[k]>=3?'l3':counts[k]===2?'l2':counts[k]===1?'l1':''}"></i>`);
+ }
+ return cells.join("");
+}
+
+// ============================================================
+// 5) 루틴 프리셋 (RoutinePresets 미러 — 축약본)
+// ============================================================
+const STEPS_FULL = [
+ {t:"1단계: 웜업 & 호흡", sub:"립트릴로 목 힘 완전히 풀기", dur:240, sound:"부르르- (Lip Bubble)", emoji:"🎈", analogy:"풍선 주둥이 비유", adesc:"배에 무식하게 힘을 주면 목이 조입니다. 풍선 주둥이를 얇게 열어 바람이 고르게 빠지듯 호흡을 흘려보내세요.", pattern:[0,4,7,12,7,4,0]},
+ {t:"2단계: 성대 깨우기", sub:"허밍으로 공명 통로 열기", dur:180, sound:"음- (Humming)", emoji:"👃", analogy:"마스크 공명 비유", adesc:"소리를 목에서 만들지 말고, 콧대에 선글라스가 얹히는 위치의 '마스크'에 울리게 합니다.", pattern:[0,2,4,5,7,5,4,2,0]},
+ {t:"3단계: 오리 소리 Nay", sub:"파사지오(2옥 솔/라) 돌파", dur:240, sound:"네이 네이 (Nay)", emoji:"🦆", analogy:"마녀 웃음 & 오리 소리 비유", adesc:"과장된 코맹맹이 '네이'로 성대를 얇게 유지하면, 힘을 쓰지 않고도 2옥타브 후반을 통과할 수 있습니다.", pattern:[0,2,4,5,7,5,4,2,0]},
+ {t:"4단계: 모음 튜닝", sub:"'아'를 '어'로 좁혀 통과하기", dur:150, sound:"아→어 / 좁은 문 (Vowel)", emoji:"🚪", analogy:"좁은 문 통과 비유", adesc:"고음에서 입을 크게 벌리면 후두가 치솟습니다. 모음의 문을 살짝 좁혀('아'→'어') 통과시킵니다.", pattern:[0,2,4,5,7,5,4,2,0]},
+ {t:"5단계: 실전 조립", sub:"네이 → 모음 → 가사", dur:90, sound:"네이 ➔ 모음 ➔ 가사", emoji:"🎯", analogy:"밑그림→채색→디테일", adesc:"1) 네이로 스케치 2) 모음으로 채색 3) 가사로 디테일. 이 순서를 지키면 고음 소절이 무너지지 않습니다.", pattern:[0]},
+];
+const STEPS_QUICK = [
+ {t:"퀵 2분: 목 깨우기", sub:"립트릴 → 허밍 → 사이렌 압축 세트", dur:120, sound:"부르르 → 음- → 우에에엥", emoji:"⚡", analogy:"엔진 예열 비유", adesc:"노래방 가기 전 2분. 차가운 엔진으로 출발하면 목이 금방 지칠 수 있습니다. 세 동작만 빠르게 돌리면 성대가 깨어납니다.", pattern:[0,4,7,12,7,4,0]},
+];
+const STEPS_REST = [
+ {t:"쉬는 날 2분: 소리 줄이기", sub:"아주 작은 빨대 발성과 저음 허밍만", dur:120, sound:"빨대 우--- (아주 작게) → 음- → 하---", emoji:"🩹", analogy:"딱지 비유", adesc:"아픈 성대는 무릎의 딱지와 같아서, 큰 소리는 딱지를 뜯는 행위입니다. 오늘은 아주 작은 소리로 혈류만 돌려줍니다.", pattern:[0], rest:true,
+ a:["40초: 빨대를 물고 들릴락 말락한 크기로 '우---'를 붑니다. 높이는 편한 한 음만 유지합니다.","40초: 아주 낮고 작은 '음---' 허밍으로 콧대에 온기만 느껴지게 합니다.","40초: 하품하듯 입을 열고 조용한 한숨 '하---'로 마무리합니다. 절대 속삭이지 않습니다. 속삭임은 조용한 말보다 성대에 더 부담이 됩니다."]},
+];
+
+// ============================================================
+// 6) 앱 상태 & 렌더
+// ============================================================
+const App = {
+ tab: "routine",
+ // 루틴
+ mode: "full", steps: STEPS_FULL, stepIdx: 0, stepEnd: 0, running: false,
+ totalElapsed: 0, stepElapsed: 0, completed: new Set(), doneAlert: false,
+ seqTimer: null, seqPlaying: false, seqNote: "",
+ // 트래커
+ listening: false, target: {name:"E4", midi:64}, history: [], hits:0, voiced:0, centsSum:0,
+ lo:0, hi:0, sessionStart:0, lastScore:null, lastGrade:"", ignoreUntil:0,
+ trMode: "single", echo: {midis:[], idx:0, gen:0, timers:[]},
+ bins: new Array(12).fill(0),
+ // 온보딩 측정
+ measuring:false, mLo:0, mHi:0, mFrames:0, mLive:"--", mFreq:0,
+};
+function stepsForMode(){
+ if (App.mode === "rest") return STEPS_REST;
+ return App.mode === "quick" ? STEPS_QUICK : STEPS_FULL;
+}
+function setCondition(v){
+ Store.data.prefs.cond = v; Store.save(); haptic();
+ if (v === 2 && App.mode !== "rest"){
+ if (App.running) pauseRoutine();
+ App.mode = "rest";
+ App.steps = stepsForMode(); App.stepIdx = 0;
+ App.stepEnd = Date.now() + currentStep().dur * 1000;
+ App.totalElapsed = 0; App.stepElapsed = 0; App.completed = new Set();
+ toast("목이 아픈 날은 쉬는 것도 훈련입니다.<br>아주 작은 빨대 발성과 허밍만 하는 2분 루틴으로 바꿨어요.", 3600);
+ }
+ if (v !== 2 && App.mode === "rest"){
+ App.mode = "full";
+ App.steps = stepsForMode(); App.stepIdx = 0;
+ App.stepEnd = Date.now() + currentStep().dur * 1000;
+ App.totalElapsed = 0; App.stepElapsed = 0; App.completed = new Set();
+ }
+ render();
+}
+window.setCondition = setCondition;
+function currentStep(){ return App.steps[App.stepIdx]; }
+function remainingSec(){ return Math.max(0, Math.floor((App.stepEnd - Date.now())/1000)); }
+
+const $app = document.getElementById("app");
+function toast(msg, ms=2200){
+ const el = document.getElementById("toast");
+ el.innerHTML = msg; el.classList.add("show");
+ clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), ms);
+}
+function haptic(ms=12){ if (navigator.vibrate) navigator.vibrate(ms); }
+
+const TABS = [
+ ["routine","일일 루틴","M3 8h4l2 3 4-6 2 3h6M3 16h18"],
+ ["tracker","피치 트래커","M2 12h3l2-6 3 12 2-6h2l2-3 2 3h4"],
+ ["lab","발성 연구소","M4 4h4v16H4zM10 4h4v8h-4zM16 4h4v12h-4z"],
+ ["progress","성장 기록","M4 20V10M10 20V4M16 20v-8M22 20h-20"],
+];
+const tabbar = () => `<div class="tabbar">${TABS.map(([id,label,path])=>`
+ <button class="tab ${App.tab===id?'active':''}" onclick="go('${id}')">
+ <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg>
+ <span>${label}</span></button>`).join("")}</div>`;
+function go(tab){
+ if (App.tab === "routine" && tab !== "routine" && App.running) pauseRoutine();
+ if (App.tab === "tracker" && tab !== "tracker" && App.listening) stopTracking();
+ App.tab = tab; haptic(); render();
+}
+window.go = go;
+
+function render(){
+ document.getElementById("scrname").textContent =
+ Store.data.onboardingDone ? App.tab + (App.mode === "quick" && App.tab === "routine" ? "(퀵)" : "") : "onboarding";
+ if (!Store.data.onboardingDone) $app.innerHTML = screenOnboarding();
+ else if (App.tab === "routine") $app.innerHTML = screenRoutine();
+ else if (App.tab === "tracker") $app.innerHTML = screenTracker();
+ else if (App.tab === "lab") $app.innerHTML = screenLab();
+ else $app.innerHTML = screenProgress();
+}
+
+// ---------- 온보딩(음역대 실측) ----------
+function screenOnboarding(){
+ return `
+ <div class="content" style="justify-content:flex-end;">
+ <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:0 28px;">
+ <div class="screen-title">내 음역대 측정</div>
+ <div style="color:var(--text-secondary);text-align:center;font-size:15px;line-height:1.7;">
+ 마이크를 켜고 가장 낮은 목소리부터 시작해,<br>편안하게 올라갈 수 있는 최고음까지 이어 올라가세요.<br>이 측정이 4주 성장 기록의 기준선이 됩니다.</div>
+ <div class="glass" style="width:100%;padding:22px;display:flex;flex-direction:column;align-items:center;gap:10px;">
+ <div class="note-display" style="color:var(--brand-secondary);">${App.mLive}</div>
+ <div class="cap2" style="color:var(--text-secondary);font-variant-numeric:tabular-nums;">${App.mFreq>0?App.mFreq.toFixed(1)+" Hz":"—"}</div>
+ <div style="display:flex;align-items:center;gap:24px;margin-top:4px;">
+ <div style="text-align:center;"><div class="cap2" style="color:var(--text-secondary);">최저음</div>
+ <div style="font-size:23px;font-weight:900;">${App.mFrames>=12?freqToNoteCents(App.mLo).note:"--"}</div></div>
+ <div style="width:1px;height:34px;background:rgba(255,255,255,.12);"></div>
+ <div style="text-align:center;"><div class="cap2" style="color:var(--text-secondary);">최고음</div>
+ <div style="font-size:23px;font-weight:900;">${App.mFrames>=12?freqToNoteCents(App.mHi).note:"--"}</div></div>
+ </div>
+ </div>
+ <div style="display:flex;gap:12px;align-items:center;">
+ <button class="btn-ghost" onclick="measureToggle()">${App.measuring?"⏸ 일시정지":"🎙 측정 시작"}</button>
+ ${App.mFrames>=12?'<span style="font-size:13px;font-weight:800;color:var(--vocal-success);">✓ 측정 완료!</span>':""}
+ </div>
+ </div>
+ <div style="padding:20px 24px 34px;">
+ <button class="btn-primary" onclick="finishOnboarding()">${App.mFrames>=12?"이 음역대로 시작하기 ":"나중에 하고 시작하기"}</button>
+ </div>
+ </div>`;
+}
+async function measureToggle(){
+ if (App.measuring){ App.measuring = false; Audio5.stopMic(); render(); return; }
+ App.measuring = true; App.mLo = 0; App.mHi = 0; App.mFrames = 0; render();
+ const ok = await Audio5.startMic();
+ if (!ok){ App.measuring = false; toast("마이크 권한이 거부되었습니다.<br>브라우저 주소창의 🎙 아이콘에서 허용해주세요."); render(); }
+}
+function onPitchForMeasure(f, note, cents, voiced){
+ if (!App.measuring || !voiced) { if(!App.measuring) return; }
+ if (App.measuring && voiced){
+ App.mLive = note; App.mFreq = f; App.mFrames++;
+ if (App.mLo === 0 || f < App.mLo) App.mLo = f;
+ if (f > App.mHi) App.mHi = f;
+ if (App.mFrames % 6 === 0) render();
+ }
+}
+function finishOnboarding(){
+ if (App.mFrames >= 12){
+ Store.data.baseline = {lo:App.mLo, hi:App.mHi};
+ Store.data.range = {lo:App.mLo, hi:App.mHi};
+ Store.data.measured = true;
+ }
+ Store.data.onboardingDone = true; Store.save();
+ Audio5.stopMic(); App.measuring = false;
+ render();
+}
+window.measureToggle = measureToggle; window.finishOnboarding = finishOnboarding;
+
+// ---------- 루틴 ----------
+function screenRoutine(){
+ const step = currentStep();
+ const total = App.steps.length;
+ const rem = App.running || App.totalElapsed > 0 ? remainingSec() : step.dur;
+ const prog = 1 - rem / step.dur;
+ const dots = Array.from({length: total}, (_, i) =>
+ `<div style="width:${i===App.stepIdx?14:9}px;height:${i===App.stepIdx?14:9}px;border-radius:50%;
+ background:${i<App.stepIdx?'var(--vocal-success)':i===App.stepIdx?'var(--brand-primary)':'rgba(255,255,255,.18)'};
+ ${i===App.stepIdx?'box-shadow:0 0 8px rgba(99,102,241,.85);border:2px solid var(--brand-secondary);':''}"></div>`).join("");
+ return `
+ <div class="content">
+ <div class="scroll">
+ <div style="display:flex;align-items:center;padding:4px 24px 2px;">
+ <div>
+ <div class="eyebrow" style="color:var(--brand-secondary);">5분 보컬 · 일일 루틴</div>
+ <div class="screen-title">${App.mode==="quick"?"퀵 2분":(App.mode==="rest"?"쉬는 날 루틴":"3주차: 파사지오")}</div>
+ </div><div style="flex:1"></div>
+ <div style="display:flex;align-items:center;gap:8px;">
+ ${Audio5.running?'<div style="display:flex;gap:4px;align-items:center;"><div style="width:6px;height:6px;border-radius:50%;background:var(--vocal-alert);"></div><span style="font-size:10px;color:var(--text-secondary);font-weight:700;">분석 중</span></div>':""}
+ <div class="glass" style="border-radius:12px;padding:6px 12px;display:flex;gap:4px;align-items:center;font-size:12px;font-weight:800;">🔥 <span>${App.mode==="quick"?"⚡ 퀵 모드":(App.mode==="rest"?"🩹 쉬는 날":"3주차")}</span></div>
+ </div>
+ </div>
+
+ <div class="segmented" style="margin:10px 20px 6px;">
+ <span class="${App.mode==="full"?"on":""}" onclick="setMode('full')">15분 풀코스</span>
+ <span class="${App.mode==="quick"?"on":""}" onclick="setMode('quick')">2분 퀵</span>
+ </div>
+
+ <div class="glass" style="margin:6px 20px;padding:8px 12px;display:flex;align-items:center;gap:8px;border-radius:14px;">
+ <span class="cap2" style="color:var(--text-secondary);">오늘 목 상태</span><div style="flex:1"></div>
+ ${[["0","좋음"],["1","피곤함"],["2","아픔"]].map(([v,l])=>`<span class="chip ${String(Store.data.prefs.cond||0)===v?'on':''}" style="padding:5px 11px;${String(Store.data.prefs.cond||0)===v&&v==='2'?'background:var(--vocal-alert);':''}" onclick="setCondition(${v})">${l}</span>`).join("")}
+ </div>
+ ${(Store.data.prefs.cond||0)===2?`<div class="cap2" style="margin:6px 20px 0;color:var(--vocal-warning);">아픔이 2일 이상 계속되면 이비인후과 진료를 받아보세요.</div>`:""}
+
+ <div style="position:relative;width:258px;height:258px;margin:8px auto 2px;">
+ <div style="position:absolute;inset:0;border-radius:50%;border:13px solid rgba(255,255,255,.06);"></div>
+ <div id="ring" style="position:absolute;inset:0;border-radius:50%;border:13px solid transparent;
+ background:conic-gradient(from 270deg, var(--brand-secondary), var(--brand-primary), var(--brand-accent) ${Math.max(0.02,prog)*360}deg, rgba(255,255,255,.06) ${Math.max(0.02,prog)*360}deg 360deg);
+ -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 13.5px),#000 calc(100% - 13px));
+ mask:radial-gradient(farthest-side,transparent calc(100% - 13.5px),#000 calc(100% - 13px));
+ filter:drop-shadow(0 2px 14px rgba(99,102,241,.4));"></div>
+ <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
+ <div class="eyebrow" style="color:var(--brand-secondary);">STEP ${App.stepIdx+1}/${total}</div>
+ <div class="timer-display" id="rem">${fmtClock(rem)}</div>
+ <div class="badge-note">${App.seqPlaying?"🎵 "+App.seqNote:step.t}</div>
+ </div>
+ </div>
+
+ <div style="display:flex;gap:12px;justify-content:center;margin:8px 0 16px;">${dots}</div>
+
+ <div class="glass" style="margin:0 20px;padding:18px;display:flex;flex-direction:column;gap:13px;">
+ <div style="display:flex;align-items:center;">
+ <span class="capsule-cat" style="background:rgba(34,197,136,.2);color:#22C588;">🫁 호흡 &amp; 복압</span>
+ <div style="flex:1"></div>
+ <div style="display:flex;gap:3px;align-items:flex-end;">
+ ${Audio5.running ? Array.from({length:5},(_,i)=>{
+ const prof=[0.55,0.85,1.0,0.8,0.5][i];
+ const lvl=Math.min(1,Audio5.amplitude/0.12);
+ return `<i style="display:block;width:3px;border-radius:2px;background:${Audio5.freq>0?'var(--brand-secondary)':'rgba(255,255,255,.2)'};height:${Math.max(5,24*prof*lvl)}px;"></i>`;
+ }).join("") : `<span style="font-size:11px;color:var(--brand-accent);font-weight:800;">♪</span><span style="font-size:13px;color:var(--brand-accent);font-weight:900;">${App.seqNote||"–"}</span>`}
+ </div>
+ </div>
+ <div>
+ <div style="font-size:17px;font-weight:800;">${step.sub}</div>
+ <div style="font-size:12px;margin-top:5px;color:var(--text-secondary);">소리 형태: <b style="color:var(--brand-secondary);">${step.sound}</b></div>
+ </div>
+ <div style="display:flex;gap:12px;">
+ <div style="font-size:27px;width:44px;height:44px;border-radius:50%;background:var(--surface-dark);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${step.emoji}</div>
+ <div>
+ <div style="font-size:14px;font-weight:800;color:var(--brand-primary);">${step.analogy}</div>
+ <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-top:4px;">${step.adesc}</div>
+ </div>
+ </div>
+ </div>
+
+ <div class="glass" style="margin:14px 20px 6px;padding:14px;">
+ <div style="display:flex;align-items:center;gap:8px;">
+ <span style="font-size:18px;color:var(--brand-secondary);">🎹</span>
+ <div style="flex:1">
+ <div style="font-size:12px;font-weight:800;">피아노 가이드 톤 자동 재생</div>
+ <div class="cap2" style="color:var(--text-secondary);">스텝별 최적 스케일을 들으며 따라 부르기</div>
+ </div>
+ <div class="toggle ${Store.data.prefs.autoplay?"on":""}" onclick="toggleAutoplay()"></div>
+ </div>
+ <div style="height:1px;background:rgba(255,255,255,.08);margin:12px 0;"></div>
+ <div class="segmented">
+ <span class="${!Store.data.prefs.femaleKey?"on":""}" onclick="setKey(false)">남성 키 (C3)</span>
+ <span class="${Store.data.prefs.femaleKey?"on":""}" onclick="setKey(true)">여성 키 (C4)</span>
+ </div>
+ <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
+ <span style="font-size:12px;font-weight:800;">키 미세조정</span>
+ <div style="display:flex;align-items:center;gap:10px;font-size:12px;font-weight:800;color:var(--brand-secondary);">
+ <button class="btn-ghost" style="height:28px;width:28px;padding:0;border-radius:50%;" onclick="nudgeTranspose(-1)">−</button>
+ <span style="min-width:36px;text-align:center;">${(()=>{const t=Store.data.prefs.transpose;return t===0?"원키":(t>0?"+"+t:t)+"키";})()}</span>
+ <button class="btn-ghost" style="height:28px;width:28px;padding:0;border-radius:50%;" onclick="nudgeTranspose(1)">+</button>
+ </div>
+ </div>
+ </div>
+ </div>
+
+ <div style="display:flex;gap:20px;align-items:center;padding:0 24px 16px;">
+ <button class="btn-ghost" style="width:52px;height:52px;border-radius:50%;padding:0;font-size:17px;" onclick="prevStep()" ${App.stepIdx===0?"disabled style='opacity:.35;width:52px;height:52px;border-radius:50%;padding:0;font-size:17px;'":""}>⏮</button>
+ <button class="btn-primary" style="flex:1;" onclick="toggleRoutine()">${App.running?"⏸ 일시정지":"▶ 루틴 시작"}</button>
+ <button class="btn-ghost" style="width:52px;height:52px;border-radius:50%;padding:0;font-size:17px;" onclick="nextStep(true)">⏭</button>
+ </div>
+ </div>
+ ${tabbar()}`;
+}
+function setMode(m){
+ if (m === App.mode) return;
+ if (App.running) pauseRoutine();
+ App.mode = m; App.steps = stepsForMode(); App.stepIdx = 0;
+ App.totalElapsed = 0; App.stepElapsed = 0; App.completed.clear();
+ App.stepEnd = Date.now() + currentStep().dur * 1000;
+ haptic(); render();
+}
+function toggleAutoplay(){ Store.data.prefs.autoplay = !Store.data.prefs.autoplay; Store.save(); haptic(); render(); }
+function setKey(f){ Store.data.prefs.femaleKey = f; Store.save(); haptic(); render(); }
+function nudgeTranspose(d){
+ Store.data.prefs.transpose = Math.max(-5, Math.min(5, Store.data.prefs.transpose + d));
+ Store.save(); haptic(); render();
+}
+function toggleRoutine(){ App.running ? pauseRoutine() : startRoutine(); }
+async function startRoutine(){
+ // 성대 보호 가드: 목이 아프면 일반 루틴을 절대 실행하지 않는다.
+ if ((Store.data.prefs.cond || 0) === 2 && App.mode !== "rest"){
+ App.mode = "rest";
+ App.steps = stepsForMode(); App.stepIdx = 0; App.totalElapsed = 0;
+ App.stepElapsed = 0; App.completed = new Set();
+ App.stepEnd = Date.now() + currentStep().dur * 1000;
+ toast("목이 아픈 날은 쉬는 것도 훈련입니다.<br>아주 작은 빨대 발성과 허밍만 하는 2분 루틴으로 바꿨어요.", 3600);
+ }
+ App.running = true; App.doneAlert = false;
+ App.stepEnd = Date.now() + remainingSec() * 1000;
+ const ok = await Audio5.startMic();
+ if (!ok) toast("마이크 없이 진행합니다 (파형만 비활성).");
+ if (Store.data.prefs.autoplay) startSequencer();
+ App._timer = setInterval(tickRoutine, 250);
+ haptic(); render();
+}
+function pauseRoutine(){
+ App.running = false;
+ clearInterval(App._timer);
+ stopSequencer(); Audio5.stopMic();
+ render();
+}
+function tickRoutine(){
+ if (!App.running) return;
+ const rem = remainingSec();
+ const prev = parseInt(document.getElementById("rem")?.dataset.v ?? currentStep().dur);
+ if (rem <= 0){
+ if (App.stepElapsed >= currentStep().dur * 0.7) App.completed.add(App.stepIdx);
+ nextStep(false); return;
+ }
+ App.stepElapsed = Math.min(currentStep().dur, App.stepElapsed + 0.25);
+ App.totalElapsed += 0.25;
+ // 벽시계 기반 화면 갱신
+ const remEl = document.getElementById("rem");
+ if (remEl){ remEl.textContent = fmtClock(rem); remEl.dataset.v = rem; }
+ const ring = document.getElementById("ring");
+ if (ring){
+ const prog = Math.max(0.02, 1 - rem / currentStep().dur);
+ ring.style.background = `conic-gradient(from 270deg, var(--brand-secondary), var(--brand-primary), var(--brand-accent) ${prog*360}deg, rgba(255,255,255,.06) ${prog*360}deg 360deg)`;
+ }
+}
+function nextStep(manual){
+ if (App.stepElapsed >= currentStep().dur * 0.7) App.completed.add(App.stepIdx);
+ App.stepElapsed = 0;
+ if (App.stepIdx + 1 < App.steps.length){
+ App.stepIdx++;
+ App.stepEnd = Date.now() + currentStep().dur * 1000;
+ if (Store.data.prefs.autoplay && App.running) startSequencer();
+ haptic(20); render();
+ } else {
+ completeRoutine();
+ }
+}
+function prevStep(){
+ if (App.stepIdx === 0) return;
+ App.stepIdx--; App.stepElapsed = 0;
+ App.stepEnd = Date.now() + currentStep().dur * 1000;
+ if (Store.data.prefs.autoplay && App.running) startSequencer();
+ haptic(); render();
+}
+function completeRoutine(){
+ pauseRoutine();
+ // 스킵 관통 0초 세션은 기록하지 않는다 (Swift elapsed>=60 가드와 동일)
+ if (App.totalElapsed < 60 || App.completed.size === 0){
+ toast("연습으로 인정되지 않은 세션입니다. 최소 1단계는 직접 진행해야 기록돼요.");
+ App.stepIdx = 0; App.totalElapsed = 0; App.stepElapsed = 0; App.completed.clear();
+ App.stepEnd = Date.now() + currentStep().dur * 1000;
+ render(); return;
+ }
+ const full = App.completed.size === App.steps.length;
+ Store.data.sessions.push({
+ date: Date.now(), dur: Math.round(App.totalElapsed),
+ steps: App.completed.size, full, week: 3, mode: App.mode,
+ });
+ Store.save();
+ const score = full ? "완주!" : "부분 완료";
+ const modeName = App.mode === "quick" ? "2분 퀵" : (App.mode === "rest" ? "쉬는 날" : "15분");
+ toast(` 오늘 ${modeName} 루틴 ${score}<br>성장 기록에 반영되었습니다.`, 3200);
+ App.stepIdx = 0; App.totalElapsed = 0; App.stepElapsed = 0; App.completed.clear();
+ App.stepEnd = Date.now() + currentStep().dur * 1000;
+ render();
+}
+// 가이드 시퀀서 (ScaleSequencer 미러: 5도/아르페지오 + 반음 상승 반복)
+function startSequencer(){
+ stopSequencer();
+ const step = currentStep();
+ const base = (Store.data.prefs.femaleKey ? 60 : 48) + Store.data.prefs.transpose;
+ const beat = 60 / 80;
+ App.seqPlaying = true;
+ let rep = 0, idx = 0;
+ const tickSeq = () => {
+ if (!App.seqPlaying) return;
+ const offsets = step.pattern.length ? step.pattern : [0,2,4,5,7,5,4,2,0];
+ const midi = base + rep + offsets[idx];
+ App.seqNote = freqToNoteCents(midiToFreq(midi)).note;
+ Audio5.playNoteMidi(midi, beat * 0.85);
+ const badge = document.querySelector(".badge-note");
+ if (badge) badge.textContent = "🎵 " + App.seqNote;
+ idx++;
+ if (idx >= offsets.length){ idx = 0; rep++; if (rep >= 6){ stopSequencer(); return; } }
+ App.seqTimer = setTimeout(tickSeq, beat * 1000);
+ };
+ tickSeq();
+}
+function stopSequencer(){
+ App.seqPlaying = false; App.seqNote = "";
+ clearTimeout(App.seqTimer);
+}
+window.setMode=setMode; window.toggleAutoplay=toggleAutoplay; window.setKey=setKey;
+window.nudgeTranspose=nudgeTranspose; window.toggleRoutine=toggleRoutine;
+window.prevStep=prevStep; window.nextStep=nextStep;
+
+// ---------- 피치 트래커 ----------
+const TARGET_NOTES = ["C3","E3","G3","A3","C4","D4","E4","F4","G4","A4","C5"];
+function screenTracker(){
+ const keys=["C3","D3","E3","F3","G3","A3","B3","C4","D4","E4","F4","G4","A4","B4","C5"];
+ return `
+ <div class="content">
+ <div class="scroll">
+ <div style="display:flex;align-items:center;padding:4px 24px 2px;">
+ <div>
+ <div class="eyebrow" style="color:var(--brand-secondary);">실시간 음정 코칭</div>
+ <div class="screen-title">피치 트래커</div>
+ </div><div style="flex:1"></div>
+ <div class="glass" style="border-radius:10px;padding:4px 10px;display:flex;gap:6px;align-items:center;font-size:12px;font-weight:700;">
+ <i style="width:8px;height:8px;border-radius:50%;background:${App.listening?'var(--vocal-success)':'var(--text-secondary)'};${App.listening?'box-shadow:0 0 6px var(--vocal-success);':''}"></i>${App.listening?"감지 중":"대기"}</div>
+ </div>
+
+ <div id="liveNote" style="height:64px;display:flex;align-items:baseline;gap:12px;justify-content:center;">
+ <div class="note-display" style="color:var(--text-secondary);">--</div>
+ </div>
+
+ <div class="glass" style="margin:8px 20px 0;border-radius:14px;padding:8px;">
+ <div style="display:flex;gap:2px;">
+ ${keys.map(k=>`<div class="pkey ${k===freqToNoteCents(midiToFreq(activeTarget())).note?'tgt':''}" data-k="${k}"><b></b><span>${k}</span></div>`).join("")}
+ </div>
+ </div>
+
+ <div class="glass" style="margin:10px 20px 0;padding:8px 12px;display:flex;gap:8px;border-radius:14px;">
+ ${[["single","단음 유지"],["echo","에코 3음"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')">${label}</span>`).join("")}
+ </div>
+
+ ${App.trMode==='echo'?`<div class="cap2" style="text-align:center;color:var(--text-secondary);margin:8px 0 0;">에코 난이도 ${echoLevel()}단계 · ${echoLevel()>=3?"최고 난이도입니다":"성공하면 이동 폭이 넓어져요"}</div>`:""}
+
+ <div class="glass" style="margin:10px 20px 0;padding:8px 14px;display:flex;align-items:center;gap:10px;border-radius:14px;">
+ <span class="cap2" style="color:var(--text-secondary);">기준 피치 A4</span><div style="flex:1"></div>
+ <span class="btn-ghost" style="width:28px;height:28px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;" onclick="setA4(-0.5)">−</span>
+ <span style="font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;min-width:60px;text-align:center;">${a4Ref().toFixed(1)} Hz</span>
+ <span class="btn-ghost" style="width:28px;height:28px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;" onclick="setA4(0.5)">+</span>
+ </div>
+
+ <div class="glass" style="margin:14px 20px 0;height:206px;border-radius:18px;position:relative;overflow:hidden;">
+ <canvas id="pitchCanvas" width="386" height="206" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
+ </div>
+
+ <div class="glass" style="margin:14px 20px 0;padding:10px 14px;display:flex;align-items:center;gap:8px;border-radius:16px;">
+ <span class="caption" style="color:var(--text-secondary);">${App.trMode==='echo'?'시작음:' : '목표음:'}</span>
+ <div style="flex:1;display:flex;gap:8px;overflow:hidden;">
+ ${TARGET_NOTES.map(k=>`<span class="chip ${k===App.target.name?'on':''}" style="padding:6px 10px;" onclick="setTarget('${k}')">${k}</span>`).join("")}
+ </div>
+ <button class="btn-ghost" style="width:34px;height:34px;border-radius:50%;padding:0;background:var(--brand-accent);border:none;" onclick="playTarget()">🔊</button>
+ </div>
+
+ <div class="glass" style="margin:14px 20px 4px;padding:14px;display:flex;align-items:center;border-radius:18px;">
+ <div style="flex:1">
+ <div class="cap2" style="color:var(--text-secondary);">${App.trMode==='echo'?'현재 목표음 주파수' : '목표음 주파수'}</div>
+ <div style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;">${midiToFreq(activeTarget()).toFixed(1)} Hz</div>
+ </div>
+ <div style="width:1px;height:30px;background:rgba(255,255,255,.10);margin:0 12px;"></div>
+ <div style="flex:1;text-align:right;">
+ <div class="cap2" style="color:var(--text-secondary);">이번 세션 정확도</div>
+ <div id="acc" style="font-size:20px;font-weight:900;color:var(--vocal-success);font-variant-numeric:tabular-nums;">0%</div>
+ </div>
+ </div>
+
+ ${App.lastScore != null && !App.listening ? `
+ <div class="glass" style="margin:14px 20px 4px;padding:14px;border-radius:18px;">
+ <div style="display:flex;align-items:center;">
+ <div style="font-size:12px;font-weight:800;">이번 세션 음 분포</div><div style="flex:1"></div>
+ <span class="cap2" style="color:var(--text-secondary);">어떤 음에 목소리가 머무는지 보여줍니다</span>
+ </div>
+ <div id="hist" style="display:flex;align-items:flex-end;gap:4px;height:64px;margin-top:10px;">
+ ${App.bins.map((c, i) => {
+ const max = Math.max(1, ...App.bins);
+ const names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+ return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;">
+ <div style="width:100%;border-radius:3px;background:${c>0?'var(--brand-secondary)':'rgba(255,255,255,.08)'};height:${Math.max(6, c/max*48)}px;"></div>
+ <span style="font-size:8px;font-weight:700;color:var(--text-secondary);">${names[i]}</span></div>`;
+ }).join("")}
+ </div>
+ </div>` : ""}
+ </div>
+
+ <div style="padding:0 24px 16px;">
+ <button class="btn-primary" style="background:${App.listening?'var(--vocal-alert)':'linear-gradient(90deg,var(--brand-primary),var(--brand-accent))'};" onclick="toggleTracking()">
+ ${App.listening?"⏹ 측정 종료":"🎙 실시간 피치 측정 시작"}</button>
+ </div>
+ </div>
+ ${tabbar()}`;
+}
+function setTarget(name){
+ App.target = {name, midi: 12*(parseInt(name.slice(-1))+1) + NOTE_NAMES.indexOf(name.slice(0,-1))};
+ haptic(); render();
+}
+// ---- 에코 3음 모드 (Pfordresher 2024: 넓은 음역 모방 드릴) ----
+const ECHO_T = {note:1000, gap:500, between:300, window:2600};
+const ECHO_MOVE_SETS = [
+ [-3,-2,2,3],                       // L1
+ [-5,-4,-3,-2,2,3,4,5],             // L2
+ [-7,-5,-4,-3,2,3,4,5,7],           // L3
+];
+function echoLevel(){
+ if (!Store.data.prefs.echoLevel) Store.data.prefs.echoLevel = 1;
+ return Math.min(3, Math.max(1, Store.data.prefs.echoLevel));
+}
+function setA4(d){
+ Store.data.prefs.a4 = Math.min(445, Math.max(435, (Store.data.prefs.a4 || 440) + d));
+ Store.save(); haptic(); render();
+}
+window.setA4 = setA4;
+function activeTarget(){
+ if (App.trMode === "echo" && App.echo.midis.length)
+ return App.echo.midis[Math.min(App.echo.idx, App.echo.midis.length - 1)];
+ return App.target.midi;
+}
+function setTrMode(m){
+ if (App.trMode === m) return;
+ if (App.listening) stopTracking();
+ App.trMode = m; haptic(); render();
+}
+function generateEcho(){
+ const moves = ECHO_MOVE_SETS[echoLevel() - 1];
+ const pick = () => moves[Math.floor(Math.random()*moves.length)];
+ const base = App.target.midi;
+ let second = base; while (second === base) second = base + pick();
+ let third = second; while (third === second) third = second + pick();
+ const cl = m => Math.min(72, Math.max(43, m));
+ return [cl(base), cl(second), cl(third)];
+}
+function startEchoFlow(){
+ App.echo.gen++;
+ const gen = App.echo.gen;
+ App.echo.midis = generateEcho();
+ App.echo.idx = 0;
+ App.echo.timers = [];
+ App.ignoreUntil = Infinity; // 가이드 시퀀스 동안 채점 차단
+ let delay = 0;
+ for (let rep = 0; rep < 2; rep++){
+ App.echo.midis.forEach(m => {
+ const at = delay;
+ App.echo.timers.push(setTimeout(() => {
+ if (gen === App.echo.gen) Audio5.playTone(midiToFreq(m), ECHO_T.note/1000, 0.5);
+ }, at));
+ delay += ECHO_T.note + ECHO_T.gap;
+ });
+ delay += ECHO_T.between;
+ }
+ App.echo.midis.forEach((m, i) => {
+ const at = delay;
+ App.echo.timers.push(setTimeout(() => {
+ if (gen !== App.echo.gen) return;
+ if (i === 0) App.ignoreUntil = 0; // 창이 열리면 채점 시작
+ App.echo.idx = i; render();
+ }, at));
+ delay += ECHO_T.window;
+ });
+ App.echo.timers.push(setTimeout(() => { if (gen === App.echo.gen) stopTracking(); }, delay));
+}
+function echoLabel(){
+ return App.echo.midis.map(m => freqToNoteCents(midiToFreq(m)).note).join("-");
+}
+function playTarget(){
+ haptic();
+ App.ignoreUntil = Date.now() + 1600;
+ Audio5.playNoteMidi(App.target.midi, 1.2);
+}
+async function toggleTracking(){
+ App.listening ? stopTracking() : await startTracking();
+}
+async function startTracking(){
+ App.history = []; App.hits = 0; App.voiced = 0; App.centsSum = 0;
+ App.bins = new Array(12).fill(0);
+ App.lo = 0; App.hi = 0; App.sessionStart = Date.now(); App.lastScore = null;
+ App.echo.timers.forEach(clearTimeout); App.echo.timers = [];
+ App.echo.gen++; App.echo.idx = 0; App.ignoreUntil = 0;
+ App.listening = true; render();
+ const ok = await Audio5.startMic();
+ if (!ok){
+ App.listening = false;
+ toast("마이크 권한이 필요합니다.<br>주소창 🎙 아이콘 → 허용 후 다시 시도하세요.");
+ render();
+ return;
+ }
+ if (App.trMode === "echo") startEchoFlow();
+}
+function stopTracking(){
+ if (!App.listening) return; // 자동정지·수동정지 경합 시 이중 기록 방지
+ App.listening = false; Audio5.stopMic();
+ App.echo.timers.forEach(clearTimeout); App.echo.timers = [];
+ App.echo.gen++; App.ignoreUntil = 0;
+ if (App.voiced >= 10){
+ const score = Math.round(App.hits / App.voiced * 100);
+ App.lastScore = score;
+ App.lastGrade = score>=90?"S":score>=80?"A":score>=70?"B":score>=60?"C":"D";
+ // 성공 게이트 난이도: 80%+ 승급, 2연속 50% 미만 강급
+ let levelMsg = "";
+ if (App.trMode === "echo"){
+ if (score >= 80 && echoLevel() < 3){
+ Store.data.prefs.echoLevel = echoLevel() + 1;
+ levelMsg = `<br>에코 난이도가 ${echoLevel()}단계로 올라갔어요. 이동 폭이 넓어집니다.`;
+ App._echoFailStreak = 0;
+ } else if (score < 50){
+ App._echoFailStreak = (App._echoFailStreak || 0) + 1;
+ if (App._echoFailStreak >= 2 && echoLevel() > 1){
+ Store.data.prefs.echoLevel = echoLevel() - 1;
+ levelMsg = `<br>에코 난이도가 ${echoLevel()}단계로 조정됐어요. 편한 폭으로 다시 시작합니다.`;
+ App._echoFailStreak = 0;
+ }
+ } else { App._echoFailStreak = 0; }
+ Store.save();
+ }
+ const isEcho = App.trMode === "echo" && App.echo.midis.length === 3;
+ const tgtLabel = isEcho ? echoLabel() : App.target.name;
+ Store.data.pitchRecords.push({
+ t:Date.now(), target:tgtLabel, acc:score,
+ lo:App.lo, hi:App.hi, dur:Math.round((Date.now()-App.sessionStart)/1000),
+ });
+ if (App.lo > 0 && (Store.data.range.lo === 0 || App.lo < Store.data.range.lo)) Store.data.range.lo = App.lo;
+ if (App.hi > Store.data.range.hi) Store.data.range.hi = App.hi;
+ Store.save();
+ toast(`이번 세션 <b style="font-size:20px;">${score}점</b><br>등급 ${App.lastGrade} · ${isEcho ? "시퀀스 "+tgtLabel : "목표음 "+tgtLabel} 온피치 ${score}%${levelMsg}`, 3600);
+ }
+ render();
+}
+// 트래커용 피치 콜백 (rAF 드로잉) — 이름을 가진 함수로 분리해 테스트 훅이
+// 마이크와 동일한 코드 경로를 호출할 수 있게 한다.
+function trackerPitchHandler(f, note, cents, voiced){
+ if (App.measuring) onPitchForMeasure(f, note, cents, voiced);
+ if (!App.listening) return;
+ if (App.ignoreUntil && Date.now() < App.ignoreUntil) return;
+ if (!voiced) return;
+ App.voiced++;
+ App.centsSum += Math.abs(cents);
+ if (App.lo === 0 || f < App.lo) App.lo = f;
+ if (f > App.hi) App.hi = f;
+ const midiNow = freqToNoteCents(f).midi;
+ App.bins[((midiNow % 12) + 12) % 12]++;
+ const onPitch = midiNow === activeTarget() && Math.abs(cents) <= 25;
+ if (onPitch) App.hits++;
+ App.history.push({f, note, cents, onPitch, t:Date.now()});
+ if (App.history.length > 160) App.history.shift();
+ updateTrackerDom(f, note, cents, onPitch);
+}
+Audio5.onPitch(trackerPitchHandler);
+let _domKey = "";
+function updateTrackerDom(f, note, cents, onPitch){
+ const el = document.getElementById("liveNote");
+ if (!el) return;
+ // 과도 DOM 재구성 방지: 노트/색이 바뀔 때만 innerHTML을 다시 쓰고,
+ // 매 프레임 바뀌는 숫자는 textContent로만 갱신한다.
+ const color = onPitch ? "var(--vocal-success)" : (Math.abs(cents)<=35 ? "var(--vocal-warning)" : "var(--vocal-alert)");
+ const key = note + "|" + color;
+ if (key !== _domKey){
+ _domKey = key;
+ el.innerHTML = `<div class="note-display" style="color:${color};">${note}</div>
+ <div><div id="lnCents" style="font-size:20px;font-weight:800;color:${color};font-variant-numeric:tabular-nums;">${cents>=0?"+":""}${Math.round(cents)}¢</div>
+ <div class="cap2" id="lnHz" style="color:var(--text-secondary);font-variant-numeric:tabular-nums;">${f.toFixed(1)} Hz</div></div>`;
+ document.querySelectorAll(".pkey").forEach(p => p.classList.toggle("cur", p.dataset.k === note));
+ } else {
+ const c = document.getElementById("lnCents"), h = document.getElementById("lnHz");
+ if (c) c.textContent = `${cents>=0?"+":""}${Math.round(cents)}¢`;
+ if (h) h.textContent = `${f.toFixed(1)} Hz`;
+ }
+ const acc = document.getElementById("acc");
+ if (acc && App.voiced > 0){
+ const pct = Math.round(App.hits / App.voiced * 100);
+ acc.textContent = pct + "%";
+ acc.style.color = pct >= 70 ? "var(--vocal-success)" : "var(--brand-secondary)";
+ }
+ drawCanvas();
+}
+function drawCanvas(){
+ const cv = document.getElementById("pitchCanvas");
+ if (!cv) return;
+ const ctx = cv.getContext("2d");
+ const W = cv.width, H = cv.height;
+ const minF = 98, maxF = 587, span = Math.log2(maxF/minF);
+ const yOf = f => H * (1 - (Math.log2(Math.min(maxF, Math.max(minF, f))) - Math.log2(minF)) / span);
+ ctx.clearRect(0, 0, W, H);
+ for (let i = 1; i < 5; i++){
+ ctx.strokeStyle = "rgba(255,255,255,.05)";
+ ctx.beginPath(); ctx.moveTo(0, H*i/5); ctx.lineTo(W, H*i/5); ctx.stroke();
+ }
+ [48, 60, 72].forEach(m => {
+ const f = midiToFreq(m);
+ if (f <= minF || f >= maxF) return;
+ const y = yOf(f);
+ ctx.strokeStyle = "rgba(255,255,255,.10)";
+ ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+ ctx.fillStyle = "rgba(255,255,255,.35)";
+ ctx.font = "600 9px sans-serif"; ctx.textAlign = "right";
+ ctx.fillText("C" + (m/12 - 1), W - 8, y - 4);
+ });
+ if (App.trMode === "echo" && App.echo.midis.length){
+ App.echo.midis.forEach((m, i) => {
+ const f = midiToFreq(m);
+ if (f <= minF || f >= maxF) return;
+ const y = yOf(f);
+ const active = i === App.echo.idx;
+ ctx.strokeStyle = active ? "rgba(6,182,212,.55)" : "rgba(6,182,212,.22)";
+ ctx.lineWidth = active ? 1.5 : 1;
+ ctx.setLineDash(active ? [6,4] : [4,5]);
+ ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+ ctx.setLineDash([]);
+ if (active){
+ ctx.fillStyle = "#06B6D4"; ctx.font = "800 10px sans-serif"; ctx.textAlign = "left";
+ ctx.fillText(freqToNoteCents(f).note, 8, y - 6);
+ }
+ });
+ ctx.lineWidth = 1;
+ } else {
+ const tf = midiToFreq(App.target.midi);
+ if (tf > minF && tf < maxF){
+ const y = yOf(tf);
+ ctx.strokeStyle = "rgba(6,182,212,.55)"; ctx.setLineDash([6,4]);
+ ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); ctx.setLineDash([]);
+ ctx.fillStyle = "#06B6D4"; ctx.font = "800 10px sans-serif"; ctx.textAlign = "left";
+ ctx.fillText(App.target.name, 8, y - 6);
+ }
+ }
+ if (App.history.length >= 2){
+ const grad = ctx.createLinearGradient(0, H, W, 0);
+ grad.addColorStop(0, "#06B6D4"); grad.addColorStop(1, "#A855F7");
+ ctx.strokeStyle = grad; ctx.lineWidth = 3.5; ctx.lineCap = ctx.lineJoin = "round";
+ ctx.beginPath();
+ let started = false;
+ App.history.forEach((p, i) => {
+ const x = W - (App.history.length - 1 - i) * (W / 150);
+ const y = yOf(Math.max(minF, p.f));
+ if (!started){ ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+ });
+ ctx.stroke();
+ const last = App.history[App.history.length - 1];
+ const ly = yOf(Math.max(minF, last.f));
+ ctx.fillStyle = last.onPitch ? "rgba(16,185,129,.35)" : "rgba(6,182,212,.35)";
+ ctx.beginPath(); ctx.arc(W - 4, ly, 9, 0, 7); ctx.fill();
+ ctx.fillStyle = last.onPitch ? "#10B981" : "#06B6D4";
+ ctx.beginPath(); ctx.arc(W - 4, ly, 5, 0, 7); ctx.fill();
+ }
+}
+window.setTarget=setTarget; window.playTarget=playTarget; window.toggleTracking=toggleTracking; window.setTrMode=setTrMode;
+// ---------- 엔드투엔드 테스트 훅 (마이크 없이 실제 코드 경로 검증) ----------
+Audio5._realStartMic = Audio5.startMic; Audio5._realTone = Audio5.playTone;
+window.__test = {
+ setEchoTimings(t){ Object.assign(ECHO_T, t); },
+ mockAudio(on){
+ Audio5.startMic = on ? (async () => true) : Audio5._realStartMic;
+ Audio5.playTone = on ? () => {} : Audio5._realTone;
+ },
+ feed(f, cents = 0){
+ // 실마이크 콜백과 동일한 경로: (주파수, 노트명, 센트, voiced)
+ trackerPitchHandler(f, freqToNoteCents(f).note, cents, true);
+ },
+ async startEcho(){
+ App.trMode = "echo";
+ await startTracking();
+ return {midis: App.echo.midis.slice()};
+ },
+ state(){
+ return {
+ midis: App.echo.midis.slice(), idx: App.echo.idx,
+ listening: App.listening, ignoreUntil: App.ignoreUntil,
+ hits: App.hits, voiced: App.voiced,
+ acc: App.voiced ? Math.round(App.hits / App.voiced * 100) : 0,
+ recordCount: Store.data.pitchRecords.length,
+ lastRecord: Store.data.pitchRecords[Store.data.pitchRecords.length - 1] || null,
+ };
+ },
+};
+
+// ---------- 발성 연구소 ----------
+let TIPS = [];
+fetch("../Resources/vocal_tips.json").then(r => r.json()).then(j => { TIPS = j; if (App.tab === "lab") render(); }).catch(() => {});
+const CAT_LIST = [
+ ["breathing","호흡 & 복압","🫁","#3C95F6"], ["falsetto_switch","가성 스위치 & 접지","🔊","#22C588"],
+ ["sound_direction","소리 방향 OUT","🎯","#F47272"], ["jaw_larynx","턱 & 후두 릴랙스","🦴","#A855F7"],
+ ["nasal_resonance","비강공명 vs 생목","👃","#F5C530"], ["practical_tips","실전 팁 & 코노","🎤","#06B6D4"],
+];
+App.lab = {cat:null, q:"", favOnly:false};
+function screenLab(){
+ const favs = new Set(Store.data.favorites);
+ let list = TIPS.filter(t =>
+ (!App.lab.favOnly || favs.has(t.id)) &&
+ (!App.lab.cat || t.category === App.lab.cat) &&
+ (!App.lab.q || t.title.includes(App.lab.q) || t.beginnerAnalogy.includes(App.lab.q) || t.keyActionWord.includes(App.lab.q)));
+ const counts = {};
+ TIPS.forEach(t => counts[t.category] = (counts[t.category]||0)+1);
+ return `
+ <div class="content">
+ <div class="scroll">
+ <div style="display:flex;align-items:center;padding:4px 24px 2px;">
+ <div>
+ <div class="eyebrow" style="color:var(--brand-secondary);">오보컬 쇼츠 · 연구 기반 비법</div>
+ <div class="screen-title">발성 연구소</div>
+ </div><div style="flex:1"></div>
+ <div class="glass" style="border-radius:10px;padding:4px 10px;font-size:12px;color:var(--text-secondary);font-weight:700;">총 ${TIPS.length}개 비법</div>
+ </div>
+
+ <div class="glass" style="margin:10px 20px 0;padding:12px 14px;display:flex;gap:10px;align-items:center;border-radius:14px;">
+ <span style="color:var(--text-secondary);">🔍</span>
+ <input id="labq" value="${App.lab.q}" placeholder="비법 검색 (예: 가성, 호흡, 삑사리)"
+ style="flex:1;background:none;border:none;outline:none;color:#fff;font-size:14px;font-family:inherit;"
+ oninput="labSearch(this.value)">
+ </div>
+
+ <div style="display:flex;gap:8px;padding:12px 20px 4px;overflow:hidden;">
+ <span class="chip ${!App.lab.cat && !App.lab.favOnly?'on':''}" onclick="labFilter(null)">전체 보기</span>
+ <span class="chip ${App.lab.favOnly?'on':''}" style="${App.lab.favOnly?'background:var(--vocal-warning);':''}" onclick="labFav()">★ 즐겨찾기 ${favs.size}</span>
+ ${CAT_LIST.map(([id,name,e])=>`<span class="chip ${App.lab.cat===id?'on':''}" onclick="labFilter('${id}')">${e} ${name}</span>`).join("")}
+ </div>
+
+ ${(!App.lab.cat && !App.lab.q && !App.lab.favOnly) ? `
+ <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 20px;">
+ ${CAT_LIST.map(([id,name,e,c])=>`
+ <div class="glass" style="border-radius:18px;padding:14px;height:118px;display:flex;flex-direction:column;gap:8px;cursor:pointer;" onclick="labFilter('${id}')">
+ <div style="display:flex;align-items:center;"><span style="font-size:21px;">${e}</span><div style="flex:1"></div>
+ <span class="cap2" style="color:var(--text-secondary);">${counts[id]||0}개 팁</span></div>
+ <div style="font-size:14px;font-weight:800;">${name}</div>
+ </div>`).join("")}
+ </div>` : ""}
+
+ ${(App.lab.cat || App.lab.q || App.lab.favOnly) ? `<div class="caption" style="color:var(--text-secondary);padding:6px 20px;">${list.length}개의 발성 비법</div>` : ""}
+ ${list.slice(0, 12).map(t => `
+ <div class="glass" style="margin:8px 20px 0;padding:14px;display:flex;gap:14px;align-items:center;border-radius:16px;cursor:pointer;" onclick="openTip(${t.id})">
+ <div style="font-size:20px;width:44px;height:44px;border-radius:50%;background:var(--surface-dark);display:flex;align-items:center;justify-content:center;">${(CAT_LIST.find(c=>c[0]===t.category)||[0,0,"🎵"])[2]}</div>
+ <div style="flex:1;min-width:0;">
+ <div style="font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.title}</div>
+ <div class="cap2" style="color:var(--brand-secondary);margin-top:3px;">${t.keyActionWord}</div>
+ </div>
+ <span style="font-size:13px;cursor:pointer;color:${favs.has(t.id)?'var(--vocal-warning)':'var(--text-secondary)'};" onclick="event.stopPropagation();toggleFav(${t.id})">${favs.has(t.id)?"★":"☆"}</span>
+ <span style="color:var(--text-secondary);font-size:12px;">›</span>
+ </div>`).join("")}
+ </div>
+ </div>
+ ${tabbar()}`;
+}
+function labSearch(q){ App.lab.q = q; const el = document.activeElement; render(); const inp = document.getElementById("labq"); if (inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } }
+function labFilter(cat){ App.lab.cat = cat; App.lab.favOnly = false; haptic(); render(); }
+function labFav(){ App.lab.favOnly = !App.lab.favOnly; if (App.lab.favOnly) App.lab.cat = null; haptic(); render(); }
+function toggleFav(id){
+ const s = new Set(Store.data.favorites);
+ s.has(id) ? s.delete(id) : s.add(id);
+ Store.data.favorites = [...s]; Store.save(); haptic(); render();
+}
+function openTip(id){
+ const t = TIPS.find(x => x.id === id);
+ if (!t) return;
+ const favs = new Set(Store.data.favorites);
+ toast(`<div style="text-align:left;"><b style="font-size:15px;">${t.title}</b><br><br>
+ <span style="color:#94A3B8;">${t.beginnerAnalogy}</span><br><br>
+ <span style="font-size:12px;color:#06B6D4;">${t.howTo.replace(/\\n/g,"<br>")}</span></div>`, 6000);
+}
+window.labSearch=labSearch; window.labFilter=labFilter; window.labFav=labFav;
+window.toggleFav=toggleFav; window.openTip=openTip;
+
+// ---------- 성장 기록 ----------
+function screenProgress(){
+ const st = calcStreak();
+ const wk = weeklyDays();
+ const latest = Store.data.pitchRecords[Store.data.pitchRecords.length - 1];
+ const totalSec = Store.data.sessions.reduce((a,s)=>a+s.dur,0);
+ const bl = Store.data.baseline, rg = Store.data.range;
+ const expansion = (Store.data.measured && bl.hi > 0 && rg.hi > 0)
+ ? Math.round(69 + 12*Math.log2(rg.hi/440)) - Math.round(69 + 12*Math.log2(bl.hi/440)) : 0;
+ return `
+ <div class="content">
+ <div class="scroll">
+ <div style="display:flex;align-items:center;padding:4px 24px 2px;">
+ <div>
+ <div class="eyebrow" style="color:var(--brand-secondary);">4주 성장 기록</div>
+ <div class="screen-title">성장 &amp; 통계</div>
+ </div><div style="flex:1"></div>
+ </div>
+
+ <div class="glass" style="margin:10px 20px 0;padding:16px;border:1px solid rgba(245,158,11,.35);">
+ <div style="display:flex;align-items:flex-start;">
+ <div style="flex:1">
+ <div class="cap2" style="color:var(--text-secondary);font-weight:600;">연속 실천 기록</div>
+ <div style="font-size:25px;font-weight:900;margin-top:4px;">${st.streak}일 연속 <span style="font-size:22px;">🔥</span></div>
+ ${st.frozenUsed>0?`<div class="cap2" style="color:var(--text-secondary);margin-top:3px;">🧊 보호권으로 이어진 날 ${st.frozenUsed}일 포함</div>`:""}
+ <div style="margin-top:10px;">
+ <div style="display:flex;align-items:center;">
+ <span class="cap2" style="color:var(--text-secondary);">이번 주 목표</span><div style="flex:1"></div>
+ <span class="cap2" style="font-weight:800;color:${wk>=5?'var(--vocal-success)':'var(--brand-secondary)'};font-variant-numeric:tabular-nums;">${wk}/5일</span>
+ </div>
+ <div style="height:5px;border-radius:3px;background:rgba(255,255,255,.10);margin-top:5px;overflow:hidden;">
+ <div style="height:100%;width:${Math.min(100, wk/5*100)}%;border-radius:3px;background:linear-gradient(90deg,var(--brand-primary),var(--brand-accent));"></div>
+ </div>
+ </div>
+ </div>
+ <div style="text-align:right;padding-left:12px;">
+ <div class="cap2" style="color:var(--text-secondary);">스트릭 보호권</div>
+ <div class="caption" style="color:var(--brand-secondary);margin-top:2px;">${Store.data.freezeTokens}개 보유 🛡️</div>
+ </div>
+ </div>
+ </div>
+
+ ${(Store.data.pitchRecords.length >= 2) ? (() => {
+ const recs = Store.data.pitchRecords.slice(-14);
+ let delta = null;
+ if (recs.length >= 6){
+ const recent = recs.slice(-3).reduce((a,r)=>a+r.acc,0)/3;
+ const prev = recs.slice(-6,-3).reduce((a,r)=>a+r.acc,0)/3;
+ delta = Math.round(recent - prev);
+ }
+ return `<div class="glass" style="margin:14px 20px 0;padding:16px;">
+ <div style="display:flex;align-items:center;">
+ <div style="font-size:12px;font-weight:800;">정확도 추이</div><div style="flex:1"></div>
+ ${delta !== null ? `<span class="cap2" style="font-weight:800;color:${delta>=0?'var(--vocal-success)':'var(--vocal-warning)'};">최근 3회 평균 ${delta>=0?'+':''}${delta}%p</span>` : ""}
+ </div>
+ <div style="display:flex;align-items:flex-end;gap:4px;height:60px;margin-top:10px;">
+ ${recs.map(r => `<div style="flex:1;border-radius:2px;background:${r.acc>=70?'var(--vocal-success)':'var(--brand-secondary)'};height:${Math.max(6, r.acc*0.52)}px;"></div>`).join("")}
+ </div>
+ <div class="cap2" style="color:var(--text-secondary);margin-top:8px;">최근 ${recs.length}회 세션 온피치율 · 초록 70% 이상</div>
+ </div>`;
+ })() : ""}
+
+ <div class="glass" style="margin:14px 20px 0;padding:16px;">
+ <div style="display:flex;align-items:center;">
+ <span class="caption" style="font-size:14px;">연습 활동 (최근 12주)</span><div style="flex:1"></div>
+ <span class="cap2" style="color:var(--brand-secondary);font-weight:700;">총 ${new Set(Store.data.sessions.map(s=>practiceDayKey(new Date(s.date)))).size}일 실천</span>
+ </div>
+ <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:12px 0 4px;">
+ ${["월","화","수","목","금","토","일"].map(d=>`<span style="font-size:10px;font-weight:800;color:var(--text-secondary);text-align:center;">${d}</span>`).join("")}
+ </div>
+ ${heatmapData()}
+ </div>
+
+ <div class="glass" style="margin:14px 20px 0;padding:16px;">
+ <div style="display:flex;align-items:center;">
+ <span class="caption" style="font-size:14px;">음역대 변화</span><div style="flex:1"></div>
+ <span class="cap2" style="color:var(--vocal-success);font-weight:800;">${Store.data.measured?`+${expansion} 반음 ${expansion>0?"확장":""}`:"측정 전"}</span>
+ </div>
+ ${Store.data.measured ? `
+ <div style="margin-top:14px;">
+ <div style="display:flex;"><span class="cap2" style="color:var(--text-secondary);">시작 (측정 당시)</span><div style="flex:1"></div><span class="caption">${freqToNoteCents(bl.lo).note} ~ ${freqToNoteCents(bl.hi).note}</span></div>
+ <div style="height:16px;border-radius:6px;background:rgba(255,255,255,.07);margin-top:6px;position:relative;overflow:hidden;">
+ <b style="position:absolute;left:0;top:0;bottom:0;width:${Math.min(100, (Math.log2(bl.hi/bl.lo))/3*100)}%;background:linear-gradient(90deg,rgba(99,102,241,.55),var(--brand-primary));"></b></div>
+ </div>
+ <div style="margin-top:12px;">
+ <div style="display:flex;"><span class="cap2" style="color:var(--brand-secondary);">현재</span><div style="flex:1"></div><span class="caption" style="color:var(--brand-secondary);">${freqToNoteCents(rg.lo).note} ~ ${freqToNoteCents(rg.hi).note}</span></div>
+ <div style="height:16px;border-radius:6px;background:rgba(255,255,255,.07);margin-top:6px;position:relative;overflow:hidden;">
+ <b style="position:absolute;left:0;top:0;bottom:0;width:${Math.min(100, (Math.log2(rg.hi/rg.lo))/3*100)}%;background:linear-gradient(90deg,var(--brand-primary),var(--brand-secondary));"></b></div>
+ </div>` : `
+ <div style="color:var(--text-secondary);font-size:12px;margin-top:10px;line-height:1.6;">피치 트래커로 측정을 시작하면 음역대 성장이 기록됩니다.</div>`}
+ </div>
+
+ <div style="display:flex;gap:14px;margin:14px 20px 0;">
+ <div class="glass" style="flex:1;padding:14px;border-radius:18px;">
+ <div class="cap2" style="color:var(--text-secondary);">🕰 총 연습 시간</div>
+ <div style="font-size:17px;font-weight:800;margin-top:6px;">${Math.floor(totalSec/3600)>0?Math.floor(totalSec/3600)+"시간 "+Math.floor(totalSec%3600/60)+"분":Math.floor(totalSec/60)+"분"}</div>
+ </div>
+ <div class="glass" style="flex:1;padding:14px;border-radius:18px;">
+ <div class="cap2" style="color:var(--text-secondary);">✅ 완료 세션</div>
+ <div style="font-size:17px;font-weight:800;margin-top:6px;">${Store.data.sessions.length}회 완료</div>
+ </div>
+ </div>
+
+ <div class="glass" style="margin:14px 20px 4px;padding:14px;display:flex;gap:10px;align-items:center;border-radius:18px;">
+ <span style="font-size:17px;color:var(--brand-accent);">📈</span>
+ <div>
+ <div class="cap2" style="color:var(--text-secondary);">최근 피치 측정</div>
+ <div class="caption" style="margin-top:2px;">${latest?`${latest.acc}점 · ${latest.acc>=90?"S":latest.acc>=80?"A":latest.acc>=70?"B":latest.acc>=60?"C":"D"}등급 · 목표음 ${latest.target}`:"아직 기록이 없어요. 피치 트래커에서 첫 측정을 시작하세요."}</div>
+ </div>
+ </div>
+ </div>
+ </div>
+ ${tabbar()}`;
+}
+
+// ============================================================
+// 7) 엔진 자가진단 (마이크 불필요): 합성음 → YIN → 오차 검증
+// ============================================================
+function synthTone(freq, seconds, sr){
+ // 앱의 가이드 톤과 동일 조성(기음+2배음+0.12x)을 안정 구간에서 샘플맅
+ const n = Math.floor(sr * seconds);
+ const out = new Float32Array(n);
+ for (let i = 0; i < n; i++){
+ const t = i / sr;
+ out[i] = (Math.sin(2*Math.PI*freq*t) + 0.3*Math.sin(2*Math.PI*freq*2*t) + 0.12*Math.sin(2*Math.PI*freq*3*t)) / 1.42 * 0.6;
+ }
+ return out;
+}
+function runSelfTest(){
+ const sr = 48000;
+ const cases = [82.41, 110, 220, 329.63, 440, 659.25];
+ const results = cases.map(expected => {
+ const samples = synthTone(expected, 0.35, sr);
+ const est = yinDetect(samples, sr);
+ const centsErr = est.frequency > 0 ? 1200 * Math.log2(est.frequency / expected) : Infinity;
+ return {expected, got: est.frequency, centsErr, pass: est.frequency > 0 && Math.abs(centsErr) <= 20 && est.confidence >= 0.55};
+ });
+ // 무성 신호(백색노이즈)도 기각해야 함
+ const noise = new Float32Array(sr * 0.3);
+ for (let i = 0; i < noise.length; i++) noise[i] = (Math.random()*2-1) * 0.005; // 매우 조용한 노이즈
+ const noiseEst = yinDetect(noise, sr);
+ const noisePass = noiseEst.frequency === 0;
+ const all = results.every(r => r.pass) && noisePass;
+ window.__selfTestResult = {results, noiseRejected: noisePass, all};
+ const rows = results.map(r =>
+ `<tr><td style="padding:2px 8px;text-align:right;">${r.expected.toFixed(2)}</td>
+ <td style="padding:2px 8px;text-align:right;">${r.got>0?r.got.toFixed(2):"—"}</td>
+ <td style="padding:2px 8px;text-align:right;">${isFinite(r.centsErr)?r.centsErr.toFixed(1):"—"}</td>
+ <td style="padding:2px 8px;color:${r.pass?'#10B981':'#EF4444'};font-weight:800;">${r.pass?"PASS":"FAIL"}</td></tr>`).join("");
+ toast(`
+ <b>🔧 YIN 엔진 자가진단 — ${all?"전체 통과 ✅":"실패 ❌"}</b><br>
+ <table style="font-size:11px;margin-top:8px;border-collapse:collapse;font-variant-numeric:tabular-nums;">
+ <tr style="color:#94A3B8;"><th style="padding:2px 8px;">목표(Hz)</th><th style="padding:2px 8px;">측정(Hz)</th><th style="padding:2px 8px;">오차(¢)</th><th style="padding:2px 8px;"></th></tr>
+ ${rows}
+ </table>
+ <span style="font-size:11px;color:#94A3B8;">무음 기각: ${noisePass?"PASS ✅":"FAIL ❌"} · Swift YINPitchDetector와 동일 스펙</span>`, 8000);
+ return window.__selfTestResult;
+}
+window.runSelfTest = runSelfTest;
+document.getElementById("selftest").addEventListener("click", () => runSelfTest());
+
+// 시작
+render();
+</script>
+</body>
+</html>
