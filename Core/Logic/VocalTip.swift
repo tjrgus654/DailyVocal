@@ -2,7 +2,8 @@
 //  VocalTip.swift
 //  5VocalMaster
 //
-//  Data model for Vocal Tips extracted and structured from OhVocal 48 Shorts
+//  Data model for Vocal Tips (48 OhVocal shorts + 4 research-based).
+//  Foundation-pure Codable so the shipped JSON is contract-testable.
 //
 
 import Foundation
