@@ -36,19 +36,32 @@ evidence/               # 라운드별 검증 증거(ROUND1~12) · 검증 로그
 
 ## 검증 상태
 
-- **CI(실제 macOS swiftc -typecheck)**: 앱 32파일 + 위젯 — 초록. push마다 자동 실행.
-- **Windows에서 실제 Swift 실행 테스트**: `swift test` — YIN 정확도(합성 주파수),
-  스트릭/프리즈/4AM 롤오버, 에코 시퀀스 스펙, 노트 산수·A4 켈리브레이션을
-  앱과 동일 소스로 검증. (YIN은 `#if canImport(Accelerate)`로 vDSP/스칼라 이중 구현)
+- **CI(실제 macOS)**: 앱+위젯 swiftc -typecheck + `swift test`(유닛테스트 51개,
+  en_US 러너 = 로케일 교차 게이트) — push마다 자동 실행.
+- **Windows에서 실제 Swift 실행 테스트**: `swift test` — YIN 정확도(합성·잡음 혼합),
+  스트릭/프리즈/4AM 롤오버(연말·윤일 경계 포함), 에코 시퀀스·난이도 전이, 노트 산수·
+  A4 켈리브레이션·클램프, 루틴 프리셋 무결성(쉬는 날 안전 계약), 팁 데이터 52종
+  전수 계약을 앱과 동일 소스로 검증.
+- **파리티 게이트 2종**: 웹 프로토타입과 Swift 앱의 규칙을 소스에서 직접 추출해
+  대조 — 에코 8축, 스트릭/쉬는 날 5축.
 - **웹 프로토타입 E2E**: 브라우저에서 전 플로우 실측(자가진단 0.135¢ 포함).
 - 상세: [evidence/20260903-rebuild/](evidence/20260903-rebuild/) · [evidence/VERIFICATION_LOG.md](evidence/VERIFICATION_LOG.md)
 
 ## 로컬 검증 명령
 
 ```bash
-bash verify_swift_parse.sh                          # Windows: 전 소스 구문 검사
-python evidence/20260903-rebuild/verify_static.py   # 정적 교차검증(데이터 정합)
-swift test                                          # Windows/macOS: 순수 로직 유닛테스트
+bash verify_all.sh   # 원샷: 아래 6게이트를 한 번에 (Windows 개발 머신 기준)
+```
+
+개별 실행:
+
+```bash
+bash verify_swift_parse.sh                            # 1. 전 소스 구문 검사
+bash run_swift_tests.sh                               # 2. 순수 로직 유닛테스트(실실행)
+python evidence/20260903-rebuild/verify_static.py     # 3. 정적 교차검증(데이터 정합)
+python evidence/20260903-rebuild/verify_echo_parity.py    # 4. 에코 파리티(웹↔Swift)
+python evidence/20260903-rebuild/verify_streak_parity.py  # 5. 스트릭 파리티(웹↔Swift)
+node -e "..."                                        # 6. live.html JS 구문 (verify_all.sh 참조)
 ```
 
 ## 주의
