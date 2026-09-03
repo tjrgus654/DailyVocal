@@ -71,6 +71,15 @@ Mac 인계 전 검증 총량. 각 항목은 실행 증거(명령 출력/CI 런 I
 | 46 | CI 런1 (프리셋 순수화 푸시) | 실패 → macOS swiftc 파일명 중복 규칙 포착 | 파스(파일별)는 못 잡는 오류; 확장 파일을 VocalCategoryTheme.swift로 개명 |
 | 47 | 최종 CI (타입체크+유닛테스트 40) | **그린** | 커밋 28 |
 
+## 커버리지 확장 패스 2 (세션 최종 마무리)
+
+| # | 검증 행위 | 결과 | 증거/비고 |
+|---|---|---|---|
+| 48 | 잔여 P3 2건 구현 확인: 에코 캡션 레벨3 분기(Swift `PitchTrackerView.swift:54` + JS `live.html:770` 양측)·`PitchEstimate.isVoiced` 사실 문서화(`YINPitchDetector.swift:23-27`) | 확인 | grep 실증 |
+| 49 | VocalLogic.guidePattern/clampedA4 순수 추출 — 시퀀서·엔진·뷰 위임으로 단일 진실원 확보 | swift test 42/42 | 클램프 로직 3곳 중복 제거 |
+| 50 | 계약 테스트 2종 추가: 가이드 패턴(5종 오프셋·전 패턴 기음 시작/종료·옥타브 내)·A4 클램프 경계 8건(센티넬 0·음수·435/445 경계·초과) | swift test 42/42 | TonePatternType CaseIterable화 수반 |
+| 51 | 최종 스윗트: 파스 41/41 · swift 42/42 · 정적 ALL PASS · JS OK · **CI 그린(타입체크+42 테스트)** | 전 그린 | 커밋 30 |
+
 ### 수용된 잔여 위험 (의도적 보류)
 
 - P2-4 "조회 경로의 SwiftData 변경": 자동 프리즈 소모 기능의 현재 수렴형 구현.
