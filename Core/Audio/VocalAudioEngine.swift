@@ -484,12 +484,10 @@ public final class VocalAudioEngine {
     /// (0 = unset = standard pitch).
     public static var referenceA4: Double {
         get {
-            let stored = UserDefaults.standard.double(forKey: "referenceA4")
-            guard stored != 0 else { return 440.0 }
-            return min(445.0, max(435.0, stored))
+            VocalLogic.clampedA4(UserDefaults.standard.double(forKey: "referenceA4"))
         }
         set {
-            UserDefaults.standard.set(min(445.0, max(435.0, newValue)), forKey: "referenceA4")
+            UserDefaults.standard.set(VocalLogic.clampedA4(newValue), forKey: "referenceA4")
         }
     }
 

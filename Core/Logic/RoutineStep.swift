@@ -37,7 +37,7 @@ public struct RoutineStep: Identifiable, Hashable {
     }
 }
 
-public enum TonePatternType: String, Codable {
+public enum TonePatternType: String, Codable, CaseIterable {
     case sirenSlide        // continuous low-high siren (guided by arpeggio)
     case octaveJump        // 1-8-1
     case fiveToneScale     // 1-2-3-4-5-4-3-2-1

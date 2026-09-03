@@ -80,6 +80,37 @@ final class RoutinePresetContractTests: XCTestCase {
                        "12:34")
     }
 
+    // MARK: - Guide pattern contract
+
+    func testGuidePatterns() {
+        XCTAssertEqual(VocalLogic.guidePattern(for: .fiveToneScale), [0, 2, 4, 5, 7, 5, 4, 2, 0])
+        XCTAssertEqual(VocalLogic.guidePattern(for: .octaveJump), [0, 12, 0])
+        XCTAssertEqual(VocalLogic.guidePattern(for: .arpeggio), [0, 4, 7, 12, 7, 4, 0])
+        XCTAssertEqual(VocalLogic.guidePattern(for: .sirenSlide), [0, 4, 7, 12, 7, 4, 0])
+        XCTAssertEqual(VocalLogic.guidePattern(for: .sustainedNote), [0])
+        // Every pattern starts and ends on the base note.
+        for tone in TonePatternType.allCases {
+            let pattern = VocalLogic.guidePattern(for: tone)
+            XCTAssertFalse(pattern.isEmpty)
+            XCTAssertEqual(pattern.first, 0, "\(tone)")
+            XCTAssertEqual(pattern.last, 0, "\(tone)")
+            XCTAssertTrue(pattern.allSatisfy { abs($0) <= 12 }, "\(tone) exceeds an octave")
+        }
+    }
+
+    // MARK: - A4 clamp boundaries
+
+    func testClampedA4Boundaries() {
+        XCTAssertEqual(VocalLogic.clampedA4(0), 440)          // unset sentinel
+        XCTAssertEqual(VocalLogic.clampedA4(-5), 435)         // negative -> floor
+        XCTAssertEqual(VocalLogic.clampedA4(434.9), 435)
+        XCTAssertEqual(VocalLogic.clampedA4(435), 435)
+        XCTAssertEqual(VocalLogic.clampedA4(440), 440)
+        XCTAssertEqual(VocalLogic.clampedA4(445), 445)
+        XCTAssertEqual(VocalLogic.clampedA4(445.1), 445)
+        XCTAssertEqual(VocalLogic.clampedA4(999), 445)
+    }
+
     // MARK: - Stored-record label contract
 
     func testEchoLabelFormat() {

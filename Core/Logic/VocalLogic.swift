@@ -239,6 +239,26 @@ public enum VocalLogic {
             .joined(separator: "-")
     }
 
+    // MARK: - Guide-tone patterns & tuning clamp
+
+    /// Semitone offsets of each guide pattern, anchored at the base note.
+    /// Mirrored by ScaleSequencer; pure data so the contract is testable.
+    public static func guidePattern(for tone: TonePatternType) -> [Int] {
+        switch tone {
+        case .sirenSlide: return [0, 4, 7, 12, 7, 4, 0]
+        case .octaveJump: return [0, 12, 0]
+        case .fiveToneScale: return [0, 2, 4, 5, 7, 5, 4, 2, 0]
+        case .arpeggio: return [0, 4, 7, 12, 7, 4, 0]
+        case .sustainedNote: return [0]
+        }
+    }
+
+    /// Tuning reference clamp with the 0 = unset sentinel (standard pitch).
+    public static func clampedA4(_ raw: Double) -> Double {
+        guard raw != 0 else { return standardA4 }
+        return min(445.0, max(435.0, raw))
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.

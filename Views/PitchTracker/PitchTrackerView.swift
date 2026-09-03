@@ -110,8 +110,7 @@ public struct PitchTrackerView: View {
     /// the label updates the moment a stepper is tapped.
     @AppStorage("referenceA4") private var referenceA4Raw = 0.0
     private var displayedA4: Double {
-        let raw = referenceA4Raw == 0 ? 440.0 : referenceA4Raw
-        return min(445.0, max(435.0, raw))
+        VocalLogic.clampedA4(referenceA4Raw)
     }
 
     private var tuningReferenceBar: some View {

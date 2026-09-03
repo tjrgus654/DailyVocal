@@ -38,10 +38,10 @@ public final class ScaleSequencer {
 
         var offsets: [Int] {
             switch self {
-            case .fiveTone: return [0, 2, 4, 5, 7, 5, 4, 2, 0]
-            case .octaveJump: return [0, 12, 0]
-            case .arpeggio: return [0, 4, 7, 12, 7, 4, 0]
-            case .sustained: return [0]
+            case .fiveTone: return VocalLogic.guidePattern(for: .fiveToneScale)
+            case .octaveJump: return VocalLogic.guidePattern(for: .octaveJump)
+            case .arpeggio: return VocalLogic.guidePattern(for: .arpeggio)
+            case .sustained: return VocalLogic.guidePattern(for: .sustainedNote)
             }
         }
     }
