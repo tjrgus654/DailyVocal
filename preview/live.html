@@ -771,9 +771,9 @@ function screenTracker(){
 
  <div class="glass" style="margin:10px 20px 0;padding:8px 14px;display:flex;align-items:center;gap:10px;border-radius:14px;">
  <span class="cap2" style="color:var(--text-secondary);">기준 피치 A4</span><div style="flex:1"></div>
- <span class="btn-ghost" style="width:28px;height:28px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;" onclick="setA4(-0.5)">−</span>
+ <span class="btn-ghost" style="width:44px;height:44px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;" onclick="setA4(-0.5)">−</span>
  <span style="font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;min-width:60px;text-align:center;">${a4Ref().toFixed(1)} Hz</span>
- <span class="btn-ghost" style="width:28px;height:28px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;" onclick="setA4(0.5)">+</span>
+ <span class="btn-ghost" style="width:44px;height:44px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;" onclick="setA4(0.5)">+</span>
  </div>
 
  <div class="glass" style="margin:14px 20px 0;height:206px;border-radius:18px;position:relative;overflow:hidden;">
@@ -1140,10 +1140,10 @@ function screenLab(){
  oninput="labSearch(this.value)">
  </div>
 
- <div style="display:flex;gap:8px;padding:12px 20px 4px;overflow:hidden;">
- <span class="chip ${!App.lab.cat && !App.lab.favOnly?'on':''}" onclick="labFilter(null)">전체 보기</span>
- <span class="chip ${App.lab.favOnly?'on':''}" style="${App.lab.favOnly?'background:var(--vocal-warning);':''}" onclick="labFav()">★ 즐겨찾기 ${favs.size}</span>
- ${CAT_LIST.map(([id,name,e])=>`<span class="chip ${App.lab.cat===id?'on':''}" onclick="labFilter('${id}')">${e} ${name}</span>`).join("")}
+ <div style="display:flex;gap:8px;padding:12px 20px 4px;overflow-x:auto;-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent);">
+ <span class="chip ${!App.lab.cat && !App.lab.favOnly?'on':''}" style="flex-shrink:0;" onclick="labFilter(null)">전체 보기</span>
+ <span class="chip ${App.lab.favOnly?'on':''}" style="flex-shrink:0;${App.lab.favOnly?'background:var(--vocal-warning);':''}" onclick="labFav()">★ 즐겨찾기 ${favs.size}</span>
+ ${CAT_LIST.map(([id,name,e])=>`<span class="chip ${App.lab.cat===id?'on':''}" style="flex-shrink:0;" onclick="labFilter('${id}')">${e} ${name}</span>`).join("")}
  </div>
 
  ${(!App.lab.cat && !App.lab.q && !App.lab.favOnly) ? `
@@ -1352,6 +1352,40 @@ window.runSelfTest = runSelfTest;
 document.getElementById("selftest").addEventListener("click", () => runSelfTest());
 
 // 시작
+// ---------- 비전 QA·비주얼 회귀 하네스: #qa=<base64 JSON> ----------
+// 부팅 시 1회 상태를 시딩한다. 프로덕션 동작에는 영향 없음(해시 없으면 무시).
+(function(){
+ const m = location.hash.match(/qa=([^&]+)/);
+ if (!m) return;
+ try {
+  const seed = JSON.parse(atob(decodeURIComponent(m[1])));
+  if (seed.onboarded) finishOnboarding();
+  if (seed.pitchRecords) Store.data.pitchRecords = seed.pitchRecords;
+  if (seed.sessions) Store.data.sessions = seed.sessions;
+  if (seed.range) Store.data.range = seed.range;
+  Store.save();
+  if (seed.screen) go(seed.screen);
+  if (seed.tracker){
+   go("tracker");
+   const t = seed.tracker;
+   if (t.mode) setTrMode(t.mode);
+   if (t.midis){ App.echo.midis = t.midis; App.echo.idx = t.idx || 0; }
+   if (t.traj){
+    const f = m2 => 440 * Math.pow(2, (m2 - 69) / 12);
+    App.history = t.traj.map((m, i) => ({
+     f: f(m), note: "x", cents: 0, onPitch: t.midis ? t.midis.includes(m) : false,
+     t: Date.now() - ((t.traj.length - i) * 280),
+    }));
+   }
+   if (t.bins){ App.bins = new Array(12).fill(0); t.bins.forEach(b => App.bins[b[0]] = b[1]); }
+   if (typeof t.score === "number"){ App.lastScore = t.score; App.voiced = 40; App.hits = Math.round(40 * t.score / 100); }
+   render(); drawCanvas();
+   const acc = document.getElementById("acc");
+   if (acc && App.voiced) acc.textContent = Math.round(App.hits / App.voiced * 100) + "%";
+  }
+ } catch(e){ console.warn("qa seed failed", e); }
+})();
+
 render();
 </script>
 </body>

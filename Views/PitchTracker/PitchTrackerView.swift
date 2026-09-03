@@ -131,7 +131,10 @@ public struct PitchTrackerView: View {
                 Image(systemName: "minus.circle.fill")
                     .font(.title3)
                     .foregroundColor(.white.opacity(0.7))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
             Text(String(format: "%.1f Hz", displayedA4))
                 .font(.caption.weight(.bold).monospacedDigit())
                 .foregroundColor(.white)
@@ -143,7 +146,10 @@ public struct PitchTrackerView: View {
                 Image(systemName: "plus.circle.fill")
                     .font(.title3)
                     .foregroundColor(.white.opacity(0.7))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
         }
         .glassCard(cornerRadius: 14, padding: 10)
     }
