@@ -10,7 +10,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class PitchRecord {
+public final class PitchRecord {
 
     public var id: UUID
     public var timestamp: Date

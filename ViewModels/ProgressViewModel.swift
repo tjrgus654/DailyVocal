@@ -93,7 +93,7 @@ public final class ProgressViewModel {
             from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)
         ) ?? today
         let weekKeys = (0..<7).compactMap {
-            calendar.date(byAdding: .day, value: $0, to: weekStart).map { dayFormatter.string(from: $0) }
+            calendar.date(byAdding: .day, value: $0, to: weekStart).map { Self.dayFormatter.string(from: $0) }
         }
         weeklyPracticeDays = weekKeys.filter { practiceDays.contains($0) }.count
 

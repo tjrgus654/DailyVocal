@@ -9,7 +9,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class PracticeSession {
+public final class PracticeSession {
 
     public var id: UUID
     public var date: Date

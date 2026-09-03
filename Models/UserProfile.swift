@@ -11,7 +11,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class UserProfile {
+public final class UserProfile {
 
     // Identity
     public var id: UUID
