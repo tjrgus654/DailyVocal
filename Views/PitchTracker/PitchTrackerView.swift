@@ -477,7 +477,7 @@ private struct PianoStrip: View {
         let degrees = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23, 24]
         return degrees.map { degree in
             VocalAudioEngine.noteAndCents(
-                fromFrequency: VocalAudioEngine.frequency(forMidi: 48 + degree)
+                fromFrequency: VocalAudioEngine.frequency(forMidi: Double(48 + degree))
             ).note
         }
     }()
