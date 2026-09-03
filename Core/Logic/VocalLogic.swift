@@ -242,7 +242,9 @@ public enum VocalLogic {
     // MARK: - Guide-tone patterns & tuning clamp
 
     /// Semitone offsets of each guide pattern, anchored at the base note.
-    /// Mirrored by ScaleSequencer; pure data so the contract is testable.
+    /// Consumed by ScaleSequencer.Pattern.offsets for four cases; `.sirenSlide`
+    /// intentionally shares the arpeggio shape (the sequencer maps it
+    /// explicitly), kept here so every case has one canonical data source.
     public static func guidePattern(for tone: TonePatternType) -> [Int] {
         switch tone {
         case .sirenSlide: return [0, 4, 7, 12, 7, 4, 0]

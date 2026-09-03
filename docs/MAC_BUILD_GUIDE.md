@@ -37,7 +37,7 @@
 │
 ├── ViewModels/                    # @Observable 뷰모델 4종
 ├── Views/                         # 온보딩(음역대 실측) · 루틴 · 피치트래커 · 연구소 · 성장기록
-├── Resources/vocal_tips.json      # 48개 팁 (카테고리 재분배 완료)
+├── Resources/vocal_tips.json      # 52개 팁 (카테고리 재분배 완료)
 └── Widget/VocalWidgetBundle.swift # 위젯 익스텐션 전용 (@main 포함)
 ```
 

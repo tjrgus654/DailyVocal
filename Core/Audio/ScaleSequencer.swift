@@ -85,15 +85,22 @@ public final class ScaleSequencer {
             // predecessor has already bailed out via its stale generation.
             self.isPlaying = true
 
+            // Contract alignment with VocalLogic.guideToneSequence:
+            // non-positive repetition counts play nothing.
+            guard repetitions > 0 else {
+                self.finish(generation: myGeneration)
+                return
+            }
             var repetition = 0
             while !Task.isCancelled {
-                let root = baseMidi + transpose + repetition
                 for offset in pattern.offsets {
                     if Task.isCancelled { break }
                     if let deadline, Date() >= deadline {
                         self.finish(generation: myGeneration)
                         return
                     }
+                    // Transpose is read per note (not snapped per repetition): a mid-play key
+                    // change takes effect on the next note — intended responsiveness.
                     let midi = VocalLogic.guideToneMidi(base: baseMidi + transpose, repetition: repetition, offset: offset)
                     self.currentNoteName = Self.noteName(forMidi: midi)
                     // .measurement mode lowers playback level a bit, so guide

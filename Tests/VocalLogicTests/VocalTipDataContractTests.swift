@@ -8,22 +8,30 @@ import Foundation
 /// macOS CI checkout) and decodes it with the production Codable model.
 final class VocalTipDataContractTests: XCTestCase {
 
-    static let tips: [VocalTip] = {
-        // Tests/VocalLogicTests/<file> -> repo root is two levels up.
+    static let tips: [VocalTip] = load()
+
+    /// Failure reason kept for the setUp message so all seven tests don't
+    /// fail with an identical opaque "failed to load".
+    static var loadError: String?
+
+    static func load() -> [VocalTip] {
+        // Tests/VocalLogicTests/<file> -> repo root is three levels up.
         let testFile = URL(fileURLWithPath: #filePath)
         let jsonURL = testFile.deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appendingPathComponent("Resources/vocal_tips.json")
-        guard let data = try? Data(contentsOf: jsonURL),
-              let tips = try? JSONDecoder().decode([VocalTip].self, from: data) else {
+        do {
+            let data = try Data(contentsOf: jsonURL)
+            return try JSONDecoder().decode([VocalTip].self, from: data)
+        } catch {
+            loadError = "\(jsonURL.path): \(error)"
             return []
         }
-        return tips
-    }()
+    }
 
     override func setUp() {
-        XCTAssertFalse(Self.tips.isEmpty, "vocal_tips.json failed to load/decode")
+        XCTAssertNil(Self.loadError, "vocal_tips.json failed to load/decode: \(Self.loadError ?? "?")")
     }
 
     func testAllFiftyTwoTipsDecode() {
