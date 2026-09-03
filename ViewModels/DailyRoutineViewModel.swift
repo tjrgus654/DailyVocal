@@ -95,8 +95,11 @@ public final class DailyRoutineViewModel {
     private let haptics = HapticManager.shared
     private let liveActivity = LiveActivityManager.shared
 
-    private var timerCancellable: AnyCancellable?
-    private var interruptionObserver: NSObjectProtocol?
+    // deinit runs nonisolated; these tokens are only mutated on the main
+    // actor and the object is already unreferenced there, so the unsynchronised
+    // final read is safe.
+    nonisolated(unsafe) private var timerCancellable: AnyCancellable?
+    nonisolated(unsafe) private var interruptionObserver: NSObjectProtocol?
     private var modelContext: ModelContext?
     private var profile: UserProfile?
 

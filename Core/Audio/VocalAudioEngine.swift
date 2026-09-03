@@ -92,8 +92,10 @@ public final class VocalAudioEngine {
     /// Last accepted voiced frequency, used to reject sudden octave jumps.
     private var lastVoicedFrequency: Double = 0
 
-    private var interruptionObserver: NSObjectProtocol?
-    private var routeChangeObserver: NSObjectProtocol?
+    // deinit runs nonisolated; only mutated on the main actor and the
+    // singleton outlives every reference when deinit reads them.
+    nonisolated(unsafe) private var interruptionObserver: NSObjectProtocol?
+    nonisolated(unsafe) private var routeChangeObserver: NSObjectProtocol?
 
     private let noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 

@@ -132,7 +132,9 @@ public final class PitchTrackerViewModel {
     let audio = VocalAudioEngine.shared
     private let haptics = HapticManager.shared
     private var modelContext: ModelContext?
-    private var interruptionObserver: NSObjectProtocol?
+    // deinit runs nonisolated; only mutated on the main actor and the object
+    // is already unreferenced there when deinit reads it.
+    nonisolated(unsafe) private var interruptionObserver: NSObjectProtocol?
 
     private static let historyLimit = 120
     private static let onPitchCentsTolerance = 25.0
