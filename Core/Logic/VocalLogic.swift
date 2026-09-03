@@ -68,9 +68,13 @@ public enum VocalLogic {
 
     // MARK: - Practice day (4 AM rollover) & streak
 
+    /// POSIX/Gregorian-pinned so stored day keys (frozenDayKeys) survive
+    /// user locale/calendar changes (Buddhist/Hijri would re-key the year).
     static let dayFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
         formatter.timeZone = .current
         return formatter
     }()
@@ -83,11 +87,14 @@ public enum VocalLogic {
 
     public struct StreakResult: Equatable {
         public var streak: Int
-        public var consumedDay: String?
+        /// Every gap the walk bridged with a token this pass; the caller must
+        /// apply ALL of them in one update (a single-slot value let older
+        /// gaps converge one render at a time).
+        public var consumedDays: [String]
         public var usedFrozenCount: Int
-        public init(streak: Int, consumedDay: String?, usedFrozenCount: Int) {
+        public init(streak: Int, consumedDays: [String], usedFrozenCount: Int) {
             self.streak = streak
-            self.consumedDay = consumedDay
+            self.consumedDays = consumedDays
             self.usedFrozenCount = usedFrozenCount
         }
     }
@@ -104,7 +111,7 @@ public enum VocalLogic {
     ) -> StreakResult {
         var streak = 0
         var tokens = freezeTokens
-        var consumedDay: String?
+        var consumedDays: [String] = []
         var usedFrozenCount = 0
 
         // Anchor to the 4am-rollover "practice day" of now.
@@ -113,7 +120,7 @@ public enum VocalLogic {
         // Streak stays alive until yesterday even if today isn't practiced yet.
         if !practiceDays.contains(dayFormatter.string(from: cursor)) {
             guard let yesterday = calendar.date(byAdding: .day, value: -1, to: cursor) else {
-                return StreakResult(streak: 0, consumedDay: nil, usedFrozenCount: 0)
+                return StreakResult(streak: 0, consumedDays: [], usedFrozenCount: 0)
             }
             cursor = yesterday
         }
@@ -135,14 +142,14 @@ public enum VocalLogic {
                       practiceDays.contains(dayFormatter.string(from: previousDay))
                         || frozenDays.contains(dayFormatter.string(from: previousDay)) {
                 tokens -= 1
-                consumedDay = key
+                consumedDays.append(key)
             } else {
                 break
             }
             guard let previousDay else { break }
             cursor = previousDay
         }
-        return StreakResult(streak: streak, consumedDay: consumedDay, usedFrozenCount: usedFrozenCount + (consumedDay == nil ? 0 : 1))
+        return StreakResult(streak: streak, consumedDays: consumedDays, usedFrozenCount: usedFrozenCount + consumedDays.count)
     }
 
     // MARK: - Heatmap (12 weeks, columns aligned to Mon..Sun)
@@ -163,7 +170,13 @@ public enum VocalLogic {
         now: Date,
         content: (String) -> (count: Int, intensity: Double)
     ) -> [HeatmapDay] {
-        let calendar = Calendar.current
+        // Round up to whole weeks: a partial trailing week would render
+        // future cells as if they were empty past days.
+        let dayCount = ((dayCount + 6) / 7) * 7
+        // Pin the week start to Monday: the grid header hardcodes 월화수목금토일
+        // while CLDR gives ko_KR/en_US a Sunday first weekday.
+        var calendar = Calendar.current
+        calendar.firstWeekday = 2
         let today = calendar.startOfDay(for: now)
 
         let thisWeekStart = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)) ?? today
@@ -198,16 +211,23 @@ public enum VocalLogic {
         roll: () -> Int
     ) -> [Int] {
         let moves = echoMoveSets[min(3, max(1, level)) - 1]
+        let clampedBase = min(72, max(43, base))
         let validFrom: (Int) -> [Int] = { from in
             moves.filter { (43...72).contains(from + $0) }
         }
-        let baseMoves = validFrom(base)
-        guard !baseMoves.isEmpty else { return [base, base + 2, base + 4] }
-        let second = base + baseMoves[roll() % baseMoves.count]
+        // roll() may return any Int: normalize so modulo never goes negative.
+        func draw(_ pool: [Int]) -> Int {
+            var r = roll() % pool.count
+            if r < 0 { r += pool.count }
+            return pool[r]
+        }
+        let baseMoves = validFrom(clampedBase)
+        guard !baseMoves.isEmpty else { return [clampedBase, clampedBase + 2, clampedBase + 4] }
+        let second = clampedBase + draw(baseMoves)
         let secondMoves = validFrom(second)
-        guard !secondMoves.isEmpty else { return [base, second, second + 2] }
-        let third = second + secondMoves[roll() % secondMoves.count]
-        return [base, second, third]
+        guard !secondMoves.isEmpty else { return [clampedBase, second, second + 2] }
+        let third = second + draw(secondMoves)
+        return [clampedBase, second, third]
     }
 
     // MARK: - Session grading

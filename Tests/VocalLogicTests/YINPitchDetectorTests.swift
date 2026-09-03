@@ -45,6 +45,28 @@ final class YINPitchDetectorTests: XCTestCase {
         XCTAssertFalse(detector.detect(in: noise).isVoiced)
     }
 
+    /// Harmonic tone + moderate noise: the estimator must stay well inside
+    /// the perceptual tolerance (±12 cents), not just the ideal-signal margin.
+    func testNoisyHarmonicTone() {
+        let detector = YINPitchDetector(sampleRate: sampleRate)
+        let f0 = 220.0
+        let n = Int(sampleRate * 0.35)
+        var seed: UInt32 = 987654321
+        var samples = [Float](repeating: 0, count: n)
+        for i in 0..<n {
+            let t = Double(i) / sampleRate
+            seed = seed &* 1_103_515_245 &+ 12_345
+            let noise = Double(seed % 20_000) / 20_000.0 - 0.5
+            samples[i] = Float((sin(2 * .pi * f0 * t)
+                                + 0.3 * sin(2 * .pi * 2 * f0 * t)) * 0.5 + noise * 0.08)
+        }
+        let estimate = detector.detect(in: samples)
+        XCTAssertGreaterThan(estimate.frequency, 0)
+        let centsError = 1200 * log2(estimate.frequency / f0)
+        XCTAssertEqual(abs(centsError), 0, accuracy: 12.0, "noisy 220Hz -> \(estimate.frequency)")
+        XCTAssertTrue(estimate.isVoiced)
+    }
+
     func testOctaveStability() {
         // The detector must prefer the true fundamental, not an overtone.
         let detector = YINPitchDetector(sampleRate: sampleRate)

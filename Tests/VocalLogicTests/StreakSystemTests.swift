@@ -20,7 +20,7 @@ final class StreakSystemTests: XCTestCase {
     func testEmptyPracticeGivesZeroStreak() {
         let result = VocalLogic.calculateStreak(practiceDays: [], frozenDays: [], freezeTokens: 2, now: noon())
         XCTAssertEqual(result.streak, 0)
-        XCTAssertNil(result.consumedDay)
+        XCTAssertTrue(result.consumedDays.isEmpty)
     }
 
     func testConsecutiveDaysCount() {
@@ -43,8 +43,21 @@ final class StreakSystemTests: XCTestCase {
         let days: Set<String> = [key(now), key(now, offsetDays: -2)]
         let result = VocalLogic.calculateStreak(practiceDays: days, frozenDays: [], freezeTokens: 1, now: now)
         XCTAssertEqual(result.streak, 2)
-        XCTAssertEqual(result.consumedDay, key(now, offsetDays: -1))
+        XCTAssertEqual(result.consumedDays, [key(now, offsetDays: -1)])
         XCTAssertEqual(result.usedFrozenCount, 1)
+    }
+
+    /// Two separate 1-day gaps, two tokens: BOTH gaps must be reported so the
+    /// profile converges in a single update (single-slot regression guard).
+    func testTwoGapsBothConsumedWithTwoTokens() {
+        let now = noon()
+        let days: Set<String> = [
+            key(now), key(now, offsetDays: -2), key(now, offsetDays: -4),
+        ]
+        let result = VocalLogic.calculateStreak(practiceDays: days, frozenDays: [], freezeTokens: 2, now: now)
+        XCTAssertEqual(result.streak, 3)
+        XCTAssertEqual(Set(result.consumedDays), Set([key(now, offsetDays: -1), key(now, offsetDays: -3)]))
+        XCTAssertEqual(result.usedFrozenCount, 2)
     }
 
     func testTwoGapsEndStreakWithoutTokens() {
@@ -61,7 +74,7 @@ final class StreakSystemTests: XCTestCase {
         let days: Set<String> = [key(now), key(now, offsetDays: -2)]
         let result = VocalLogic.calculateStreak(practiceDays: days, frozenDays: [frozenYesterday], freezeTokens: 0, now: now)
         XCTAssertEqual(result.streak, 2)
-        XCTAssertNil(result.consumedDay)
+        XCTAssertTrue(result.consumedDays.isEmpty)
         XCTAssertEqual(result.usedFrozenCount, 1)
     }
 

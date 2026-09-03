@@ -58,7 +58,7 @@ final class BoundaryScenarioTests: XCTestCase {
         let days: Set<String> = [key(date(2025, 6, 10)), key(date(2025, 6, 8))]
         let result = VocalLogic.calculateStreak(practiceDays: days, frozenDays: [], freezeTokens: 0, calendar: calendar, now: now)
         XCTAssertEqual(result.streak, 1)
-        XCTAssertNil(result.consumedDay)
+        XCTAssertTrue(result.consumedDays.isEmpty)
     }
 
     func testExhaustedTokensEndStreakAtSecondGap() {
@@ -70,7 +70,7 @@ final class BoundaryScenarioTests: XCTestCase {
         ]
         let result = VocalLogic.calculateStreak(practiceDays: days, frozenDays: [], freezeTokens: 1, calendar: calendar, now: now)
         XCTAssertEqual(result.streak, 2) // Jun 10 + bridged Jun 9 + Jun 8, stop at Jun 7
-        XCTAssertEqual(result.consumedDay, key(date(2025, 6, 9)))
+        XCTAssertEqual(result.consumedDays, [key(date(2025, 6, 9))])
         XCTAssertEqual(result.usedFrozenCount, 1)
     }
 

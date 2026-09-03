@@ -29,3 +29,8 @@ jobs:
           xcrun --sdk iphonesimulator swiftc -typecheck \
             -target arm64-apple-ios17.0-simulator \
             Widget/VocalWidgetBundle.swift Core/LiveActivity/VocalActivityAttributes.swift
+
+      # 순수 로직 유닛테스트 실실행 — en_US 러너에서 돌려 로케일 의존
+      # (주 시작일 등) 회귀를 잡는다. macOS에서는 Accelerate/vDSP 경로 사용.
+      - name: Run unit tests (locale-crossing)
+        run: swift test

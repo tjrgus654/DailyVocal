@@ -6,7 +6,7 @@
 //  Pure value type: no shared state, safe to call from any thread.
 //  The O(N*W) difference function is SIMD-accelerated with Accelerate (vDSP)
 //  on Apple platforms; other toolchains (swift test on Windows) build the
-//  mathematically identical scalar fallback.
+//  scalar fallback equivalent up to Float rounding order.
 //
 
 #if canImport(Accelerate)
@@ -20,6 +20,10 @@ public struct PitchEstimate: Equatable, Sendable {
     /// 1 - CMNDF minimum, clamped to 0...1. Higher means a more periodic signal.
     public var confidence: Double
 
+    /// Note: with threshold 0.15 / fallbackMaxCMNDF 0.45, every returned
+    /// estimate already satisfies this gate by construction (1 - s1 > 0.55);
+    /// the effective unvoiced rejection happens upstream (detector returns
+    /// .silent) plus the engine's RMS gate.
     public var isVoiced: Bool { frequency > 0 && confidence >= 0.55 }
 
     public static let silent = PitchEstimate(frequency: 0, confidence: 0)
@@ -62,12 +66,15 @@ public struct YINPitchDetector: Sendable {
         // Sign of the subtraction is irrelevant (result is squared), so vDSP_vsub
         // argument order does not affect the outcome.
         var d = [Float](repeating: 0, count: maxTau + 2)
+        #if canImport(Accelerate)
+        // Hoisted out of the tau loop: one allocation per frame, not per tau.
+        var diff = [Float](repeating: 0, count: window)
+        #endif
         samples.withUnsafeBufferPointer { buffer in
             guard let base = buffer.baseAddress else { return }
             for tau in 1...maxTau {
                 var sumOfSquares: Float = 0
                 #if canImport(Accelerate)
-                var diff = [Float](repeating: 0, count: window)
                 vDSP_vsub(base, 1, base + tau, 1, &diff, 1, vDSP_Length(window))
                 vDSP_svesq(diff, 1, &sumOfSquares, vDSP_Length(window))
                 #else

@@ -56,10 +56,11 @@ public final class ProgressViewModel {
         )
         currentStreak = result.streak
 
-        // Auto-consume a freeze token when it bridged exactly one missed day.
-        if let consumedDay = result.consumedDay, let profile {
-            profile.streakFreezeTokens = max(0, profile.streakFreezeTokens - 1)
-            profile.frozenDayKeys.append(consumedDay)
+        // Apply every token-bridged gap in one pass so the profile converges
+        // immediately instead of one day per render.
+        if !result.consumedDays.isEmpty, let profile {
+            profile.streakFreezeTokens = max(0, profile.streakFreezeTokens - result.consumedDays.count)
+            profile.frozenDayKeys.append(contentsOf: result.consumedDays)
             try? profile.modelContext?.save()
         }
         frozenDaysInStreak = result.usedFrozenCount
@@ -69,8 +70,10 @@ public final class ProgressViewModel {
             dayCounts[VocalLogic.practiceDayKey(for: session.date), default: 0] += 1
         }
 
-        // Weekly goal: practice days in the current Mon..Sun week.
-        let calendar = Calendar.current
+        // Weekly goal: practice days in the current Mon..Sun week (pinned to
+        // Monday — CLDR week starts differ by locale, the header does not).
+        var calendar = Calendar.current
+        calendar.firstWeekday = 2
         let today = calendar.startOfDay(for: Date())
         let weekStart = calendar.date(
             from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)

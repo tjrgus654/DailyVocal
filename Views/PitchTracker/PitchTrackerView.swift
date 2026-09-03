@@ -93,7 +93,7 @@ public struct PitchTrackerView: View {
     }
 
     private var alertMessageText: String {
-        let label = echoLabelForAlert
+        let label = viewModel.lastSessionTargetLabel
         var text = "등급 \(viewModel.lastSessionGrade) · 목표음 \(label.isEmpty ? viewModel.targetNoteName : label) 온피치 \(Int(viewModel.accuracyScore.rounded()))%"
         if let delta = viewModel.lastEchoLevelDelta {
             text += delta > 0
@@ -102,10 +102,6 @@ public struct PitchTrackerView: View {
         }
         text += "\n결과는 성장 기록에 반영됩니다."
         return text
-    }
-
-    private var echoLabelForAlert: String {
-        viewModel.echoTargetLabel
     }
 
     /// A4 reference tuning: keeps note naming and cents aligned with whatever

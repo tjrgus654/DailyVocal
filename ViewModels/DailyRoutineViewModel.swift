@@ -55,16 +55,21 @@ public final class DailyRoutineViewModel {
         case sore = 2
         public var id: Int { rawValue }
     }
+    /// @Observable runs property observers even for assignments in init,
+    /// so the persisted-condition restore must not fire the didSet logic
+    /// (measured empirically) — gate it on this flag.
+    private var bootstrapped = false
     public var vocalCondition: VocalCondition = .good {
         didSet {
             UserDefaults.standard.set(vocalCondition.rawValue, forKey: "vocalCondition")
-            guard vocalCondition != oldValue else { return }
+            guard bootstrapped, vocalCondition != oldValue else { return }
             if vocalCondition == .sore {
                 if isTimerRunning { pause() }
                 switchToRestRoutine(notify: true)
             } else if mode == .rest {
                 // Recovering the chip on the same screen must leave rest mode
                 // too, or the user feels locked out of the normal program.
+                sequencer.stop()
                 mode = .full
                 routineSteps = RoutinePresets.defaultRoutine(forWeek: trainingWeek)
                 currentStepIndex = 0
@@ -113,6 +118,7 @@ public final class DailyRoutineViewModel {
             remainingSeconds = routineSteps.first?.durationSeconds ?? 0
         }
         observeAudioInterruptions()
+        bootstrapped = true
     }
 
     deinit {

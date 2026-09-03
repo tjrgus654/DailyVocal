@@ -34,6 +34,9 @@ public final class PitchTrackerViewModel {
     public private(set) var sessionLowestFrequency = 0.0
     public private(set) var sessionHighestFrequency = 0.0
     /// Karaoke-style 0...100 score of the just-finished session (nil until finished).
+    /// Target label of the just-finished session, captured BEFORE the echo
+    /// guides are cleared ("E4-G4-C5" or the single target note).
+    public private(set) var lastSessionTargetLabel = ""
     public private(set) var lastSessionScore: Int?
     public private(set) var lastSessionGrade: String = ""
     /// Pitch-class histogram of the current/last session (index 0=C ... 11=B,
@@ -214,6 +217,7 @@ public final class PitchTrackerViewModel {
         wasOnPitch = false
         lastSessionScore = nil
         lastSessionGrade = ""
+        lastSessionTargetLabel = ""
         lastEchoLevelDelta = nil
         noteBinCounts = Array(repeating: 0, count: 12)
         sessionStartDate = Date()
@@ -240,6 +244,9 @@ public final class PitchTrackerViewModel {
 
     public func stopTracking() {
         guard isListening else { return }
+        // Capture before the guides are cleared below — the alert and the
+        // persisted record read this after the sequence is gone.
+        lastSessionTargetLabel = echoTargetLabel.isEmpty ? targetNoteName : echoTargetLabel
         isListening = false
         echoPhaseTask?.cancel()
         echoPhaseTask = nil
@@ -417,7 +424,7 @@ public final class PitchTrackerViewModel {
 
         let record = PitchRecord(
             durationSeconds: max(1, Int(Date().timeIntervalSince(sessionStartDate))),
-            targetNoteName: echoTargetLabel.isEmpty ? targetNoteName : echoTargetLabel,
+            targetNoteName: lastSessionTargetLabel.isEmpty ? targetNoteName : lastSessionTargetLabel,
             targetFrequency: targetFrequency,
             averageCentsDeviation: totalCentsMagnitude / Double(voicedFrameCount),
             accuracyPercentage: accuracyScore,
