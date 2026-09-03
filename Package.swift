@@ -7,6 +7,7 @@ import PackageDescription
 
 let package = Package(
     name: "VocalLogic",
+    platforms: [.macOS(.v13)],
     targets: [
         .target(name: "VocalLogic", path: "Core/Logic"),
         .testTarget(
