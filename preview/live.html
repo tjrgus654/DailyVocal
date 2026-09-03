@@ -1140,7 +1140,7 @@ function screenLab(){
  oninput="labSearch(this.value)">
  </div>
 
- <div style="display:flex;gap:8px;padding:12px 20px 4px;overflow-x:auto;-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent);">
+ <div style="display:flex;gap:8px;padding:12px 20px 4px;overflow-x:auto;-webkit-mask-image:linear-gradient(90deg,#000 82%,transparent);mask-image:linear-gradient(90deg,#000 82%,transparent);">
  <span class="chip ${!App.lab.cat && !App.lab.favOnly?'on':''}" style="flex-shrink:0;" onclick="labFilter(null)">전체 보기</span>
  <span class="chip ${App.lab.favOnly?'on':''}" style="flex-shrink:0;${App.lab.favOnly?'background:var(--vocal-warning);':''}" onclick="labFav()">★ 즐겨찾기 ${favs.size}</span>
  ${CAT_LIST.map(([id,name,e])=>`<span class="chip ${App.lab.cat===id?'on':''}" style="flex-shrink:0;" onclick="labFilter('${id}')">${e} ${name}</span>`).join("")}
