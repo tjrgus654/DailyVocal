@@ -86,7 +86,7 @@ public final class LiveActivityManager {
     private static let remainingFormatter: DateComponentsFormatter = {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.minute, .second]
-        formatter.zeroFormattingBehavior = .padUnits
+        formatter.zeroFormattingBehavior = .pad
         return formatter
     }()
 
