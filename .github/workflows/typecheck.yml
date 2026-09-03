@@ -16,12 +16,12 @@ jobs:
       - name: Show SDKs (sanity)
         run: xcodebuild -showsdks
 
-      # 앱 타깃 32파일 (위젯 제외: @main 이중 선언 충돌 방지)
+      # 앱 타깃 소스 (위젯·유닛테스트 제외: @main/XCTest 충돌 방지)
       - name: Typecheck app sources
         run: |
           xcrun --sdk iphonesimulator swiftc -typecheck \
             -target arm64-apple-ios17.0-simulator \
-            $(find . -name '*.swift' -not -path './.git/*' -not -path './preview/*' -not -path '*Widget*')
+            $(find . -name '*.swift' -not -path './.git/*' -not -path './preview/*' -not -path './Tests/*' -not -path './.build/*' -not -path '*Widget*')
 
       # 위젯 익스텐션 (Attributes 공유 파일 포함)
       - name: Typecheck widget extension

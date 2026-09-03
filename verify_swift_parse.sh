@@ -11,7 +11,7 @@ FE="$TOOLCHAIN/swift-frontend.exe"
 
 cd "$(dirname "$0")"
 PASS=0; FAIL=0
-for f in $(find . -name "*.swift" -not -path "./preview/*" | sort); do
+for f in $(find . -name "*.swift" -not -path "./preview/*" -not -path "./.build/*" | sort); do
   OUT=$("$FE" -parse "$f" 2>&1); CODE=$?
   if [ $CODE -eq 0 ] && [ -z "$OUT" ]; then
     PASS=$((PASS+1))

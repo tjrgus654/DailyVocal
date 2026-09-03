@@ -494,48 +494,19 @@ public final class VocalAudioEngine {
     }
 
     public static func midiNumber(forFrequency frequency: Double) -> Double {
-        guard frequency > 0 else { return 0 }
-        return 69.0 + 12.0 * log2(frequency / referenceA4)
+        VocalLogic.midiNumber(forFrequency: frequency, a4: referenceA4)
     }
 
     public static func frequency(forMidi midi: Double) -> Double {
-        referenceA4 * pow(2.0, (midi - 69.0) / 12.0)
+        VocalLogic.frequency(forMidi: midi, a4: referenceA4)
     }
 
     public static func noteAndCents(fromFrequency frequency: Double) -> (note: String, midi: Int, cents: Double) {
-        guard frequency > 0 else { return ("--", 0, 0) }
-        let exact = midiNumber(forFrequency: frequency)
-        let midi = Int(exact.rounded())
-        let cents = (exact - Double(midi)) * 100.0
-        let names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-        let name = names[(midi % 12 + 12) % 12]
-        let octave = midi / 12 - 1
-        return ("\(name)\(octave)", midi, cents)
+        VocalLogic.noteAndCents(fromFrequency: frequency, a4: referenceA4)
     }
 
     /// Parses note names like "C4", "F#3", "Bb4" into a MIDI number.
     public static func midiNumber(forNoteName name: String) -> Int? {
-        let letters: [Character: Int] = ["C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11]
-        var base = 0
-        var foundBase = false
-        var accidental = 0
-        var octave: Int?
-
-        for char in name.trimmingCharacters(in: .whitespaces) {
-            if char.isNumber {
-                if let digit = char.wholeNumberValue {
-                    octave = (octave ?? 0) * 10 + digit
-                }
-            } else if char == "#" {
-                accidental += 1
-            } else if char == "b" && foundBase {
-                accidental -= 1
-            } else if !foundBase, let value = letters[Character(char.uppercased())] {
-                base = value
-                foundBase = true
-            }
-        }
-        guard foundBase, let octave else { return nil }
-        return (octave + 1) * 12 + base + accidental
+        VocalLogic.midiNumber(forNoteName: name)
     }
 }

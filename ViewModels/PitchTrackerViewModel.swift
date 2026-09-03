@@ -98,12 +98,6 @@ public final class PitchTrackerViewModel {
     /// completion alert.
     public private(set) var lastEchoLevelDelta: Int?
 
-    private static let echoMoveSets: [[Int]] = [
-        [-3, -2, 2, 3],                              // L1
-        [-5, -4, -3, -2, 2, 3, 4, 5],                // L2
-        [-7, -5, -4, -3, 2, 3, 4, 5, 7]              // L3
-    ]
-
     /// Target the scoring/display should follow right now.
     public var activeTargetMidi: Int {
         mode == .echo && !echoTargetMidis.isEmpty
@@ -264,23 +258,10 @@ public final class PitchTrackerViewModel {
 
     // MARK: - Echo sequence flow
 
-    /// Two distinct non-zero moves from the level's interval set starting
-    /// from the selected target note. Moves that would leave the G2...C5
-    /// band are filtered before drawing so clamping can never fold two
-    /// notes onto the same pitch.
     private func generateEchoSequence() -> [Int] {
-        let moves = Self.echoMoveSets[min(3, max(1, echoLevel)) - 1]
-        let base = targetMidi
-        let valid: (Int) -> [Int] = { from in
-            moves.filter { (43...72).contains(from + $0) }
+        VocalLogic.generateEchoSequence(base: targetMidi, level: echoLevel) {
+            Int.random(in: 0..<1_000_000)
         }
-        let baseMoves = valid(base)
-        guard !baseMoves.isEmpty else { return [base, base + 2, base + 4] }
-        let second = base + baseMoves.randomElement()!
-        let secondMoves = valid(second)
-        guard !secondMoves.isEmpty else { return [base, second, second + 2] }
-        let third = second + secondMoves.randomElement()!
-        return [base, second, third]
     }
 
     private func startEchoFlow() {
@@ -332,13 +313,7 @@ public final class PitchTrackerViewModel {
             return
         }
         lastSessionScore = Int(accuracyScore.rounded())
-        switch lastSessionScore ?? 0 {
-        case 90...: lastSessionGrade = "S"
-        case 80..<90: lastSessionGrade = "A"
-        case 70..<80: lastSessionGrade = "B"
-        case 60..<70: lastSessionGrade = "C"
-        default: lastSessionGrade = "D"
-        }
+        lastSessionGrade = VocalLogic.sessionGrade(forScore: lastSessionScore ?? 0)
         updateEchoLevelIfNeeded(score: lastSessionScore ?? 0)
         haptics.routineCompleted()
     }

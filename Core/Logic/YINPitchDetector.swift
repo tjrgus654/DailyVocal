@@ -4,10 +4,14 @@
 //
 //  YIN fundamental-frequency (F0) estimator.
 //  Pure value type: no shared state, safe to call from any thread.
-//  The O(N*W) difference function is SIMD-accelerated with Accelerate (vDSP).
+//  The O(N*W) difference function is SIMD-accelerated with Accelerate (vDSP)
+//  on Apple platforms; other toolchains (swift test on Windows) build the
+//  mathematically identical scalar fallback.
 //
 
+#if canImport(Accelerate)
 import Accelerate
+#endif
 
 /// Result of a single-frame pitch analysis.
 public struct PitchEstimate: Equatable, Sendable {
@@ -58,13 +62,23 @@ public struct YINPitchDetector: Sendable {
         // Sign of the subtraction is irrelevant (result is squared), so vDSP_vsub
         // argument order does not affect the outcome.
         var d = [Float](repeating: 0, count: maxTau + 2)
-        var diff = [Float](repeating: 0, count: window)
         samples.withUnsafeBufferPointer { buffer in
             guard let base = buffer.baseAddress else { return }
             for tau in 1...maxTau {
-                vDSP_vsub(base, 1, base + tau, 1, &diff, 1, vDSP_Length(window))
                 var sumOfSquares: Float = 0
+                #if canImport(Accelerate)
+                var diff = [Float](repeating: 0, count: window)
+                vDSP_vsub(base, 1, base + tau, 1, &diff, 1, vDSP_Length(window))
                 vDSP_svesq(diff, 1, &sumOfSquares, vDSP_Length(window))
+                #else
+                // Scalar fallback: identical math, no Accelerate required.
+                var accumulator: Float = 0
+                for i in 0..<window {
+                    let delta = samples[i + tau] - samples[i]
+                    accumulator += delta * delta
+                }
+                sumOfSquares = accumulator
+                #endif
                 d[tau] = sumOfSquares
             }
         }
