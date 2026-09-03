@@ -18,7 +18,10 @@ def fail(msg):
     issues.append(msg)
 
 
-swift_files = sorted(glob.glob('**/*.swift', recursive=True))
+swift_files = sorted(
+    f for f in glob.glob('**/*.swift', recursive=True)
+    if not f.replace(chr(92), '/').startswith(('preview/', 'Tests/', '.build/', '.zcode/'))
+)
 all_swift = {f.replace(chr(92), '/'): open(f, encoding='utf-8').read() for f in swift_files}
 
 STRING_RE = re.compile(r'"(?:\\.|[^"\\])*"')
@@ -155,7 +158,7 @@ fail(f"missing definitions: {missing}") if missing else ok(f"all {len(custom_typ
 print()
 print("=== F. Key API signatures ===")
 engine = all_swift['Core/Audio/VocalAudioEngine.swift']
-yin = all_swift['Core/Audio/YINPitchDetector.swift']
+yin = all_swift['Core/Logic/YINPitchDetector.swift']
 widget = all_swift['Widget/VocalWidgetBundle.swift']
 checks = [
     ('vDSP_vsub(base, 1, base + tau, 1, &diff, 1, vDSP_Length(window))' in yin, 'vDSP_vsub 8-arg call'),
