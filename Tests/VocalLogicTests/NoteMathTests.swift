@@ -92,6 +92,20 @@ final class NoteMathTests: XCTestCase {
         XCTAssertEqual(VocalLogic.durationLabel(seconds: 61), "1분 1초")
         XCTAssertEqual(VocalLogic.durationLabel(seconds: 900), "15분 0초")
         XCTAssertEqual(VocalLogic.durationLabel(seconds: 3599), "59분 59초")
+        // Negative inputs: integer division truncates toward zero, matching
+        // the display code's behavior for corrupt records — documented guard.
+        XCTAssertEqual(VocalLogic.durationLabel(seconds: -1), "-1초")
+        // -61/60 = -1 (truncating), mins > 0 is false -> seconds-only branch.
+        XCTAssertEqual(VocalLogic.durationLabel(seconds: -61), "-1초")
+    }
+
+    func testEchoLabelRejectsNonSequences() {
+        // Anything but exactly 3 notes yields the empty label.
+        for midis in [[], [60], [60, 64], [60, 64, 67, 72]] {
+            XCTAssertEqual(VocalLogic.echoLabel(midis: midis), "", "input: \(midis)")
+        }
+        // Out-of-band midi still formats (label is display-only).
+        XCTAssertEqual(VocalLogic.echoLabel(midis: [43, 72, 43]).split(separator: "-").count, 3)
     }
 
     func testClampBoundsRespectedByEchoBand() {
