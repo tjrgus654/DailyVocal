@@ -71,7 +71,7 @@ public final class ProgressViewModel {
 
         // Weekly goal: practice days in the current Mon..Sun week.
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: now())
+        let today = calendar.startOfDay(for: Date())
         let weekStart = calendar.date(
             from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)
         ) ?? today
@@ -100,5 +100,4 @@ public final class ProgressViewModel {
         }
     }
 
-    private func now() -> Date { Date() }
 }
