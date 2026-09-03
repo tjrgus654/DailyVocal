@@ -352,11 +352,11 @@ public final class VocalAudioEngine {
         isToneNodeAttached = true
     }
 
-    private lazy var toneFormat: AVAudioFormat = {
+    private var toneFormat: AVAudioFormat {
         let mixerRate = engine.mainMixerNode.outputFormat(forBus: 0).sampleRate
         let rate = mixerRate > 0 ? mixerRate : 44100
         return AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1)!
-    }()
+    }
 
     private func makeToneBuffer(frequency: Double, duration: TimeInterval, volume: Float) -> AVAudioPCMBuffer? {
         let sampleRate = toneFormat.sampleRate
