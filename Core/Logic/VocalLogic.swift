@@ -157,7 +157,7 @@ public enum VocalLogic {
     public static func buildHeatmap(dayCounts: [String: Int], dayCount: Int) -> [HeatmapDay] {
         buildDays(dayCount: dayCount, now: Date()) { key in
             let count = dayCounts[key, default: 0]
-            return (count, min(1.0, Double(count) / 3.0))
+            return (count, heatmapIntensity(sessionCount: count))
         }
     }
 
@@ -279,6 +279,17 @@ public enum VocalLogic {
     public static func rangeExpansionSemitones(baselineTopHz: Double, currentTopHz: Double) -> Int {
         guard baselineTopHz > 0, currentTopHz > 0 else { return 0 }
         return Int((midiNumber(forFrequency: currentTopHz) - midiNumber(forFrequency: baselineTopHz)).rounded())
+    }
+
+    /// Heatmap cell intensity: 3 sessions in a day saturate the cell.
+    public static func heatmapIntensity(sessionCount: Int) -> Double {
+        min(1.0, Double(sessionCount) / 3.0)
+    }
+
+    /// A step practiced for at least 70% of its duration counts as completed.
+    public static func isStepCompleted(elapsedSeconds: Int, durationSeconds: Int) -> Bool {
+        guard durationSeconds > 0 else { return false }
+        return Double(elapsedSeconds) >= Double(durationSeconds) * 0.7
     }
 
     // MARK: - Session grading

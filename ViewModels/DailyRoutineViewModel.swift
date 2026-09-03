@@ -389,10 +389,9 @@ public final class DailyRoutineViewModel {
         }
     }
 
-    /// A step practiced for at least 70% of its duration counts as completed.
     private func closeCurrentStep() {
-        let threshold = Double(currentStep.durationSeconds) * 0.7
-        if stepElapsedSeconds >= Int(threshold) {
+        if VocalLogic.isStepCompleted(elapsedSeconds: stepElapsedSeconds,
+                                      durationSeconds: currentStep.durationSeconds) {
             completedStepIndices.insert(currentStepIndex)
         }
         stepElapsedSeconds = 0

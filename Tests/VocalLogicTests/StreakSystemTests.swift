@@ -107,6 +107,28 @@ final class StreakSystemTests: XCTestCase {
         XCTAssertEqual(Set(days.map(\.dayKey)).count, 84)
     }
 
+    func testHeatmapIntensityBoundaries() {
+        XCTAssertEqual(VocalLogic.heatmapIntensity(sessionCount: 0), 0)
+        XCTAssertEqual(VocalLogic.heatmapIntensity(sessionCount: 1), 1.0 / 3.0, accuracy: 1e-9)
+        XCTAssertEqual(VocalLogic.heatmapIntensity(sessionCount: 2), 2.0 / 3.0, accuracy: 1e-9)
+        XCTAssertEqual(VocalLogic.heatmapIntensity(sessionCount: 3), 1.0)
+        XCTAssertEqual(VocalLogic.heatmapIntensity(sessionCount: 99), 1.0)  // saturates
+    }
+
+    func testStepCompletionThresholdBoundaries() {
+        // 70% boundary: exactly at threshold counts, one second under does not.
+        XCTAssertTrue(VocalLogic.isStepCompleted(elapsedSeconds: 70, durationSeconds: 100))
+        XCTAssertFalse(VocalLogic.isStepCompleted(elapsedSeconds: 69, durationSeconds: 100))
+        // Rounding: 0.7 * 150 = 105 exactly.
+        XCTAssertTrue(VocalLogic.isStepCompleted(elapsedSeconds: 105, durationSeconds: 150))
+        XCTAssertFalse(VocalLogic.isStepCompleted(elapsedSeconds: 104, durationSeconds: 150))
+        // Guard: zero/negative duration never completes.
+        XCTAssertFalse(VocalLogic.isStepCompleted(elapsedSeconds: 100, durationSeconds: 0))
+        XCTAssertFalse(VocalLogic.isStepCompleted(elapsedSeconds: 100, durationSeconds: -5))
+        // Degenerate: zero elapsed on positive duration.
+        XCTAssertFalse(VocalLogic.isStepCompleted(elapsedSeconds: 0, durationSeconds: 1))
+    }
+
     func testSessionGradeBoundaries() {
         XCTAssertEqual(VocalLogic.sessionGrade(forScore: 100), "S")
         XCTAssertEqual(VocalLogic.sessionGrade(forScore: 90), "S")
