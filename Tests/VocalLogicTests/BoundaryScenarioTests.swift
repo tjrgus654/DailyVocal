@@ -81,20 +81,24 @@ final class BoundaryScenarioTests: XCTestCase {
         guard days.count == 84 else { return XCTFail("expected 84 cells") }
 
         // First cell: Monday exactly 11 weeks before this week's Monday.
-        let today = calendar.startOfDay(for: Date())
-        let thisMonday = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today))!
-        let expectedStart = calendar.date(byAdding: .weekOfYear, value: -11, to: thisMonday)!
+        // Pin firstWeekday like the app code: the raw Calendar.current
+        // differs by locale (Sunday-first on en_US/ko_KR runners).
+        var mondayCalendar = calendar
+        mondayCalendar.firstWeekday = 2
+        let today = mondayCalendar.startOfDay(for: Date())
+        let thisMonday = mondayCalendar.date(from: mondayCalendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today))!
+        let expectedStart = mondayCalendar.date(byAdding: .weekOfYear, value: -11, to: thisMonday)!
         XCTAssertEqual(calendar.startOfDay(for: days[0].date), expectedStart)
         XCTAssertEqual(calendar.component(.weekday, from: days[0].date), 2) // Monday
 
         // Last cell: exactly 83 days after the start (inside the current week).
-        let expectedLast = calendar.date(byAdding: .day, value: 83, to: expectedStart)!
+        let expectedLast = mondayCalendar.date(byAdding: .day, value: 83, to: expectedStart)!
         XCTAssertEqual(calendar.startOfDay(for: days[83].date), expectedLast)
 
         // 84 cells = 12 weeks x 7 weekdays: exactly 12 cells per weekday column.
         var weekdayCounts: [Int: Int] = [:]
         for day in days {
-            weekdayCounts[calendar.component(.weekday, from: day.date), default: 0] += 1
+            weekdayCounts[mondayCalendar.component(.weekday, from: day.date), default: 0] += 1
         }
         XCTAssertTrue(weekdayCounts.values.allSatisfy { $0 == 12 }, "\(weekdayCounts)")
     }

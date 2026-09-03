@@ -97,8 +97,11 @@ final class StreakSystemTests: XCTestCase {
     func testHeatmapGridShapeAndWeekAlignment() {
         let days = VocalLogic.buildHeatmap(dayCounts: [:], dayCount: 84)
         XCTAssertEqual(days.count, 84)
-        // First cell is a Monday.
-        let weekday = calendar.component(.weekday, from: days[0].date)
+        // First cell is a Monday (raw calendar weekday is locale-dependent:
+        // compare via a Monday-pinned calendar like the app code).
+        var mondayCalendar = calendar
+        mondayCalendar.firstWeekday = 2
+        let weekday = mondayCalendar.component(.weekday, from: days[0].date)
         XCTAssertEqual(weekday, 2) // Sunday=1, Monday=2
         // Keys are unique (stable identity).
         XCTAssertEqual(Set(days.map(\.dayKey)).count, 84)
