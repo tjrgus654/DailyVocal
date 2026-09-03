@@ -259,6 +259,26 @@ public enum VocalLogic {
         return min(445.0, max(435.0, raw))
     }
 
+    /// One guide-tone note: the pattern offset transposed up `repetition`
+    /// semitones per repeat (the ascending-transposition drill contract).
+    public static func guideToneMidi(base: Int, repetition: Int, offset: Int) -> Int {
+        base + repetition + offset
+    }
+
+    /// Full guide-tone note sequence for scheduling/contracts.
+    public static func guideToneSequence(pattern: [Int], base: Int, repetitions: Int) -> [Int] {
+        (0..<max(0, repetitions)).flatMap { rep in
+            pattern.map { guideToneMidi(base: base, repetition: rep, offset: $0) }
+        }
+    }
+
+    /// Vocal range growth in semitones vs the onboarding baseline.
+    /// 0 Hz is the "not measured" sentinel and yields 0 (no garbage math).
+    public static func rangeExpansionSemitones(baselineTopHz: Double, currentTopHz: Double) -> Int {
+        guard baselineTopHz > 0, currentTopHz > 0 else { return 0 }
+        return Int((midiNumber(forFrequency: currentTopHz) - midiNumber(forFrequency: baselineTopHz)).rounded())
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.

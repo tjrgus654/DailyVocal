@@ -90,9 +90,10 @@ public final class ProgressViewModel {
             hasMeasuredRange = profile.hasMeasuredRange
             baselineRangeText = "\(profile.baselineLowestNoteName) ~ \(profile.baselineHighestNoteName)"
             currentRangeText = "\(profile.lowestNoteName) ~ \(profile.highestNoteName)"
-            let baselineTop = VocalAudioEngine.midiNumber(forFrequency: profile.baselineHighestFrequency)
-            let currentTop = VocalAudioEngine.midiNumber(forFrequency: profile.highestFrequency)
-            rangeExpansionSemitones = Int((currentTop - baselineTop).rounded())
+            rangeExpansionSemitones = VocalLogic.rangeExpansionSemitones(
+                baselineTopHz: profile.baselineHighestFrequency,
+                currentTopHz: profile.highestFrequency
+            )
         }
 
         if let record = latestPitchRecord {

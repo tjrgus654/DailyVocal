@@ -94,7 +94,7 @@ public final class ScaleSequencer {
                         self.finish(generation: myGeneration)
                         return
                     }
-                    let midi = root + offset
+                    let midi = VocalLogic.guideToneMidi(base: baseMidi + transpose, repetition: repetition, offset: offset)
                     self.currentNoteName = Self.noteName(forMidi: midi)
                     // .measurement mode lowers playback level a bit, so guide
                     // tones play slightly louder to compensate.

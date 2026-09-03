@@ -98,6 +98,43 @@ final class RoutinePresetContractTests: XCTestCase {
         }
     }
 
+    // MARK: - Guide-tone ascending repetition & range expansion
+
+    func testGuideToneAscendingRepetition() {
+        // Half-step-up transposition per repetition: rep r plays pattern + r.
+        XCTAssertEqual(VocalLogic.guideToneMidi(base: 60, repetition: 0, offset: 0), 60)
+        XCTAssertEqual(VocalLogic.guideToneMidi(base: 60, repetition: 3, offset: 4), 67)
+        // Sequence shape: pattern × repetitions, ascending a semitone each rep.
+        let fiveTone = VocalLogic.guidePattern(for: .fiveToneScale)
+        let seq = VocalLogic.guideToneSequence(pattern: fiveTone, base: 48, repetitions: 3)
+        XCTAssertEqual(seq.count, fiveTone.count * 3)
+        XCTAssertEqual(seq.first, 48)
+        XCTAssertEqual(seq[fiveTone.count], 48 + 1)         // rep 1 starts +1
+        XCTAssertEqual(seq[2 * fiveTone.count], 48 + 2)     // rep 2 starts +2
+        XCTAssertEqual(seq.last, 48 + 2)
+        // Zero/negative repetitions yield nothing.
+        XCTAssertTrue(VocalLogic.guideToneSequence(pattern: fiveTone, base: 48, repetitions: 0).isEmpty)
+        // Sustained pattern: a single held note per repetition.
+        let sustained = VocalLogic.guideToneSequence(pattern: VocalLogic.guidePattern(for: .sustainedNote), base: 64, repetitions: 4)
+        XCTAssertEqual(sustained, [64, 65, 66, 67])
+    }
+
+    func testRangeExpansionBoundaries() {
+        // Unmeasured sentinel -> no garbage math.
+        XCTAssertEqual(VocalLogic.rangeExpansionSemitones(baselineTopHz: 0, currentTopHz: 500), 0)
+        XCTAssertEqual(VocalLogic.rangeExpansionSemitones(baselineTopHz: 500, currentTopHz: 0), 0)
+        // Same pitch -> zero.
+        XCTAssertEqual(VocalLogic.rangeExpansionSemitones(baselineTopHz: 440, currentTopHz: 440), 0)
+        // One semitone up (440 -> the next note) -> 1.
+        XCTAssertEqual(VocalLogic.rangeExpansionSemitones(baselineTopHz: 440, currentTopHz: 440 * pow(2, 1.0 / 12)), 1)
+        // An octave up -> 12.
+        XCTAssertEqual(VocalLogic.rangeExpansionSemitones(baselineTopHz: 220, currentTopHz: 440), 12)
+        // Shrink reports negative.
+        XCTAssertEqual(VocalLogic.rangeExpansionSemitones(baselineTopHz: 440, currentTopHz: 220), -12)
+        // Just-under-half rounding stays at the floor note.
+        XCTAssertEqual(VocalLogic.rangeExpansionSemitones(baselineTopHz: 440, currentTopHz: 440 * pow(2, 0.4 / 12)), 0)
+    }
+
     // MARK: - A4 clamp boundaries
 
     func testClampedA4Boundaries() {
