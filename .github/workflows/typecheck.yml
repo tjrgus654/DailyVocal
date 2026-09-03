@@ -21,7 +21,7 @@ jobs:
         run: |
           xcrun --sdk iphonesimulator swiftc -typecheck \
             -target arm64-apple-ios17.0-simulator \
-            $(find . -name '*.swift' -not -path './.git/*' -not -path './preview/*' -not -path './Tests/*' -not -path './.build/*' -not -path '*Widget*')
+            $(find . -name '*.swift' -not -name 'Package.swift' -not -path './.git/*' -not -path './preview/*' -not -path './Tests/*' -not -path './.build/*' -not -path '*Widget*')
 
       # 위젯 익스텐션 (Attributes 공유 파일 포함)
       - name: Typecheck widget extension
