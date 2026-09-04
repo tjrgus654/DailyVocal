@@ -1,0 +1,73 @@
+# iOS 시뮬레이터 스모크 테스트 — Windows 개발 머신에서 불가능한 런타임 검증을
+# macOS 러너에서 수행한다: XcodeGen으로 프로젝트 생성 → 시뮬레이터 빌드 →
+# 설치 → 실행 → 프로세스 생존 확인 → 스크린샷 2장 업로드.
+# 로컬 재현: brew install xcodegen && xcodegen && xcodebuild ... (docs/MAC_BUILD_GUIDE.md)
+name: iOS simulator smoke
+
+on: [push, workflow_dispatch]
+
+jobs:
+  smoke:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Pick an available iPhone simulator
+        id: device
+        run: |
+          DEVICE=$(xcrun simctl list devices available | grep -oE 'iPhone [^(]+' | head -1 | xargs)
+          echo "name=$DEVICE" >> "$GITHUB_OUTPUT"
+          echo "Using: $DEVICE"
+
+      - name: Build for simulator
+        run: |
+          set -o pipefail
+          xcodebuild -project DailyVocal.xcodeproj \
+            -scheme DailyVocal \
+            -destination "platform=iOS Simulator,name=${{ steps.device.outputs.name }}" \
+            -derivedDataPath dd \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | xcbeautify --quiet || \
+          xcodebuild -project DailyVocal.xcodeproj \
+            -scheme DailyVocal \
+            -destination "platform=iOS Simulator,name=${{ steps.device.outputs.name }}" \
+            -derivedDataPath dd \
+            CODE_SIGNING_ALLOWED=NO build
+
+      - name: Boot simulator and install
+        run: |
+          xcrun simctl boot "${{ steps.device.outputs.name }}" || true
+          xcrun simctl bootstatus "${{ steps.device.outputs.name }}" -b
+          xcrun simctl install "${{ steps.device.outputs.name }}" dd/Build/Products/Debug-iphonesimulator/DailyVocal.app
+
+      - name: Launch app
+        run: |
+          xcrun simctl launch "${{ steps.device.outputs.name }}" com.tjrgus654.dailyvocal
+
+      - name: Verify process alive (no crash) and screenshot
+        run: |
+          sleep 10
+          if xcrun simctl spawn "${{ steps.device.outputs.name }}" launchctl list | grep -q dailyvocal; then
+            echo "APP ALIVE after 10s ✓"
+          else
+            echo "APP NOT RUNNING — likely crashed"; exit 1
+          fi
+          xcrun simctl io "${{ steps.device.outputs.name }}" screenshot screenshot_1.png
+          sleep 6
+          if xcrun simctl spawn "${{ steps.device.outputs.name }}" launchctl list | grep -q dailyvocal; then
+            echo "APP ALIVE after 16s ✓"
+          else
+            echo "APP DIED between screenshots"; exit 1
+          fi
+          xcrun simctl io "${{ steps.device.outputs.name }}" screenshot screenshot_2.png
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: simulator-screenshots
+          path: screenshot_*.png
