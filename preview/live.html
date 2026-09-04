@@ -647,6 +647,17 @@ function finishEarGame(){
  render();
 }
 window.startEarGame = startEarGame; window.answerEar = answerEar;
+// 베스트 테이크 비교 (최고 정확도 vs 최근)
+function bestTakeSummary(){
+ const recs = Store.data.pitchRecords;
+ if (recs.length < 2) return null;
+ const best = recs.reduce((a, b) => b.acc > a.acc ? b : a);
+ const current = recs[recs.length - 1];
+ const delta = current.acc - best.acc;
+ if (delta > 5) return "베스트 테이크보다 정확도 +" + delta + "점 — 성장하고 있습니다";
+ if (delta < -5) return "베스트보다 " + (-delta) + "점 낮습니다 — 컨디션 관리도 실력입니다";
+ return "베스트 테이크와 비슷한 수준입니다";
+}
 function passaggioZone(type){
  const zones = {"테너":[66,69],"바리톤":[64,67],"베이스":[62,65],"알토":[74,77],"메조소프라노":[74,77],"소프라노":[74,78]};
  return zones[type] || null;
@@ -1681,6 +1692,18 @@ function screenProgress(){
   <div style="font-size:24px;font-weight:900;color:var(--brand-secondary);margin-top:6px;">${vtype}</div>
   ${Store.data.speechMedianHz > 0 ? `<div class="cap2" style="color:var(--text-secondary);margin-top:4px;">말하기 피치 중앙값 ${Math.round(Store.data.speechMedianHz)}Hz · 음역 추정과 교차 확인</div>` : `<div class="cap2" style="color:var(--text-secondary);margin-top:4px;">피치 트래커의 '말하기 10초' 측정을 하면 정확도가 올라갑니다</div>`}
   ${zone ? `<div class="cap2" style="color:var(--text-secondary);margin-top:6px;">성구전환(파사지오) 구간: ${nn(zone[0])} ~ ${nn(zone[1])}<br>3주차 루틴이 이 구간을 통과하도록 설계되어 있습니다.</div>` : ""}
+  </div>`;
+ })()}
+
+ ${(() => {
+  const summary = bestTakeSummary();
+  if (!summary) return "";
+  return `<div class="glass" style="margin:14px 20px 0;padding:16px;">
+  <div style="display:flex;align-items:center;">
+  <span style="font-size:14px;">🏆</span>
+  <span class="caption" style="font-size:13px;font-weight:800;margin-left:6px;">베스트 테이크 비교</span>
+  <div style="flex:1"></div></div>
+  <div class="cap2" style="color:var(--text-secondary);margin-top:8px;">${summary}</div>
   </div>`;
  })()}
 

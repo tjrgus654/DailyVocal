@@ -82,6 +82,7 @@ check("feedback", '너무 넓게' in js and '너무 넓게' in logic)
 print("=== 8. Ear training parity ===")
 check("3 choices", '"높아요"' in js and 'case higher = "높아요"' in logic)
 check("level rule", 'cs >= 5 && level < 3' in js and 'correctStreak >= 5 && currentLevel < 3' in logic)
+check("best-take compare", "bestTakeSummary" in js and "compareTakes" in logic)
 check("gap pools", '[0,4,5,7,-4,-5,-7]' in js and '[0, 4, 5, 7, -4, -5, -7]' in logic)
 
 print()
