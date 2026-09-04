@@ -30,10 +30,12 @@ struct VocalLiveActivityWidget: Widget {
                         if let game = context.state.gameMode {
                         Text("🎮 \(game) \(context.state.gameRound)/\(context.state.gameTotal)")
                     } else {
-                        if let game = context.state.gameMode {
-                            Text("🎮 \(game) \(context.state.gameRound)/\(context.state.gameTotal)")
-                        } else {
-                            Text("Step \(context.state.currentStepIndex)/5")
+                        Group {
+                            if let game = context.state.gameMode {
+                                Text("🎮 \(game) \(context.state.gameRound)/\(context.state.gameTotal)")
+                            } else {
+                                Text("Step \(context.state.currentStepIndex)/5")
+                            }
                         }
                     }
                             .font(.caption2)
