@@ -35,12 +35,12 @@ final class VocalTipDataContractTests: XCTestCase {
     }
 
     func testAllFiftyTwoTipsDecode() {
-        XCTAssertEqual(Self.tips.count, 52)
+        XCTAssertEqual(Self.tips.count, 54)
     }
 
     func testIdsAreContiguousAndUnique() {
         let ids = Self.tips.map(\.id)
-        XCTAssertEqual(ids, Array(1...52))
+        XCTAssertEqual(ids, Array(1...54))
     }
 
     func testEveryCategoryPresentAndValid() {
@@ -76,7 +76,7 @@ final class VocalTipDataContractTests: XCTestCase {
             }
         }
         // Exactly the 4 research tips added in ROUND5.
-        XCTAssertEqual(Self.tips.filter { $0.viewCount == 0 }.map(\.id), [49, 50, 51, 52])
+        XCTAssertEqual(Self.tips.filter { $0.viewCount == 0 }.map(\.id), [49, 50, 51, 52, 53, 54])
     }
 
     func testContentFieldsNonEmpty() {

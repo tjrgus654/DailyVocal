@@ -177,6 +177,47 @@ final class StreakSystemTests: XCTestCase {
                        DateComponents(month: 7, day: 1))
     }
 
+    // MARK: - Voice type (성종)
+
+    func testVoiceTypeClassification() {
+        // Classical reference comfortable ranges (midi low...high, ceiling).
+        // Tenor ~ C3..A4 (48..69), ceiling >= G4 (67)
+        XCTAssertEqual(VocalLogic.estimateVoiceType(comfortableLowMidi: 48, comfortableHighMidi: 67, absoluteHighMidi: 69, isFemale: false), .tenor)
+        // Baritone ~ G2..E4 (43..64) midpoint ~53 but below tenor ceiling band edge:
+        // mid 53 >= 50 would say tenor — baritone needs mid < 50 or ceiling < 62.
+        XCTAssertEqual(VocalLogic.estimateVoiceType(comfortableLowMidi: 43, comfortableHighMidi: 56, absoluteHighMidi: 61, isFemale: false), .baritone)
+        // Bass ~ E2..C4 (40..60) midpoint 50 -> tenor band but ceiling 60 < 62 -> baritone; push lower
+        XCTAssertEqual(VocalLogic.estimateVoiceType(comfortableLowMidi: 40, comfortableHighMidi: 55, absoluteHighMidi: 59, isFemale: false), .baritone)
+        XCTAssertEqual(VocalLogic.estimateVoiceType(comfortableLowMidi: 38, comfortableHighMidi: 52, absoluteHighMidi: 56, isFemale: false), .bass)
+        // Soprano ~ C4..A5 (60..81), ceiling >= D5 (74)
+        XCTAssertEqual(VocalLogic.estimateVoiceType(comfortableLowMidi: 60, comfortableHighMidi: 79, absoluteHighMidi: 81, isFemale: true), .soprano)
+        // Mezzo ~ A3..F5 (57..77)
+        XCTAssertEqual(VocalLogic.estimateVoiceType(comfortableLowMidi: 57, comfortableHighMidi: 74, absoluteHighMidi: 77, isFemale: true), .mezzo)
+        // Contralto ~ F3..E5 (53..76)
+        XCTAssertEqual(VocalLogic.estimateVoiceType(comfortableLowMidi: 53, comfortableHighMidi: 69, absoluteHighMidi: 72, isFemale: true), .contralto)
+        // Unknown gender falls through the merged scale
+        XCTAssertEqual(VocalLogic.estimateVoiceType(comfortableLowMidi: 48, comfortableHighMidi: 67, absoluteHighMidi: 69, isFemale: nil), .tenor)
+    }
+
+    func testVoiceTypeRequiresWideEnoughRange() {
+        // Beginner with a narrow 8-semitone measurement: anatomy undecided.
+        XCTAssertEqual(VocalLogic.estimateVoiceType(comfortableLowMidi: 48, comfortableHighMidi: 56, absoluteHighMidi: 60, isFemale: false), .undetermined)
+        // Exactly 10 semitones is enough.
+        XCTAssertNotEqual(VocalLogic.estimateVoiceType(comfortableLowMidi: 48, comfortableHighMidi: 58, absoluteHighMidi: 62, isFemale: false), .undetermined)
+    }
+
+    func testPassaggioZonePerType() {
+        XCTAssertEqual(VocalLogic.passaggioZone(for: .tenor), 66...69)
+        XCTAssertEqual(VocalLogic.passaggioZone(for: .soprano), 74...78)
+        XCTAssertNil(VocalLogic.passaggioZone(for: .undetermined))
+        // Every determined type has a zone inside the singing band.
+        for type in VocalLogic.VoiceType.allCases where type != .undetermined {
+            let zone = VocalLogic.passaggioZone(for: type)!
+            XCTAssertTrue((43...84).contains(zone.lowerBound))
+            XCTAssertTrue(zone.lowerBound < zone.upperBound)
+        }
+    }
+
     func testSessionGradeBoundaries() {
         XCTAssertEqual(VocalLogic.sessionGrade(forScore: 100), "S")
         XCTAssertEqual(VocalLogic.sessionGrade(forScore: 90), "S")

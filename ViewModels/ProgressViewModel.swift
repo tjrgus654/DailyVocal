@@ -32,6 +32,9 @@ public final class ProgressViewModel {
     public private(set) var currentRangeText = "측정 전"
     public private(set) var rangeExpansionSemitones = 0
     public private(set) var streakFreezeTokens = 2
+    /// Estimated 성종 (voice type) from the measured comfortable range.
+    public private(set) var estimatedVoiceType: VocalLogic.VoiceType = .undetermined
+    public private(set) var passaggioZone: ClosedRange<Int>? = nil
 
     public init() {
         heatmapDays = VocalLogic.buildEmptyHeatmap(dayCount: 84)
@@ -82,6 +85,14 @@ public final class ProgressViewModel {
         heatmapDays = VocalLogic.buildHeatmap(dayCounts: dayCounts, dayCount: 84)
 
         if let profile {
+            let type = VocalLogic.estimateVoiceType(
+                comfortableLowMidi: Int(VocalAudioEngine.midiNumber(forFrequency: profile.lowestFrequency).rounded()),
+                comfortableHighMidi: Int(VocalAudioEngine.midiNumber(forFrequency: profile.highestFrequency).rounded()),
+                absoluteHighMidi: Int(VocalAudioEngine.midiNumber(forFrequency: profile.baselineHighestFrequency).rounded()),
+                isFemale: profile.prefersHigherKeyGuide ? true : nil
+            )
+            estimatedVoiceType = type
+            passaggioZone = VocalLogic.passaggioZone(for: type)
             streakFreezeTokens = profile.streakFreezeTokens
             hasMeasuredRange = profile.hasMeasuredRange
             baselineRangeText = "\(profile.baselineLowestNoteName) ~ \(profile.baselineHighestNoteName)"

@@ -58,6 +58,11 @@ public struct VocalProgressView: View {
                         )
                         .padding(.horizontal, 20)
 
+                        if viewModel.estimatedVoiceType != .undetermined {
+                            voiceTypeCard
+                                .padding(.horizontal, 20)
+                        }
+
                         statsSummaryGrid
                             .padding(.horizontal, 20)
 
@@ -290,6 +295,37 @@ public struct VocalProgressView: View {
     }
 
     // MARK: - Summary grid
+
+    /// 성종(voice type) card: estimated type, why, and the personal
+    /// passaggio zone the W3 routine targets.
+    private var voiceTypeCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "person.wave.2")
+                    .foregroundColor(.brandAccent)
+                Text("내 성종 (추정)")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                Spacer()
+                Text("측정 음역 기준")
+                    .font(.caption2)
+                    .foregroundColor(.textSecondary)
+            }
+            Text(viewModel.estimatedVoiceType.rawValue)
+                .font(.title2.weight(.heavy))
+                .foregroundColor(.brandSecondary)
+            if let zone = viewModel.passaggioZone {
+                let low = VocalAudioEngine.noteAndCents(fromFrequency: VocalAudioEngine.frequency(forMidi: Double(zone.lowerBound))).note
+                let high = VocalAudioEngine.noteAndCents(fromFrequency: VocalAudioEngine.frequency(forMidi: Double(zone.upperBound))).note
+                Text("성구전환(파사지오) 구간: \(low) ~ \(high)\n3주차 루틴이 이 구간을 통과하도록 설계되어 있습니다.")
+                    .font(.caption)
+                    .foregroundColor(.textSecondary)
+                    .lineSpacing(3)
+            }
+        }
+        .glassCard(cornerRadius: 16, padding: 14)
+    }
 
     private var statsSummaryGrid: some View {
         VStack(spacing: 14) {

@@ -320,6 +320,32 @@ function calcStreak(){
  // 읽기 전용(P2-4): 소모는 세션 완료 시 settleFreezeTokens에서 1회만.
  return {streak, consumedDays: consumed ? [consumed] : [], frozenUsed: frozenUsed + (consumed ? 1 : 0)};
 }
+// 성종(voice type) 추정 — VocalLogic.estimateVoiceType 미러
+function midiOf(f){ return Math.round(69 + 12 * Math.log2((f || 440) / 440)); }
+function estimateVoiceType(loMidi, hiMidi, ceilMidi, isFemale){
+ if (hiMidi - loMidi < 10) return "미확정";
+ const mid = Math.floor((loMidi + hiMidi) / 2);
+ if (isFemale === true){
+  if (mid >= 66 && ceilMidi >= 76) return "소프라노";
+  if (mid >= 62 && ceilMidi >= 71) return "메조소프라노";
+  return "알토";
+ }
+ if (isFemale === false){
+  if (mid >= 50 && ceilMidi >= 62) return "테너";
+  if (mid >= 47 && ceilMidi >= 59) return "바리톤";
+  return "베이스";
+ }
+ if (mid >= 66) return ceilMidi >= 76 ? "소프라노" : "메조소프라노";
+ if (mid >= 62) return "메조소프라노";
+ if (mid >= 60) return "알토";
+ if (mid >= 50) return ceilMidi >= 62 ? "테너" : "바리톤";
+ if (mid >= 47) return "바리톤";
+ return "베이스";
+}
+function passaggioZone(type){
+ const zones = {"테너":[66,69],"바리톤":[64,67],"베이스":[62,65],"알토":[74,77],"메조소프라노":[74,77],"소프라노":[74,78]};
+ return zones[type] || null;
+}
 // 단일 쓰기 지점(P2-4): 세션 완료 시 1회. 이미 동결된 날은 재차감 없음(멱등).
 function settleFreezeTokens(){
  const days = new Set(Store.data.sessions.map(s => practiceDayKey(new Date(s.date))));
@@ -1262,6 +1288,22 @@ function screenProgress(){
  <div class="cap2" style="color:var(--text-secondary);margin-top:8px;">최근 ${recs.length}회 세션 온피치율 · 초록 70% 이상</div>
  </div>`;
  })() : ""}
+
+ ${(() => {
+  const lo = midiOf(Store.data.range.lo), hi = midiOf(Store.data.range.hi);
+  const ceil = midiOf(Store.data.baseline ? Store.data.baseline.hi : Store.data.range.hi);
+  const vtype = (hi - lo) >= 0 ? estimateVoiceType(lo, hi, ceil, null) : "미확정";
+  if (vtype === "미확정") return "";
+  const zone = passaggioZone(vtype);
+  const nn = m => freqToNoteCents(midiToFreq(m)).note;
+  return `<div class="glass" style="margin:14px 20px 0;padding:16px;">
+  <div style="display:flex;align-items:center;">
+  <span class="caption" style="font-size:13px;font-weight:800;">내 성종 (추정)</span><div style="flex:1"></div>
+  <span class="cap2" style="color:var(--text-secondary);">측정 음역 기준</span></div>
+  <div style="font-size:24px;font-weight:900;color:var(--brand-secondary);margin-top:6px;">${vtype}</div>
+  ${zone ? `<div class="cap2" style="color:var(--text-secondary);margin-top:6px;">성구전환(파사지오) 구간: ${nn(zone[0])} ~ ${nn(zone[1])}<br>3주차 루틴이 이 구간을 통과하도록 설계되어 있습니다.</div>` : ""}
+  </div>`;
+ })()}
 
  <div class="glass" style="margin:14px 20px 0;padding:16px;">
  <div style="display:flex;align-items:center;">

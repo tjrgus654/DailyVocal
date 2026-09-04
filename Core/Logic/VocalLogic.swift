@@ -313,6 +313,82 @@ public enum VocalLogic {
             : calendar.date(byAdding: .day, value: 1, to: today)
     }
 
+    // MARK: - Voice type (성종) estimation
+
+    public enum VoiceType: String, Codable, CaseIterable {
+        case bass = "베이스"
+        case baritone = "바리톤"
+        case tenor = "테너"
+        case contralto = "알토"
+        case mezzo = "메조소프라노"
+        case soprano = "소프라노"
+        case undetermined = "미확정"
+    }
+
+    /// Estimated voice type from the measured comfortable range.
+    ///
+    /// Classification uses the COMFORTABLE range (the notes the user actually
+    /// sings in, i.e. tracker-session extremes) rather than the absolute
+    /// biological limit: a beginner's reachable extremes underestimate the
+    /// natural type. Voice science (e.g. Bunch & Chapman) classifies by range
+    /// + tessitura + timbre; without timbre analysis we use the midpoint of
+    /// the comfortable range (tessitura proxy) plus the absolute ceiling,
+    /// which the onboarding measurement provides.
+    ///
+    /// Bands use the classical Fach reference points (midi):
+    ///   soprano    midpoint >= 64 (E4)  & ceiling >= 74
+    ///   mezzo      midpoint >= 62 (D4)  & ceiling >= 72
+    ///   contralto  midpoint >= 60 (C4)
+    ///   tenor      midpoint >= 50 (D3)  & ceiling >= 62
+    ///   baritone   midpoint >= 47 (B2)  & ceiling >= 59
+    ///   bass       below baritone
+    /// Returns .undetermined until the comfortable span covers >= 10 semitones
+    /// (a too-narrow measurement says more about skill than anatomy).
+    public static func estimateVoiceType(
+        comfortableLowMidi: Int,
+        comfortableHighMidi: Int,
+        absoluteHighMidi: Int,
+        isFemale: Bool?
+    ) -> VoiceType {
+        guard comfortableHighMidi - comfortableLowMidi >= 10 else { return .undetermined }
+        let midpoint = (comfortableLowMidi + comfortableHighMidi) / 2
+
+        if isFemale == true {
+            if midpoint >= 66 && absoluteHighMidi >= 76 { return .soprano }
+            if midpoint >= 62 && absoluteHighMidi >= 71 { return .mezzo }
+            return .contralto
+        }
+        if isFemale == false {
+            if midpoint >= 50 && absoluteHighMidi >= 62 { return .tenor }
+            if midpoint >= 47 && absoluteHighMidi >= 59 { return .baritone }
+            return .bass
+        }
+        // Unknown gender: pick the band by midpoint alone across the merged scale.
+        switch midpoint {
+        case 64...: return absoluteHighMidi >= 74 ? .soprano : .mezzo
+        case 62..<64: return .mezzo
+        case 60..<62: return .contralto
+        case 50..<60: return absoluteHighMidi >= 62 ? .tenor : .baritone
+        case 47..<50: return .baritone
+        default: return .bass
+        }
+    }
+
+    /// Passaggio zone for the estimated type (start..end in midi).
+    /// Male passaggio sits around the F#4-A4 primo for tenors, lower for
+    /// heavier voices; female secondo around D5-F5.
+    public static func passaggioZone(for type: VoiceType) -> ClosedRange<Int>? {
+        switch type {
+        case .tenor: return 66...69   // F#4..A4
+        case .baritone: return 64...67 // E4..G4
+        case .bass: return 62...65     // D4..F4
+        case .contralto: return 74...77 // D5..F5
+        case .mezzo: return 74...77
+        case .soprano: return 74...78   // D5..F#5
+        case .undetermined: return nil
+        }
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.
