@@ -1359,6 +1359,7 @@ document.getElementById("selftest").addEventListener("click", () => runSelfTest(
 (function(){
  const m = location.hash.match(/qa=([^&]+)/);
  if (!m) return;
+ window.__qaRan = true;
  try {
   const seed = JSON.parse(atob(decodeURIComponent(m[1])));
   if (seed.onboarded) finishOnboarding();
@@ -1385,7 +1386,7 @@ document.getElementById("selftest").addEventListener("click", () => runSelfTest(
    const acc = document.getElementById("acc");
    if (acc && App.voiced) acc.textContent = Math.round(App.hits / App.voiced * 100) + "%";
   }
- } catch(e){ console.warn("qa seed failed", e); }
+ } catch(e){ window.__qaErr = e.message; console.warn("qa seed failed", e); }
 })();
 
 render();

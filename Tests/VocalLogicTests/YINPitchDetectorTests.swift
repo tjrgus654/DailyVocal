@@ -67,6 +67,20 @@ final class YINPitchDetectorTests: XCTestCase {
         XCTAssertTrue(estimate.isVoiced)
     }
 
+    /// Fuzz: 12 random fundamentals across the vocal band stay within 5 cents.
+    func testFuzzRandomFundamentals() {
+        let detector = YINPitchDetector(sampleRate: sampleRate)
+        var seed: UInt32 = 42
+        for _ in 0..<12 {
+            seed = seed &* 1_103_515_245 &+ 12_345
+            let f0 = 82.0 + Double(seed % 580)  // 82..662 Hz
+            let estimate = detector.detect(in: synthTone(f0))
+            XCTAssertGreaterThan(estimate.frequency, 0, "unvoiced at \(f0) Hz")
+            let cents = 1200 * log2(estimate.frequency / f0)
+            XCTAssertEqual(abs(cents), 0, accuracy: 5.0, "fuzz \(f0)Hz -> \(estimate.frequency)Hz (\(cents)¢)")
+        }
+    }
+
     func testOctaveStability() {
         // The detector must prefer the true fundamental, not an overtone.
         let detector = YINPitchDetector(sampleRate: sampleRate)

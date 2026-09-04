@@ -49,10 +49,6 @@ public final class HapticManager {
         notificationFeedback.notificationOccurred(.success)
     }
 
-    public func warning() {
-        notificationFeedback.notificationOccurred(.warning)
-    }
-
     /// Generic button tap.
     public func buttonTap() {
         selectionFeedback.selectionChanged()

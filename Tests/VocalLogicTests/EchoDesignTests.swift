@@ -32,6 +32,28 @@ final class EchoDesignTests: XCTestCase {
         }
     }
 
+    /// Property-style fuzz: 500 random draws across all levels and bases must
+    /// never violate the contract (band, adjacency, level move pool).
+    func testFuzzSequenceContract() {
+        var seed: UInt64 = 0x9E3779B97F4A7C15
+        func rnd() -> Int {
+            seed = seed &* 6364136223846793005 &+ 1442695040888963407
+            return Int(truncatingIfNeeded: UInt32(truncatingIfNeeded: seed >> 33)) % 1_000_000
+        }
+        let moves = VocalLogic.echoMoveSets
+        for _ in 0..<500 {
+            let level = 1 + rnd() % 3
+            let base = 43 + rnd() % 30
+            let seq = VocalLogic.generateEchoSequence(base: base, level: level, roll: rnd)
+            XCTAssertTrue(seq.allSatisfy { (43...72).contains($0) })
+            XCTAssertEqual(seq.count, 3)
+            XCTAssertNotEqual(seq[1], seq[0])
+            XCTAssertNotEqual(seq[2], seq[1])
+            XCTAssertTrue(moves[level - 1].contains(seq[1] - seq[0]))
+            XCTAssertTrue(moves[level - 1].contains(seq[2] - seq[1]))
+        }
+    }
+
     func testDeterministicWithSeededRoll() {
         let a = VocalLogic.generateEchoSequence(base: 64, level: 2) { 3 }
         let b = VocalLogic.generateEchoSequence(base: 64, level: 2) { 3 }
