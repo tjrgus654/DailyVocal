@@ -107,7 +107,7 @@ public final class LiveActivityManager {
             if let current = currentActivity {
                 await current.update(ActivityContent(state: state, staleDate: nil))
             } else {
-                _ = Activity.request(
+                _ = try? Activity.request(
                     attributes: VocalActivityAttributes(),
                     content: ActivityContent(state: state, staleDate: nil)
                 )
