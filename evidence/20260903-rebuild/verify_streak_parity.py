@@ -67,6 +67,23 @@ check("skip-through rejected", "totalElapsed < 60 || App.completed.size === 0" i
 check("quick/rest not full completion", 'full = App.completed.size === App.steps.length' in js
       and "completedStepIndices.count == routineSteps.count" in rvm)
 
+
+
+print("=== 6. Vowel game parity ===")
+check("formant table", 'FORMANTS = {"아":[730,1090,2440]' in js and 'case .a: return (730, 1090, 2440)' in logic)
+check("5 vowels", "[730,1090,2440]" in js and "[530,1840,2480]" in js and "[270,2290,3010]" in js)
+check("direction feedback", 'function vowelDirectionFeedback' in js and 'func vowelDirectionFeedback' in logic)
+
+print("=== 7. Interval game parity ===")
+check("interval enum", '"같은음":0' in js and 'case unison = "같은음"' in logic)
+check("scoring", 'd === 0 ? 100 : d === 1 ? 40 : 0' in js and 'if diff == 0 { return 100 }' in logic)
+check("feedback", '너무 넓게' in js and '너무 넓게' in logic)
+
+print("=== 8. Ear training parity ===")
+check("3 choices", '"높아요"' in js and 'case higher = "높아요"' in logic)
+check("level rule", 'cs >= 5 && level < 3' in js and 'correctStreak >= 5 && currentLevel < 3' in logic)
+check("gap pools", '[0,4,5,7,-4,-5,-7]' in js and '[0, 4, 5, 7, -4, -5, -7]' in logic)
+
 print()
 if failures:
     print(f"PARITY FAIL: {failures}")
