@@ -376,3 +376,13 @@ Mac 인계 전 검증 총량. 각 항목은 실행 증거(명령 출력/CI 런 I
 | 163 | 위젯 게임 반영: VocalActivityAttributes gameMode/gameRound/gameTotal + Live Activity 잠금화면·다이나믹 아일랜드에 게임 진행 표시 | CI 통과 | CI 오류 4라운드 수정 |
 | 164 | verify_all + CI 양 그린 | ALL GREEN | 커밋 97 |
 
+
+## 파리티 확장 + 게임 시퀀스 비전 검증
+
+| # | 검증 행위 | 결과 | 증거/비고 |
+|---|---|---|---|
+| 165 | 프로토타입에 개인화 난이도 미러(recommendedLevel/recommendNextGame) 추가 → 파리티 게이트 9→14축 확장(80% 승급·2x50% 강급·다양성 15점) | PARITY OK | |
+| 166 | 게임 시퀀스 5화면 캡처(트래커 기본→모음 진행→음정 진행→귀훈련 질문→성장기록) → 비전 검증 | 5/5 PASS | 모음 "라운드 2/4·목표 모음: 이"·음정 "완전5도·정확했습니다"·귀훈련 "두 번째 음은 첫 번째 음보다?"+3버튼·성장기록 "3일 연속🔥+테너+128Hz+베스트테이크" 판독 |
+| 167 | 비전 지적 "빈 스펙트로그램/대기 배지" → idle 상태 정상 판별(listening=false에서 drawSpectrogram 미실행 — 설계) | 오판 판별 | 35건째 |
+| 168 | verify_all + CI 양 그린 | ALL GREEN | 커밋 100 |
+

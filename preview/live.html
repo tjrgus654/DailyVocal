@@ -648,6 +648,29 @@ function finishEarGame(){
 }
 window.startEarGame = startEarGame; window.answerEar = answerEar;
 // 베스트 테이크 비교 (최고 정확도 vs 최근)
+// Personalized difficulty — VocalLogic.recommendedLevel/recommendNextGame mirror
+function recommendedLevel(recentAccuracies, currentLevel, maxLevel){
+ maxLevel = maxLevel || 3;
+ if (!recentAccuracies.length) return currentLevel;
+ const window = recentAccuracies.slice(-3);
+ const avg = window.reduce((a,b)=>a+b,0) / window.length;
+ if (avg >= 80 && currentLevel < maxLevel) return currentLevel + 1;
+ if (avg < 50 && currentLevel > 1){
+  if (window.length >= 2 && window.slice(-2).every(x => x < 50)) return currentLevel - 1;
+ }
+ return currentLevel;
+}
+function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame){
+ const scores = [
+  ["vowel", vowelAcc ?? 50],
+  ["interval", intervalAcc ?? 50],
+  ["ear", earAcc ?? 50],
+ ].sort((a,b) => a[1] - b[1]);
+ if (lastGame && scores[0][0] === lastGame && scores.length > 1 && scores[1][1] - scores[0][1] <= 15){
+  return scores[1][0];
+ }
+ return scores[0][0];
+}
 function bestTakeSummary(){
  const recs = Store.data.pitchRecords;
  if (recs.length < 2) return null;

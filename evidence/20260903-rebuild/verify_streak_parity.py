@@ -82,6 +82,13 @@ check("feedback", '너무 넓게' in js and '너무 넓게' in logic)
 print("=== 8. Ear training parity ===")
 check("3 choices", '"높아요"' in js and 'case higher = "높아요"' in logic)
 check("level rule", 'cs >= 5 && level < 3' in js and 'correctStreak >= 5 && currentLevel < 3' in logic)
+print("=== 9. Personalized difficulty parity ===")
+check("recommendedLevel fn", "function recommendedLevel" in js and "func recommendedLevel" in logic)
+check("80% promote rule", "avg >= 80" in js and ">= 80" in logic)
+check("2x50% demote", "every(x => x < 50)" in js and "allSatisfy({ $0 < 50 })" in logic)
+check("recommendNextGame", "function recommendNextGame" in js and "func recommendNextGame" in logic)
+check("variety bias 15", "<= 15" in js and "<= 15" in logic)
+
 check("best-take compare", "bestTakeSummary" in js and "compareTakes" in logic)
 check("gap pools", '[0,4,5,7,-4,-5,-7]' in js and '[0, 4, 5, 7, -4, -5, -7]' in logic)
 
