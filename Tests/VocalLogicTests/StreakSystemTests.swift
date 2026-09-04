@@ -129,6 +129,30 @@ final class StreakSystemTests: XCTestCase {
         XCTAssertFalse(VocalLogic.isStepCompleted(elapsedSeconds: 0, durationSeconds: 1))
     }
 
+    func testNextReminderDateBoundaries() {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let base = cal.date(from: DateComponents(year: 2025, month: 6, day: 10, hour: 12))!
+        // Later today.
+        let evening = VocalLogic.nextReminderDate(now: base, hour: 20, minute: 30, calendar: cal)
+        XCTAssertEqual(cal.dateComponents([.day, .hour, .minute], from: evening!),
+                       DateComponents(day: 10, hour: 20, minute: 30))
+        // Exactly now -> tomorrow (UNCalendar trigger semantics: not in the past).
+        let same = VocalLogic.nextReminderDate(now: base, hour: 12, minute: 0, calendar: cal)
+        XCTAssertEqual(cal.dateComponents([.day], from: same!), DateComponents(day: 11))
+        // Earlier today -> tomorrow.
+        let morning = VocalLogic.nextReminderDate(now: base, hour: 8, minute: 0, calendar: cal)
+        XCTAssertEqual(cal.dateComponents([.day], from: morning!), DateComponents(day: 11))
+        // Invalid times are rejected.
+        XCTAssertNil(VocalLogic.nextReminderDate(now: base, hour: 24, minute: 0, calendar: cal))
+        XCTAssertNil(VocalLogic.nextReminderDate(now: base, hour: 10, minute: 60, calendar: cal))
+        // Day rollover across a month boundary.
+        let june30 = cal.date(from: DateComponents(year: 2025, month: 6, day: 30, hour: 23))!
+        let july1 = VocalLogic.nextReminderDate(now: june30, hour: 9, minute: 0, calendar: cal)
+        XCTAssertEqual(cal.dateComponents([.month, .day], from: july1!),
+                       DateComponents(month: 7, day: 1))
+    }
+
     func testSessionGradeBoundaries() {
         XCTAssertEqual(VocalLogic.sessionGrade(forScore: 100), "S")
         XCTAssertEqual(VocalLogic.sessionGrade(forScore: 90), "S")

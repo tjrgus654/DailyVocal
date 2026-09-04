@@ -299,6 +299,20 @@ public enum VocalLogic {
         return mins > 0 ? "\(mins)분 \(secs)초" : "\(secs)초"
     }
 
+    /// Next fire date for a daily HH:MM reminder: today when the time is
+    /// still ahead, otherwise tomorrow. Mirrors the UNCalendarNotificationTrigger
+    /// repeat behavior for preview and testing.
+    public static func nextReminderDate(now: Date, hour: Int, minute: Int, calendar: Calendar = .current) -> Date? {
+        guard (0...23).contains(hour), (0...59).contains(minute) else { return nil }
+        var components = calendar.dateComponents([.year, .month, .day], from: now)
+        components.hour = hour
+        components.minute = minute
+        guard let today = calendar.date(from: components) else { return nil }
+        return today > now
+            ? today
+            : calendar.date(byAdding: .day, value: 1, to: today)
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.

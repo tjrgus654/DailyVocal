@@ -42,6 +42,11 @@ public struct VocalProgressView: View {
                         streakBanner
                             .padding(.horizontal, 20)
 
+                        if isReminderEnabled {
+                            reminderTimeCard
+                                .padding(.horizontal, 20)
+                        }
+
                         HeatmapCalendarView(days: viewModel.heatmapDays)
                             .padding(.horizontal, 20)
 
@@ -94,11 +99,76 @@ public struct VocalProgressView: View {
             }
             Spacer()
 
+            if isReminderEnabled {
+                Text(reminderTimeLabel)
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(.brandSecondary)
+            }
+
             reminderButton
         }
         .padding(.horizontal, 24)
         .padding(.top, 12)
     }
+
+    /// Reminder time card shown while reminders are on: change the daily HH:MM
+    /// and the native schedule is rebuilt immediately.
+    private var reminderTimeCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "bell.badge")
+                    .foregroundColor(.brandSecondary)
+                Text("연습 알림 시간")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                Spacer()
+                Text("매일 같은 시간에 울립니다")
+                    .font(.caption2)
+                    .foregroundColor(.textSecondary)
+            }
+            DatePicker(
+                "알림 시간",
+                selection: reminderTimeBinding,
+                displayedComponents: .hourAndMinute
+            )
+            .datePickerStyle(.compact)
+            .labelsHidden()
+            .tint(.brandSecondary)
+        }
+        .glassCard(cornerRadius: 16, padding: 14)
+    }
+
+    private var reminderTimeLabel: String {
+        String(format: "%02d:%02d", profile?.reminderHour ?? 20, profile?.reminderMinute ?? 0)
+    }
+
+    private var reminderTimeBinding: Binding<Date> {
+        Binding(
+            get: {
+                let hour = profile?.reminderHour ?? 20
+                let minute = profile?.reminderMinute ?? 0
+                return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
+            },
+            set: { newDate in
+                guard let profile else { return }
+                let components = calendar.dateComponents([.hour, .minute], from: newDate)
+                profile.reminderHour = components.hour ?? 20
+                profile.reminderMinute = components.minute ?? 0
+                try? modelContextSave()
+                // Rebuild the native schedule with the new time.
+                reminderToggleTask?.cancel()
+                reminderToggleTask = Task {
+                    _ = await NotificationManager.shared.enableDailyReminders(
+                        hour: profile.reminderHour,
+                        minute: profile.reminderMinute
+                    )
+                }
+            }
+        )
+    }
+
+    private var calendar: Calendar { .current }
 
     private var reminderButton: some View {
         Button(action: toggleReminder) {
