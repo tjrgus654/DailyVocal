@@ -62,7 +62,7 @@ ok(f"{len(all_swift)} files checked, {bad} unbalanced")
 
 print()
 print("=== C. @main placement (comments stripped) ===")
-for f, n in [('5VocalMasterApp.swift', 1), ('Widget/VocalWidgetBundle.swift', 1)]:
+for f, n in [('HaruVocalApp.swift', 1), ('Widget/VocalWidgetBundle.swift', 1)]:
     s = strip_strings_comments(all_swift[f])
     if len(re.findall(r'@main', s)) != n:
         fail(f"{f} @main count != {n}")
