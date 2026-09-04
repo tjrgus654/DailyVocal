@@ -398,6 +398,34 @@ final class StreakSystemTests: XCTestCase {
         XCTAssertTrue(driftResult.summary.contains("모음"))
     }
 
+    func testRecommendedLevel() {
+        // Empty history: hold.
+        XCTAssertEqual(VocalLogic.recommendedLevel(recentAccuracies: [], currentLevel: 1), 1)
+        // 3 sessions >= 80%: promote.
+        XCTAssertEqual(VocalLogic.recommendedLevel(recentAccuracies: [85, 90, 82], currentLevel: 1), 2)
+        XCTAssertEqual(VocalLogic.recommendedLevel(recentAccuracies: [85, 90, 82], currentLevel: 3), 3) // cap
+        // 2 consecutive < 50%: demote.
+        XCTAssertEqual(VocalLogic.recommendedLevel(recentAccuracies: [40, 45], currentLevel: 2), 1)
+        // Only 1 bad session: hold.
+        XCTAssertEqual(VocalLogic.recommendedLevel(recentAccuracies: [40], currentLevel: 2), 2)
+        // Mixed: hold.
+        XCTAssertEqual(VocalLogic.recommendedLevel(recentAccuracies: [70, 60, 75], currentLevel: 2), 2)
+        // Window is last 3 only: old bad scores ignored.
+        XCTAssertEqual(VocalLogic.recommendedLevel(recentAccuracies: [10, 20, 85, 90, 82], currentLevel: 1), 2)
+    }
+
+    func testRecommendNextGame() {
+        // No data: defaults are 50, first alphabetically (ear).
+        let noData = VocalLogic.recommendNextGame(vowelAccuracy: nil, intervalAccuracy: nil, earAccuracy: nil, lastGame: nil)
+        XCTAssertTrue(VocalLogic.GameType.allCases.contains(noData))  // deterministic: all tied at 50
+        // Weakest skill wins: vowel 40, interval 80, ear 60 -> vowel.
+        XCTAssertEqual(VocalLogic.recommendNextGame(vowelAccuracy: 40, intervalAccuracy: 80, earAccuracy: 60, lastGame: nil), .vowel)
+        // Variety bias: weakest is same as last game AND second is close -> second.
+        XCTAssertEqual(VocalLogic.recommendNextGame(vowelAccuracy: 40, intervalAccuracy: 50, earAccuracy: 80, lastGame: .vowel), .interval)
+        // Weakest is last game but gap is big (25+): still recommend it (needs practice).
+        XCTAssertEqual(VocalLogic.recommendNextGame(vowelAccuracy: 30, intervalAccuracy: 70, earAccuracy: 80, lastGame: .vowel), .vowel)
+    }
+
     func testPassaggioZonePerType() {
         XCTAssertEqual(VocalLogic.passaggioZone(for: .tenor), 66...69)
         XCTAssertEqual(VocalLogic.passaggioZone(for: .soprano), 74...78)

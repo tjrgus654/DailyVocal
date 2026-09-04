@@ -721,6 +721,54 @@ public enum VocalLogic {
         return (accDelta, f2Drift, summary)
     }
 
+    // MARK: - Personalized difficulty (session-history based)
+
+    /// A game's recent history drives a recommended starting level:
+    /// the last N session accuracies trend determines whether the user
+    /// should be pushed, held, or eased. 80%+ average for 3 sessions
+    /// promotes, <50% for 2 sessions demotes, otherwise hold.
+    public static func recommendedLevel(recentAccuracies: [Int], currentLevel: Int, maxLevel: Int = 3) -> Int {
+        guard !recentAccuracies.isEmpty else { return currentLevel }
+        let window = recentAccuracies.suffix(3)
+        let avg = Double(window.reduce(0, +)) / Double(window.count)
+        if avg >= 80 && currentLevel < maxLevel { return currentLevel + 1 }
+        if avg < 50 && currentLevel > 1 {
+            // Demote only after 2 consecutive sub-50% sessions.
+            if window.count >= 2, window.suffix(2).allSatisfy({ $0 < 50 }) {
+                return currentLevel - 1
+            }
+        }
+        return currentLevel
+    }
+
+    /// Which game to recommend next: the weakest skill gets priority
+    /// (lowest recent accuracy), with a bias toward variety (avoid
+    /// recommending the same game 3 times in a row).
+    public enum GameType: String, CaseIterable {
+        case vowel = "모음"
+        case interval = "음정"
+        case ear = "귀훈련"
+    }
+
+    public static func recommendNextGame(
+        vowelAccuracy: Int?, intervalAccuracy: Int?, earAccuracy: Int?,
+        lastGame: GameType?
+    ) -> GameType {
+        var scores: [(GameType, Int)] = []
+        scores.append((.vowel, vowelAccuracy ?? 50))
+        scores.append((.interval, intervalAccuracy ?? 50))
+        scores.append((.ear, earAccuracy ?? 50))
+        // Sort ascending (weakest first).
+        scores.sort { $0.1 < $1.1 }
+        // If the weakest is the last game played AND the second-weakest is
+        // close (within 15 points), prefer variety.
+        if let last = lastGame, scores[0].0 == last, scores.count > 1,
+           scores[1].1 - scores[0].1 <= 15 {
+            return scores[1].0
+        }
+        return scores[0].0
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.
