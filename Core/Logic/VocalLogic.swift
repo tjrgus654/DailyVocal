@@ -636,6 +636,46 @@ public enum VocalLogic {
         return "너무 좁게 잡으셨어요 — \(target.rawValue)(\(target.semitones)반음)보다 \(-diff)반음 낮습니다"
     }
 
+    // MARK: - Ear training (pitch discrimination) game
+
+    /// Two-note comparison trial: the player hears A then B and answers
+    /// whether B is higher, lower, or the same.
+    public enum PitchComparison: String, Codable {
+        case higher = "높아요"
+        case lower = "낮아요"
+        case same = "같아요"
+    }
+
+    /// Generate an ear-training trial: a base note and a comparison offset.
+    /// L1: obvious gaps (3+ semitones or unison), L2: 2-semitone, L3: 1-semitone.
+    public static func earTrainingTrial(level: Int, roll: () -> Int) -> (baseMidi: Int, offset: Int) {
+        func rnd() -> Int { abs(roll()) }
+        let base = 55 + rnd() % 10  // G3..D4 comfortable listening zone
+        let gapPool: [[Int]]
+        switch min(3, max(1, level)) {
+        case 1: gapPool = [[0, 4, 5, 7, -4, -5, -7]]
+        case 2: gapPool = [[0, 2, 3, -2, -3, 4, -4]]
+        default: gapPool = [[0, 1, -1, 2, -2, 3, -3]]
+        }
+        let pool = gapPool[0]
+        return (base, pool[rnd() % pool.count])
+    }
+
+    /// The correct answer for a trial offset.
+    public static func earTrainingAnswer(offset: Int) -> PitchComparison {
+        if offset > 0 { return .higher }
+        if offset < 0 { return .lower }
+        return .same
+    }
+
+    /// Streak-based ear training progression: N correct in a row promotes,
+    /// 2 wrong in a row demotes. Returns the new level.
+    public static func earTrainingLevel(currentLevel: Int, correctStreak: Int, wrongStreak: Int) -> Int {
+        if correctStreak >= 5 && currentLevel < 3 { return currentLevel + 1 }
+        if wrongStreak >= 2 && currentLevel > 1 { return currentLevel - 1 }
+        return currentLevel
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.

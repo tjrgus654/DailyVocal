@@ -350,6 +350,29 @@ final class StreakSystemTests: XCTestCase {
         XCTAssertEqual(VocalLogic.intervalFeedback(target: .unison, userSemitones: 0), "정확합니다")
     }
 
+    func testEarTraining() {
+        // L1 trials only have obvious gaps or unison.
+        for _ in 0..<20 {
+            let trial = VocalLogic.earTrainingTrial(level: 1, roll: { Int.random(in: 0..<100) })
+            XCTAssertTrue([0, 4, 5, 7, -4, -5, -7].contains(trial.offset),
+                          "L1 gap \(trial.offset)")
+            XCTAssertTrue((55...64).contains(trial.baseMidi))
+        }
+        // L3 has 1-semitone gaps.
+        let tight = VocalLogic.earTrainingTrial(level: 3, roll: { 0 })
+        XCTAssertTrue([0, 1, -1, 2, -2, 3, -3].contains(tight.offset))
+        // Answers.
+        XCTAssertEqual(VocalLogic.earTrainingAnswer(offset: 3), .higher)
+        XCTAssertEqual(VocalLogic.earTrainingAnswer(offset: -2), .lower)
+        XCTAssertEqual(VocalLogic.earTrainingAnswer(offset: 0), .same)
+        // Level progression.
+        XCTAssertEqual(VocalLogic.earTrainingLevel(currentLevel: 1, correctStreak: 5, wrongStreak: 0), 2)
+        XCTAssertEqual(VocalLogic.earTrainingLevel(currentLevel: 3, correctStreak: 99, wrongStreak: 0), 3) // cap
+        XCTAssertEqual(VocalLogic.earTrainingLevel(currentLevel: 2, correctStreak: 0, wrongStreak: 2), 1)
+        XCTAssertEqual(VocalLogic.earTrainingLevel(currentLevel: 1, correctStreak: 0, wrongStreak: 99), 1) // floor
+        XCTAssertEqual(VocalLogic.earTrainingLevel(currentLevel: 2, correctStreak: 3, wrongStreak: 1), 2)  // hold
+    }
+
     func testPassaggioZonePerType() {
         XCTAssertEqual(VocalLogic.passaggioZone(for: .tenor), 66...69)
         XCTAssertEqual(VocalLogic.passaggioZone(for: .soprano), 74...78)
