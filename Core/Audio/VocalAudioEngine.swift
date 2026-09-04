@@ -248,6 +248,8 @@ public final class VocalAudioEngine {
         // Latest-wins backpressure: drop the frame when analysis is behind.
         guard frameGate.tryEnter() else { return }
 
+        let rmsValue = Double(rms)
+        let spectrumValue = spectrum
         processingQueue.async { [weak self] in
             let estimate = detector.detect(in: samples)
             Task { @MainActor in
@@ -257,7 +259,7 @@ public final class VocalAudioEngine {
                 guard let self else { return }
                 self.frameGate.leave()
                 guard self.isMicrophoneRunning else { return }
-                self.publish(estimate: estimate, frameRMS: Double(rms), spectrum: spectrum)
+                self.publish(estimate: estimate, frameRMS: rmsValue, spectrum: spectrumValue)
             }
         }
     }
@@ -316,7 +318,7 @@ public final class VocalAudioEngine {
     /// demonstration recordings.
     public func playVowelTone(f0: Double, f1: Double, f2: Double, f3: Double,
                               duration: TimeInterval, volume: Float = 0.4) {
-        guard isToneNodeAttached else { attachToneNodeIfNeeded() }
+        if !isToneNodeAttached { attachToneNodeIfNeeded() }
         // Build a small offline render: generate sawtooth, apply 3 resonances
         // via simple biquad bandpass recursion, write into the tone buffer.
         let sampleRate = toneFormat.sampleRate
@@ -340,9 +342,9 @@ public final class VocalAudioEngine {
                 return y
             })
         }
-        var bp1 = makeBandpass(f1)
-        var bp2 = makeBandpass(f2, q: 10)
-        var bp3 = makeBandpass(f3, q: 12)
+        let bp1 = makeBandpass(f1)
+        let bp2 = makeBandpass(f2, q: 10)
+        let bp3 = makeBandpass(f3, q: 12)
         _ = bp1.state; _ = bp2.state; _ = bp3.state
 
         let attack = min(0.05, duration * 0.2)
