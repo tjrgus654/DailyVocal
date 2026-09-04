@@ -60,6 +60,30 @@ final class StreakSystemTests: XCTestCase {
         XCTAssertEqual(result.usedFrozenCount, 2)
     }
 
+    /// P2-4 contract: settlement is idempotent — applying consumedDays to
+    /// frozenDays once means no further consumption on subsequent walks
+    /// (the dashboard render loop must never spend tokens twice).
+    func testFreezeSettlementIsIdempotent() {
+        let now = noon()
+        let days: Set<String> = [key(now), key(now, offsetDays: -2)]
+        var frozen: Set<String> = []
+        var tokens = 2
+
+        let first = VocalLogic.calculateStreak(practiceDays: days, frozenDays: frozen, freezeTokens: tokens, now: now)
+        XCTAssertEqual(first.consumedDays, [key(now, offsetDays: -1)])
+        // Apply once (session completion).
+        frozen.formUnion(first.consumedDays)
+        tokens -= first.consumedDays.count
+
+        // Repeated walks (dashboard renders) propose nothing new.
+        for _ in 0..<5 {
+            let again = VocalLogic.calculateStreak(practiceDays: days, frozenDays: frozen, freezeTokens: tokens, now: now)
+            XCTAssertTrue(again.consumedDays.isEmpty, "re-walk consumed \(again.consumedDays)")
+            XCTAssertEqual(again.streak, first.streak)
+        }
+        XCTAssertEqual(tokens, 1)
+    }
+
     func testTwoGapsEndStreakWithoutTokens() {
         let now = noon()
         let days: Set<String> = [key(now), key(now, offsetDays: -3)]

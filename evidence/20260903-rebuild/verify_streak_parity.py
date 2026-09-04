@@ -22,6 +22,7 @@ logic = open("Core/Logic/VocalLogic.swift", encoding="utf-8").read()
 presets = open("Core/Logic/RoutineStep.swift", encoding="utf-8").read()
 pvm = open("ViewModels/ProgressViewModel.swift", encoding="utf-8").read()
 rvm = open("ViewModels/DailyRoutineViewModel.swift", encoding="utf-8").read()
+rvm = open("ViewModels/DailyRoutineViewModel.swift", encoding="utf-8").read()
 
 print("=== 1. 4 AM rollover ===")
 check("shift -4h", "date.getTime() - 4*3600*1000" in js and "addingTimeInterval(-4 * 3600)" in logic)
@@ -43,6 +44,12 @@ check("bridge requires prev day practiced/frozen",
 check("two consecutive gaps end the walk (else break)", "} else break;" in js.replace("else if", "elseif").replace("} else\n break;", "} else break;") or "else break" in js and "} else {\n                break" in logic)
 check("iteration cap 366", "i < 366" in js and "iterations < 366" in logic)
 check("usedFrozenCount includes fresh consumption", "frozenUsed + (consumed ? 1 : 0)" in js and "usedFrozenCount + consumedDays.count" in logic)
+# P2-4: consumption moved out of the read path on BOTH sides.
+check("read path is pure (calcStreak does not mutate store)",
+      "Store.data.freezeTokens = Math.max(0, Store.data.freezeTokens - 1)" not in js.split("function weeklyDays")[0].split("function settleFreezeTokens")[0],
+      "JS calcStreak must not spend tokens")
+check("single write-point at session completion",
+      "settleFreezeTokens();" in js and "settleFreezeTokensIfNeeded(profile: profile, context: context)" in rvm)
 
 print("=== 3. Weekly window anchored to Monday ===")
 check("Monday anchor", "(ws.getDay() + 6) % 7" in js and "firstWeekday = 2" in logic)

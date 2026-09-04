@@ -317,13 +317,21 @@ function calcStreak(){
  else break;
  cursor = prev;
  }
- if (consumed){
- Store.data.frozenDays.push(consumed);
- Store.data.freezeTokens = Math.max(0, Store.data.freezeTokens - 1);
- Store.save();
- }
- return {streak, frozenUsed: frozenUsed + (consumed ? 1 : 0)};
+ // 읽기 전용(P2-4): 소모는 세션 완료 시 settleFreezeTokens에서 1회만.
+ return {streak, consumedDays: consumed ? [consumed] : [], frozenUsed: frozenUsed + (consumed ? 1 : 0)};
 }
+// 단일 쓰기 지점(P2-4): 세션 완료 시 1회. 이미 동결된 날은 재차감 없음(멱등).
+function settleFreezeTokens(){
+ const days = new Set(Store.data.sessions.map(s => practiceDayKey(new Date(s.date))));
+ const before = Store.data.freezeTokens;
+ const r = calcStreak();  // 이제 읽기 전용 — consumedDays만 반환
+ if (r.consumedDays.length){
+ Store.data.frozenDays.push(...r.consumedDays);
+ Store.data.freezeTokens = Math.max(0, before - r.consumedDays.length);
+ }
+ return {consumed: r.consumedDays.length, tokens: Store.data.freezeTokens};
+}
+window.settleFreezeTokens = settleFreezeTokens;
 function weeklyDays(){
  const days = new Set(Store.data.sessions.map(s => practiceDayKey(new Date(s.date))));
  const now = new Date(); now.setHours(0,0,0,0);
@@ -701,6 +709,7 @@ function completeRoutine(){
  date: Date.now(), dur: Math.round(App.totalElapsed),
  steps: App.completed.size, full, week: 3, mode: App.mode,
  });
+ settleFreezeTokens();
  Store.save();
  const score = full ? "완주!" : "부분 완료";
  const modeName = App.mode === "quick" ? "2분 퀵" : (App.mode === "rest" ? "쉬는 날" : "15분");

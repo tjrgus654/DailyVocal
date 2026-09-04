@@ -56,13 +56,9 @@ public final class ProgressViewModel {
         )
         currentStreak = result.streak
 
-        // Apply every token-bridged gap in one pass so the profile converges
-        // immediately instead of one day per render.
-        if !result.consumedDays.isEmpty, let profile {
-            profile.streakFreezeTokens = max(0, profile.streakFreezeTokens - result.consumedDays.count)
-            profile.frozenDayKeys.append(contentsOf: result.consumedDays)
-            try? profile.modelContext?.save()
-        }
+        // Read-only by design (P2-4 redesign): token consumption happens once,
+        // at session completion (DailyRoutineViewModel.persistSession), never
+        // on a dashboard render. This view merely reports bridged days.
         frozenDaysInStreak = result.usedFrozenCount
 
         var dayCounts: [String: Int] = [:]

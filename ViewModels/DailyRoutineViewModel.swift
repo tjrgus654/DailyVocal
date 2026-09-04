@@ -446,9 +446,26 @@ public final class DailyRoutineViewModel {
             profile.completedSessionCount += 1
             profile.lastPracticeDate = .now
             profile.currentWeek = profile.computeTrainingWeek()
+            settleFreezeTokensIfNeeded(profile: profile, context: context)
         }
         try? context.save()
         refreshSessionsToday()
+    }
+
+    /// Single write-point for automatic freeze consumption (P2-4): runs once
+    /// per completed session. Idempotent by construction — the gap walk only
+    /// proposes days not already in frozenDayKeys.
+    private func settleFreezeTokensIfNeeded(profile: UserProfile, context: ModelContext) {
+        let sessions = (try? context.fetch(FetchDescriptor<PracticeSession>())) ?? []
+        let practiceDays = Set(sessions.map { VocalLogic.practiceDayKey(for: $0.date) })
+        let result = VocalLogic.calculateStreak(
+            practiceDays: practiceDays,
+            frozenDays: Set(profile.frozenDayKeys),
+            freezeTokens: profile.streakFreezeTokens
+        )
+        guard !result.consumedDays.isEmpty else { return }
+        profile.streakFreezeTokens = max(0, profile.streakFreezeTokens - result.consumedDays.count)
+        profile.frozenDayKeys.append(contentsOf: result.consumedDays)
     }
 
     // MARK: - Profile sync
