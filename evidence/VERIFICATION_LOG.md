@@ -266,6 +266,16 @@ Mac 인계 전 검증 총량. 각 항목은 실행 증거(명령 출력/CI 런 I
 | 129 | 프로토타입 자체 엔진: playVowel(톱니파 성문원→3 밴드패스 = 모음 색) + 스크롤 스펙트로그램(AnalyserNode 50ms 히트맵) | E2E: 5모음 재생 0오류·캔버스 렌더·드로잉 루프 | 합성 파라미터는 공개된 음향학 사실(저작권 무관) |
 | 130 | verify_all + CI 양 그린 | ALL GREEN | 커밋 73 |
 
+## 모음 피드백 게임 패스 (자체 엔진 완성)
+
+| # | 검증 행위 | 결과 | 증거/비고 |
+|---|---|---|---|
+| 131 | 모음 게임 순수 로직: peakFrequency·measuredFormants·vowelDirectionFeedback(F1/F2 방향 코칭)·vowelRoundScore·vowelGameRounds(대조쌍 L1-L3) — 계약 테스트 5종 | swift test 74/74 | 방향 피드백 4케이스(벌려·정확·혀 앞·입술 둥글게) |
+| 132 | VocalAudioEngine: playVowelTone(톱니파→3바이쿼드 밴드패스=모음 합성) + Goertzel 512-bin 스펙트럼(isSpectrumWanted 성능 게이트) | CI 통과 | CI 오류 2라운드(guard fallthrough·nonisolated) 수정 |
+| 133 | 프로토타입 전 플로우: 합성 데모→3초 녹음(스펙트럼 60ms 수집)→채점→방향 코칭→자동 진행→레벨 승격 | E2E: 5모음 합성·채점 판별력 실증 | /아/→77점, 오목표→0점(팁2개), F1낮음→'벌려', 정확→팁0 |
+| 134 | E2E에서 '정확한 /아/'에 방향 팁 나온 오탐 → F2 밴드(800-2800)가 F1 밴드(250-1000)와 겹쳐 F1 피크 오측정 판명 → 1000-2800으로 분리 수정 | swift test 74/74 재통과 | 오판 판별 29건째 (E2E가 실제 버그도 잡음) |
+| 135 | verify_all + CI 양 그린 | ALL GREEN | 커밋 78 |
+
 ### 남은 불확실성 (Mac 실기 전용 — Windows에서 원리적으로 검증 불가)
 
 - P2-4 "조회 경로의 SwiftData 변경": 자동 프리즈 소모 기능의 현재 수렴형 구현.
