@@ -487,6 +487,40 @@ final class StreakSystemTests: XCTestCase {
         XCTAssertEqual(VocalLogic.recommendedLevel(recentAccuracies: [99, 99, 99], currentLevel: 3), 3)
     }
 
+    /// Stress: 100 random range combinations must always produce a valid
+    /// type (never undetermined when the span is wide enough) and stay
+    /// within the correct gender family when isFemale is known.
+    func testVoiceTypeStress() {
+        var seed: UInt64 = 0xDEADBEEF
+        func rnd(_ max: Int) -> Int {
+            seed = seed &* 6364136223846793005 &+ 1442695040888963407
+            return Int(truncatingIfNeeded: UInt32(truncatingIfNeeded: seed >> 33)) % max
+        }
+        for _ in 0..<100 {
+            let isFemale = rnd(2) == 0
+            // Generate a plausible comfortable range: female 53...77, male 40...64
+            let lowBase = isFemale ? 53 : 40
+            let span = 10 + rnd(15)  // 10-24 semitones
+            let low = lowBase + rnd(5)
+            let high = low + span
+            let ceiling = high + rnd(7)
+            let type = VocalLogic.estimateVoiceType(
+                comfortableLowMidi: low, comfortableHighMidi: high,
+                absoluteHighMidi: ceiling, isFemale: isFemale ? true : false
+            )
+            // Span >= 10 → must be determined.
+            XCTAssertNotEqual(type, .undetermined, "low=\(low) high=\(high) ceil=\(ceiling) female=\(isFemale)")
+            // Gender family consistency.
+            if isFemale {
+                XCTAssertTrue([.contralto, .mezzo, .soprano].contains(type),
+                              "female got \(type) for low=\(low) high=\(high)")
+            } else {
+                XCTAssertTrue([.bass, .baritone, .tenor].contains(type),
+                              "male got \(type) for low=\(low) high=\(high)")
+            }
+        }
+    }
+
     func testPassaggioZonePerType() {
         XCTAssertEqual(VocalLogic.passaggioZone(for: .tenor), 66...69)
         XCTAssertEqual(VocalLogic.passaggioZone(for: .soprano), 74...78)

@@ -82,7 +82,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar{display:none;}
 <div class="phone">
  <div class="island"></div>
  <div class="statusbar"><span>9:41</span><span style="font-size:12px;">●●●● 5G ▮ 87%</span></div>
- <div class="screen"><div class="content" id="app"></div></div>
+ <div class="screen" role="main" aria-label="하루보컬 앱"><div class="content" id="app"></div></div>
  <div class="toast" id="toast"></div>
 </div>
 <div class="meta">프레임 하단 탭으로 이동 · 우측 하단 "엔진 자가진단"으로 마이크 없이 YIN 정확도 검증</div>
@@ -799,7 +799,7 @@ const TABS = [
  ["progress","성장 기록","M4 20V10M10 20V4M16 20v-8M22 20h-20"],
 ];
 const tabbar = () => `<div class="tabbar">${TABS.map(([id,label,path])=>`
- <button class="tab ${App.tab===id?'active':''}" onclick="go('${id}')">
+ <button class="tab ${App.tab===id?'active':''}" onclick="go('${id}')" role="tab" aria-selected="${App.tab===id}" aria-label="${label}">
  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg>
  <span>${label}</span></button>`).join("")}</div>`;
 function go(tab){
@@ -1140,7 +1140,7 @@ function screenTracker(){
  </div>
 
  <div class="glass" style="margin:10px 20px 0;padding:8px 12px;display:flex;gap:8px;border-radius:14px;">
- ${[["single","단음"],["echo","에코"],["speak","말하기"],["vowel","모음"],["interval","음정"],["ear","귀훈련"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')">${label}</span>`).join("")}
+ ${[["single","단음"],["echo","에코"],["speak","말하기"],["vowel","모음"],["interval","음정"],["ear","귀훈련"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')" role="button" tabindex="0" aria-label="모드 ${label}">${label}</span>`).join("")}
  </div>
 
  ${App.trMode==='vowel'&&VOWEL_GAME.active?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">라운드 ${Math.min(VOWEL_GAME.idx + 1, VOWEL_GAME.rounds.length)}/${VOWEL_GAME.rounds.length} · 목표 모음: ${VOWEL_GAME.target || "-"}${VOWEL_GAME.tips.length ? "<br><span style='color:var(--text-secondary);font-weight:400;'>" + VOWEL_GAME.tips[0] + "</span>" : ""}</div>`:""}
@@ -1151,16 +1151,16 @@ function screenTracker(){
  <div style="font-size:17px;font-weight:800;margin:12px 0;">두 번째 음은 첫 번째 음보다?</div>
  ${EAR_GAME.trial ? `
  <div style="display:flex;gap:10px;justify-content:center;">
- ${["높아요","같아요","낮아요"].map(a => `<button class="btn-primary" style="flex:1;padding:14px 0;font-size:15px;background:linear-gradient(90deg,var(--brand-primary),var(--brand-accent));" onclick="answerEar('${a}')">${a}</button>`).join("")}
+ ${["높아요","같아요","낮아요"].map(a => `<button class="btn-primary" style="flex:1;padding:14px 0;font-size:15px;background:linear-gradient(90deg,var(--brand-primary),var(--brand-accent));" onclick="answerEar('${a}')" aria-label="답변 ${a}">${a}</button>`).join("")}
  </div>` : `<div class="cap2" style="color:var(--text-secondary);margin:10px 0;">🎧 듣고 있어요...</div>`}
  </div>`:""}
  ${App.trMode==='echo'?`<div class="cap2" style="text-align:center;color:var(--text-secondary);margin:8px 0 0;">에코 난이도 ${echoLevel()}단계 · ${echoLevel()>=3?"최고 난이도입니다":"성공하면 이동 폭이 넓어져요"}</div>`:""}
 
  <div class="glass" style="margin:10px 20px 0;padding:8px 14px;display:flex;align-items:center;gap:10px;border-radius:14px;">
  <span class="cap2" style="color:var(--text-secondary);">기준 피치 A4</span><div style="flex:1"></div>
- <span class="btn-ghost" style="width:44px;height:44px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;" onclick="setA4(-0.5)">−</span>
+ <span class="btn-ghost" style="width:44px;height:44px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;" onclick="setA4(-0.5)" role="button" tabindex="0" aria-label="기준 피치 0.5 헤르츠 내리기">−</span>
  <span style="font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;min-width:60px;text-align:center;">${a4Ref().toFixed(1)} Hz</span>
- <span class="btn-ghost" style="width:44px;height:44px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;" onclick="setA4(0.5)">+</span>
+ <span class="btn-ghost" style="width:44px;height:44px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;" onclick="setA4(0.5)" role="button" tabindex="0" aria-label="기준 피치 0.5 헤르츠 올리기">+</span>
  </div>
 
  <div class="glass" style="margin:14px 20px 0;height:206px;border-radius:18px;position:relative;overflow:hidden;">
@@ -1170,7 +1170,7 @@ function screenTracker(){
  <div class="glass" style="margin:14px 20px 0;padding:10px 14px;display:flex;align-items:center;gap:8px;border-radius:16px;">
  <span class="caption" style="color:var(--text-secondary);">${App.trMode==='echo'?'시작음:' : '목표음:'}</span>
  <div style="flex:1;display:flex;gap:8px;overflow:hidden;">
- ${TARGET_NOTES.map(k=>`<span class="chip ${k===App.target.name?'on':''}" style="padding:6px 10px;" onclick="setTarget('${k}')">${k}</span>`).join("")}
+ ${TARGET_NOTES.map(k=>`<span class="chip ${k===App.target.name?'on':''}" style="padding:6px 10px;" onclick="setTarget('${k}')" role="button" tabindex="0" aria-label="목표음 ${k}로 설정">${k}</span>`).join("")}
  </div>
  <button class="btn-ghost" style="width:34px;height:34px;border-radius:50%;padding:0;background:var(--brand-accent);border:none;" onclick="playTarget()">🔊</button>
  </div>
