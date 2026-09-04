@@ -328,6 +328,28 @@ final class StreakSystemTests: XCTestCase {
         XCTAssertEqual(VocalLogic.vowelGameRounds(level: 99).count, 6)
     }
 
+    func testIntervalRoundsAndScore() {
+        // L1: obvious leaps only.
+        let l1 = VocalLogic.intervalRounds(level: 1, roll: { 0 })
+        XCTAssertTrue(l1.allSatisfy { [.unison, .perfectFifth, .octave].contains($0) })
+        XCTAssertEqual(l1.count, 4)
+        // L3: 6 rounds from the full set.
+        XCTAssertEqual(VocalLogic.intervalRounds(level: 3, roll: { 3 }).count, 6)
+        // Clamp.
+        XCTAssertEqual(VocalLogic.intervalRounds(level: 0, roll: { 0 }).count, 4)
+        // Interval sizes.
+        XCTAssertEqual(VocalLogic.TrainingInterval.perfectFifth.semitones, 7)
+        XCTAssertEqual(VocalLogic.TrainingInterval.octave.semitones, 12)
+        // Scoring.
+        XCTAssertEqual(VocalLogic.intervalScore(target: .perfectFifth, userSemitones: 7), 100)
+        XCTAssertEqual(VocalLogic.intervalScore(target: .perfectFifth, userSemitones: 6), 40)
+        XCTAssertEqual(VocalLogic.intervalScore(target: .perfectFifth, userSemitones: 3), 0)
+        // Feedback direction.
+        XCTAssertTrue(VocalLogic.intervalFeedback(target: .octave, userSemitones: 9).contains("좁게"))
+        XCTAssertTrue(VocalLogic.intervalFeedback(target: .majorThird, userSemitones: 6).contains("넓게"))
+        XCTAssertEqual(VocalLogic.intervalFeedback(target: .unison, userSemitones: 0), "정확합니다")
+    }
+
     func testPassaggioZonePerType() {
         XCTAssertEqual(VocalLogic.passaggioZone(for: .tenor), 66...69)
         XCTAssertEqual(VocalLogic.passaggioZone(for: .soprano), 74...78)

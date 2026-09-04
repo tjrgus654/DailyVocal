@@ -498,6 +498,92 @@ function finishVowelGame(){
  render();
 }
 window.startVowelGame = startVowelGame;
+// 멜로디(음정) 매칭 게임: 기준음 → 목표 간격 재생 → 따라 부르기 → 채점
+const INTERVAL_GAME = { level: 1, rounds: [], idx: 0, scores: [], active: false, target: null, baseMidi: 60 };
+const INTERVALS_KR = {"같은음":0,"장2도":2,"장3도":4,"완전4도":5,"완전5도":7,"옥타브":12};
+function intervalRounds(level, roll){
+ const rnd = () => Math.abs(roll());
+ if (level <= 1) return ["같은음","완전5도","옥타브","같은음"];
+ if (level === 2) return ["장2도","장3도","완전4도","완전5도","옥타브"];
+ const all = Object.keys(INTERVALS_KR);
+ return Array.from({length: 6}, () => all[rnd() % all.length]);
+}
+function intervalScore(targetSemi, userSemi){
+ const d = Math.abs(userSemi - targetSemi);
+ return d === 0 ? 100 : d === 1 ? 40 : 0;
+}
+function intervalFeedback(targetSemi, userSemi){
+ const d = userSemi - targetSemi;
+ if (d === 0) return "정확합니다";
+ if (d > 0) return "너무 넓게 잡으셨어요 — 목표보다 " + d + "반음 높습니다";
+ return "너무 좁게 잡으셨어요 — 목표보다 " + (-d) + "반음 낮습니다";
+}
+async function startIntervalGame(){
+ Audio5.startMic().then(ok => { if (!ok) toast("마이크 권한이 필요합니다."); });
+ INTERVAL_GAME.level = Store.data.prefs.intervalLevel || 1;
+ INTERVAL_GAME.rounds = intervalRounds(INTERVAL_GAME.level, () => Math.floor(Math.random() * 1000));
+ INTERVAL_GAME.idx = 0; INTERVAL_GAME.scores = []; INTERVAL_GAME.active = true;
+ INTERVAL_GAME.baseMidi = App.target.midi;
+ render();
+ await playIntervalRound();
+}
+async function playIntervalRound(){
+ if (INTERVAL_GAME.idx >= INTERVAL_GAME.rounds.length){ finishIntervalGame(); return; }
+ const targetName = INTERVAL_GAME.rounds[INTERVAL_GAME.idx];
+ const targetSemi = INTERVALS_KR[targetName];
+ INTERVAL_GAME.target = { name: targetName, semitones: targetSemi };
+ render();
+ // 데모: 기준음 → 목표음 순차 재생
+ Audio5.playNoteMidi(INTERVAL_GAME.baseMidi, 0.8);
+ await new Promise(r => setTimeout(r, 1000));
+ Audio5.playNoteMidi(INTERVAL_GAME.baseMidi + targetSemi, 0.8);
+ await new Promise(r => setTimeout(r, 1200));
+ // 3초 녹음: 사용자가 목표음(기준+간격)을 부름
+ App.listening = true;
+ App.ignoreUntil = 0;
+ const sungMidis = [];
+ const collect = setInterval(() => {
+  if (!App.listening) return;
+  // trackerPitchHandler가 App.history에 push — 마지막 프레임의 midi 사용
+  if (App.history.length && App.history[App.history.length - 1].f > 0){
+   sungMidis.push(Math.round(69 + 12 * Math.log2(App.history[App.history.length - 1].f / 440)));
+  }
+ }, 80);
+ await new Promise(r => setTimeout(r, 3000));
+ clearInterval(collect);
+ App.listening = false;
+ // 채점: 부른 음의 최빈 midi
+ if (sungMidis.length >= 5){
+  const counts = {};
+  sungMidis.forEach(m => counts[m] = (counts[m] || 0) + 1);
+  const mode = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+  const userSemi = parseInt(mode) - INTERVAL_GAME.baseMidi;
+  INTERVAL_GAME.scores.push(intervalScore(targetSemi, userSemi));
+  INTERVAL_GAME.feedback = intervalFeedback(targetSemi, userSemi);
+ } else {
+  INTERVAL_GAME.scores.push(0);
+  INTERVAL_GAME.feedback = "소리가 감지되지 않았어요";
+ }
+ INTERVAL_GAME.idx++;
+ render();
+ await new Promise(r => setTimeout(r, 900));
+ await playIntervalRound();
+}
+function finishIntervalGame(){
+ INTERVAL_GAME.active = false;
+ const avg = Math.round(INTERVAL_GAME.scores.reduce((a, b) => a + b, 0) / INTERVAL_GAME.scores.length);
+ if (avg >= 80 && INTERVAL_GAME.level < 3){
+  Store.data.prefs.intervalLevel = INTERVAL_GAME.level + 1;
+  Store.save();
+  toast(`음정 게임 완료! 평균 <b>${avg}점</b><br>레벨 ${INTERVAL_GAME.level + 1} — 더 어려운 간격에 도전합니다`, 3600);
+ } else {
+  toast(`음정 게임 완료! 평균 <b>${avg}점</b><br>${INTERVAL_GAME.feedback || ""}`, 3400);
+ }
+ Store.data.pitchRecords.push({t: Date.now(), target: "음정게임-L" + INTERVAL_GAME.level, acc: avg, lo: 0, hi: 0, dur: 30});
+ Store.save();
+ render();
+}
+window.startIntervalGame = startIntervalGame;
 function passaggioZone(type){
  const zones = {"테너":[66,69],"바리톤":[64,67],"베이스":[62,65],"알토":[74,77],"메조소프라노":[74,77],"소프라노":[74,78]};
  return zones[type] || null;
@@ -957,10 +1043,11 @@ function screenTracker(){
  </div>
 
  <div class="glass" style="margin:10px 20px 0;padding:8px 12px;display:flex;gap:8px;border-radius:14px;">
- ${[["single","단음"],["echo","에코"],["speak","말하기"],["vowel","모음게임"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')">${label}</span>`).join("")}
+ ${[["single","단음"],["echo","에코"],["speak","말기"],["vowel","모음"],["interval","음정"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')">${label}</span>`).join("")}
  </div>
 
  ${App.trMode==='vowel'&&VOWEL_GAME.active?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">라운드 ${Math.min(VOWEL_GAME.idx + 1, VOWEL_GAME.rounds.length)}/${VOWEL_GAME.rounds.length} · 목표 모음: ${VOWEL_GAME.target || "-"}${VOWEL_GAME.tips.length ? "<br><span style='color:var(--text-secondary);font-weight:400;'>" + VOWEL_GAME.tips[0] + "</span>" : ""}</div>`:""}
+ ${App.trMode==='interval'&&INTERVAL_GAME.active?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">라운드 ${Math.min(INTERVAL_GAME.idx + 1, INTERVAL_GAME.rounds.length)}/${INTERVAL_GAME.rounds.length} · 목표 간격: ${INTERVAL_GAME.target ? INTERVAL_GAME.target.name : "-"}${INTERVAL_GAME.feedback ? "<br><span style='color:var(--text-secondary);font-weight:400;'>" + INTERVAL_GAME.feedback + "</span>" : ""}</div>`:""}
  ${App.trMode==='echo'?`<div class="cap2" style="text-align:center;color:var(--text-secondary);margin:8px 0 0;">에코 난이도 ${echoLevel()}단계 · ${echoLevel()>=3?"최고 난이도입니다":"성공하면 이동 폭이 넓어져요"}</div>`:""}
 
  <div class="glass" style="margin:10px 20px 0;padding:8px 14px;display:flex;align-items:center;gap:10px;border-radius:14px;">
@@ -1122,12 +1209,17 @@ async function startTracking(){
   await startVowelGame();
   return;
  }
+ if (App.trMode === "interval"){
+  await startIntervalGame();
+  return;
+ }
  if (App.trMode === "speak"){
   App._speakTimer = setTimeout(() => { if (App.listening) stopTracking(); }, 10000);
  } else if (App.trMode === "echo") startEchoFlow();
 }
 function stopTracking(){
  if (VOWEL_GAME.active){ VOWEL_GAME.active = false; VOWEL_GAME.idx = 99; App.listening = false; Audio5.stopMic(); render(); return; }
+ if (INTERVAL_GAME.active){ INTERVAL_GAME.active = false; INTERVAL_GAME.idx = 999; App.listening = false; Audio5.stopMic(); render(); return; }
  if (!App.listening) return; // 자동정지·수동정지 경합 시 이중 기록 방지
  App.listening = false; Audio5.stopMic();
  App.echo.timers.forEach(clearTimeout); App.echo.timers = [];

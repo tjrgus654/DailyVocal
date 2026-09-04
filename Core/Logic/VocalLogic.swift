@@ -582,6 +582,60 @@ public enum VocalLogic {
         }
     }
 
+    // MARK: - Interval (melody) matching game
+
+    /// Named training intervals in semitones — the melody game ladder.
+    public enum TrainingInterval: String, CaseIterable {
+        case unison = "같은음"
+        case majorSecond = "장2도"
+        case majorThird = "장3도"
+        case perfectFourth = "완전4도"
+        case perfectFifth = "완전5도"
+        case octave = "옥타브"
+
+        public var semitones: Int {
+            switch self {
+            case .unison: return 0
+            case .majorSecond: return 2
+            case .majorThird: return 4
+            case .perfectFourth: return 5
+            case .perfectFifth: return 7
+            case .octave: return 12
+            }
+        }
+    }
+
+    /// Interval ladder per level: L1 unison/fifth/octave (obvious leaps),
+    /// L2 adds thirds/fourths, L3 all six in random order.
+    public static func intervalRounds(level: Int, roll: () -> Int) -> [TrainingInterval] {
+        func pick<T>(_ pool: [T]) -> T { pool[abs(roll()) % pool.count] }
+        switch min(3, max(1, level)) {
+        case 1: return [.unison, .perfectFifth, .octave, .unison]
+        case 2: return [.majorSecond, .majorThird, .perfectFourth, .perfectFifth, .octave]
+        default: return (0..<6).map { _ in pick(Array(TrainingInterval.allCases)) }
+        }
+    }
+
+    /// Score an interval attempt: user sang `userSemitones` from the base
+    /// when the target was `target.semitones`. Exact = 100, off-by-one
+    /// semitone = partial (40), otherwise 0.
+    public static func intervalScore(target: TrainingInterval, userSemitones: Int) -> Int {
+        let diff = abs(userSemitones - target.semitones)
+        if diff == 0 { return 100 }
+        if diff == 1 { return 40 }
+        return 0
+    }
+
+    /// Coaching feedback for a wrong interval.
+    public static func intervalFeedback(target: TrainingInterval, userSemitones: Int) -> String {
+        let diff = userSemitones - target.semitones
+        if diff == 0 { return "정확합니다" }
+        if diff > 0 {
+            return "너무 넓게 잡으셨어요 — \(target.rawValue)(\(target.semitones)반음)보다 \(diff)반음 높습니다"
+        }
+        return "너무 좁게 잡으셨어요 — \(target.rawValue)(\(target.semitones)반음)보다 \(-diff)반음 낮습니다"
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.
