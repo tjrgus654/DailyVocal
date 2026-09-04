@@ -46,6 +46,11 @@ public final class PitchTrackerViewModel {
     /// All voiced frequencies this session — the median feeds the speech-pitch
     /// voice-type screen in speak mode.
     public private(set) var voicedFrequencies: [Double] = []
+    /// Vowel game: the current round's target vowel and remaining rounds.
+    public private(set) var vowelTarget: VocalLogic.TrainingVowel = .a
+    public private(set) var vowelRoundIndex = 0
+    public private(set) var vowelScores: [Int] = []
+    public private(set) var lastVowelTips: [String] = []
 
     public var targetNoteName = "E4" {
         didSet { syncTargetFrequency() }
@@ -77,6 +82,7 @@ public final class PitchTrackerViewModel {
         case single = "단음 유지"
         case echo = "에코 3음"
         case speak = "말하기 10초"
+        case vowel = "모음 게임"
         public var id: String { rawValue }
     }
     public var mode: TrackerMode = .single {
@@ -230,7 +236,9 @@ public final class PitchTrackerViewModel {
         }
         audio.startMicrophone()
 
-        if mode == .speak {
+        if mode == .vowel {
+            startVowelGame()
+        } else if mode == .speak {
             echoPhaseTask = Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .seconds(10))
                 guard !Task.isCancelled, let self, self.mode == .speak else { return }
@@ -264,11 +272,90 @@ public final class PitchTrackerViewModel {
         echoTargetMidis = []
         activeEchoIndex = 0
         ignorePitchUntil = Date.distantPast
+        audio.isSpectrumWanted = false
         audio.stopMicrophone()
         audio.onPitchUpdate = nil
         haptics.buttonTap()
         finishSession()
         persistSessionSummary()
+    }
+
+    // MARK: - Vowel game flow
+
+    private func startVowelGame() {
+        audio.isSpectrumWanted = true
+        echoGeneration += 1
+        let generation = echoGeneration
+        vowelRoundIndex = 0
+        vowelScores = []
+        let rounds = VocalLogic.vowelGameRounds(level: echoLevel)
+        playVowelRound(rounds: rounds, generation: generation)
+    }
+
+    private func playVowelRound(rounds: [VocalLogic.TrainingVowel], generation: Int) {
+        guard vowelRoundIndex < rounds.count else {
+            finishVowelGame()
+            return
+        }
+        vowelTarget = rounds[vowelRoundIndex]
+        ignorePitchUntil = .distantFuture
+        echoPhaseTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            // 1) Demo: synthesize the target vowel (formant filtering).
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            let f0 = VocalLogic.frequency(forMidi: Double(self.targetMidi))
+            let (f1, f2, f3) = VocalLogic.formants(for: self.vowelTarget)
+            self.audio.playVowelTone(f0: f0, f1: f1, f2: f2, f3: f3, duration: 1.2)
+            try? await Task.sleep(for: .seconds(1.4))
+            // 2) Record: open the gate for 3 seconds of user mimicry.
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.vowelMagnitudes = []
+            self.ignorePitchUntil = Date()
+            try? await Task.sleep(for: .seconds(3.0))
+            // 3) Score and advance.
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.scoreVowelRound()
+            self.vowelRoundIndex += 1
+            self.playVowelRound(rounds: rounds, generation: generation)
+        }
+    }
+
+    /// Accumulated magnitude spectra for the current vowel round (filled by
+    /// the engine callback in vowel mode).
+    private var vowelMagnitudes: [[Double]] = []
+
+    private func scoreVowelRound() {
+        defer { vowelMagnitudes = [] }
+        guard !vowelMagnitudes.isEmpty else {
+            vowelScores.append(0)
+            lastVowelTips = ["소리가 너무 작았어요 — 다음 라운드에서 더 또렷하게 발성해주세요"]
+            return
+        }
+        // Average the magnitude frames, then score against the target formants.
+        let binCount = vowelMagnitudes[0].count
+        var avg = [Double](repeating: 0, count: binCount)
+        for frame in vowelMagnitudes {
+            for i in 0..<binCount { avg[i] += frame[i] }
+        }
+        for i in 0..<binCount { avg[i] /= Double(vowelMagnitudes.count) }
+        let strength = VocalLogic.formantStrength(
+            magnitudes: avg, sampleRate: audio.analysisSampleRate, vowel: vowelTarget)
+        vowelScores.append(VocalLogic.vowelRoundScore(strength: strength))
+        if let mf = VocalLogic.measuredFormants(magnitudes: avg, sampleRate: audio.analysisSampleRate) {
+            lastVowelTips = VocalLogic.vowelDirectionFeedback(target: vowelTarget, userF1: mf.f1, userF2: mf.f2)
+        }
+        if lastVowelTips.isEmpty {
+            lastVowelTips = ["포먼트가 목표와 잘 맞습니다"]
+        }
+    }
+
+    private func finishVowelGame() {
+        guard !vowelScores.isEmpty else { return }
+        accuracyScore = Double(vowelScores.reduce(0, +)) / Double(vowelScores.count)
+        lastSessionScore = Int(accuracyScore.rounded())
+        lastSessionGrade = VocalLogic.sessionGrade(forScore: lastSessionScore ?? 0)
+        lastSessionTargetLabel = "모음 게임"
+        haptics.routineCompleted()
     }
 
     // MARK: - Echo sequence flow
@@ -383,6 +470,9 @@ public final class PitchTrackerViewModel {
 
         voicedFrameCount += 1
         voicedFrequencies.append(frequency)
+        if mode == .vowel {
+            vowelMagnitudes.append(audio.currentMagnitudeSpectrum)
+        }
         totalCentsMagnitude += abs(cents)
 
         if sessionLowestFrequency == 0 || frequency < sessionLowestFrequency {

@@ -237,6 +237,14 @@ public final class VocalAudioEngine {
         // as soon as this callback returns.
         let samples = Array(UnsafeBufferPointer(start: channel, count: frameLength))
 
+        // 512-bin magnitude spectrum for formant scoring (vowel game).
+        // Goertzel per bin over the first 1024 samples — O(bins*window)
+        // only while a vowel round is live (isSpectrumWanted).
+        var spectrum: [Double]? = nil
+        if isSpectrumWanted, frameLength >= 1024 {
+            spectrum = Self.magnitudeSpectrum(samples, sampleRate: buffer.format.sampleRate, binCount: 512)
+        }
+
         // Latest-wins backpressure: drop the frame when analysis is behind.
         guard frameGate.tryEnter() else { return }
 
@@ -249,14 +257,15 @@ public final class VocalAudioEngine {
                 guard let self else { return }
                 self.frameGate.leave()
                 guard self.isMicrophoneRunning else { return }
-                self.publish(estimate: estimate, frameRMS: Double(rms))
+                self.publish(estimate: estimate, frameRMS: Double(rms), spectrum: spectrum)
             }
         }
     }
 
     // MARK: - Publishing (MainActor)
 
-    private func publish(estimate: PitchEstimate, frameRMS: Double) {
+    private func publish(estimate: PitchEstimate, frameRMS: Double, spectrum: [Double]? = nil) {
+        if let spectrum { lastSpectrum = spectrum }
         amplitude = amplitude * 0.6 + frameRMS * 0.4
         isVoiceDetected = frameRMS > silenceRMSGate && estimate.isVoiced
 
@@ -302,6 +311,62 @@ public final class VocalAudioEngine {
     // MARK: - Guide tone playback (shared engine output)
 
     /// Plays a synthesized guide tone (triangle + 2 harmonics, ADSR envelope).
+    /// Formant vowel demo: sawtooth glottal source through three bandpass
+    /// filters at the target formants — the own-engine replacement for
+    /// demonstration recordings.
+    public func playVowelTone(f0: Double, f1: Double, f2: Double, f3: Double,
+                              duration: TimeInterval, volume: Float = 0.4) {
+        guard isToneNodeAttached else { attachToneNodeIfNeeded() }
+        // Build a small offline render: generate sawtooth, apply 3 resonances
+        // via simple biquad bandpass recursion, write into the tone buffer.
+        let sampleRate = toneFormat.sampleRate
+        let frameCount = AVAudioFrameCount(sampleRate * duration)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: toneFormat, frameCapacity: frameCount) else { return }
+        buffer.frameLength = frameCount
+        guard let data = buffer.floatChannelData?[0] else { return }
+
+        // Sawtooth source.
+        var phase: Double = 0
+        let inc = f0 / sampleRate
+        // Three resonators (simple 2-pole bandpass per formant).
+        func makeBandpass(_ center: Double, q: Double = 8) -> (state: (Double, Double), process: (Double) -> Double) {
+            let w0 = 2 * .pi * center / sampleRate
+            let alpha = sin(w0) / (2 * q)
+            let b0 = alpha, a0 = 1 + alpha, a1 = -2 * cos(w0), a2 = 1 - alpha
+            var x1: Double = 0, x2: Double = 0, y1: Double = 0, y2: Double = 0
+            return ((0, 0), { x in
+                let y = (b0 / a0) * x + (-b0 / a0) * x2 - (a1 / a0) * y1 - (a2 / a0) * y2
+                x2 = x1; x1 = x; y2 = y1; y1 = y
+                return y
+            })
+        }
+        var bp1 = makeBandpass(f1)
+        var bp2 = makeBandpass(f2, q: 10)
+        var bp3 = makeBandpass(f3, q: 12)
+        _ = bp1.state; _ = bp2.state; _ = bp3.state
+
+        let attack = min(0.05, duration * 0.2)
+        let release = min(0.08, duration * 0.2)
+        for i in 0..<Int(frameCount) {
+            let t = Double(i) / sampleRate
+            phase += inc
+            if phase >= 1 { phase -= 1 }
+            let saw = 2 * phase - 1
+            let env: Double
+            if t < attack { env = t / attack }
+            else if t > duration - release { env = max(0, (duration - t) / release) }
+            else { env = 1 }
+            let voiced = bp1.process(saw) + 0.5 * bp2.process(saw) + 0.25 * bp3.process(saw)
+            data[i] = Float(voiced * env * Double(volume))
+        }
+        toneNode.scheduleBuffer(buffer, at: nil)
+        toneNode.play()
+        // Stop after the buffer finishes.
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.1) { [weak self] in
+            if !(self?.isToneLooping ?? false) { self?.toneNode.stop() }
+        }
+    }
+
     public func playTone(frequency: Double, duration: TimeInterval = 0.7, volume: Float = 0.5) {
         guard frequency > 20, frequency < 8000, volume > 0 else { return }
         do {
@@ -344,6 +409,49 @@ public final class VocalAudioEngine {
         activeToneCount = 0
         scheduleEngineStopIfIdle()
     }
+
+    /// 512-bin magnitude spectrum via Goertzel over the first 1024 samples.
+    /// Bins cover 0...(sampleRate/2); consumers use fftBin-mapped bands.
+    nonisolated static func magnitudeSpectrum(_ samples: [Float], sampleRate: Double, binCount: Int) -> [Double] {
+        let window = min(1024, samples.count)
+        // Hann window to suppress edge leakage.
+        var windowed = [Double](repeating: 0, count: window)
+        for i in 0..<window {
+            let w = 0.5 * (1 - cos(2 * .pi * Double(i) / Double(window - 1)))
+            windowed[i] = Double(samples[i]) * w
+        }
+        let binHz = sampleRate / Double(binCount)
+        var mags = [Double](repeating: 0, count: binCount)
+        for bin in 0..<binCount {
+            let f = Double(bin) * binHz
+            if f > sampleRate / 2 { break }
+            let k = 2.0 * cos(2 * .pi * f / sampleRate)
+            var s0: Double = 0, s1: Double = 0, s2: Double = 0
+            for x in windowed {
+                s0 = x + k * s1 - s2
+                s2 = s1
+                s1 = s0
+            }
+            let power = s1 * s1 + s2 * s2 - k * s1 * s2
+            mags[bin] = max(0, sqrt(power / Double(window)))
+        }
+        return mags
+    }
+
+    /// Sample rate of the analysis chain (for FFT bin math).
+    public var analysisSampleRate: Double {
+        engine.inputNode.inputFormat(forBus: 0).sampleRate
+    }
+
+    /// Latest magnitude spectrum from the analysis tap (nil until the mic runs).
+    public var currentMagnitudeSpectrum: [Double] {
+        guard let fft = lastSpectrum else { return [] }
+        return fft
+    }
+    private var lastSpectrum: [Double]?
+    /// Set by the tracker VM during vowel rounds so the FFT only runs when
+    /// a consumer actually reads the spectrum.
+    public var isSpectrumWanted = false
 
     private func attachToneNodeIfNeeded() {
         guard !isToneNodeAttached else { return }

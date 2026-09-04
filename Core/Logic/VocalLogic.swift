@@ -515,6 +515,73 @@ public enum VocalLogic {
         return min(1.0, formantSum / total)
     }
 
+    // MARK: - Vowel feedback game (own-engine coaching)
+
+    /// Peak frequency (Hz) within a spectral band — the measured formant.
+    public static func peakFrequency(magnitudes: [Double], sampleRate: Double,
+                                     band: ClosedRange<Double>) -> Double? {
+        let n = magnitudes.count
+        guard n > 0, sampleRate > 0 else { return nil }
+        let binHz = sampleRate / Double(n)
+        let lo = max(0, Int(band.lowerBound / binHz))
+        let hi = min(n - 1, Int(band.upperBound / binHz))
+        guard lo <= hi else { return nil }
+        var bestBin = lo
+        var bestMag = -1.0
+        for bin in lo...hi where magnitudes[bin] > bestMag {
+            bestMag = magnitudes[bin]
+            bestBin = bin
+        }
+        guard bestMag > 0 else { return nil }
+        return Double(bestBin) * binHz
+    }
+
+    /// Extract the speaker's F1/F2 from a magnitude spectrum.
+    public static func measuredFormants(magnitudes: [Double], sampleRate: Double) -> (f1: Double, f2: Double)? {
+        guard let f1 = peakFrequency(magnitudes: magnitudes, sampleRate: sampleRate, band: 250...1000),
+              let f2 = peakFrequency(magnitudes: magnitudes, sampleRate: sampleRate, band: 800...2800)
+        else { return nil }
+        return (f1, f2)
+    }
+
+    /// Direction coaching: compares the measured formants to the target
+    /// vowel's canonical values and tells the user WHAT TO CHANGE — the
+    /// coaching layer a video cannot personalize.
+    /// F1 low  -> "open the mouth more" (bigger jaw drop raises F1)
+    /// F2 low  -> "tongue more forward" (fronting raises F2 for front vowels)
+    public static func vowelDirectionFeedback(target: TrainingVowel,
+                                              userF1: Double, userF2: Double) -> [String] {
+        let t = formants(for: target)
+        var tips: [String] = []
+        if userF1 < t.f1 - 120 {
+            tips.append("입을 더 크게 벌려보세요 — F1(제1포먼트)이 목표보다 낮습니다")
+        } else if userF1 > t.f1 + 120 {
+            tips.append("입을 조금만 벌려보세요 — F1이 목표보다 높습니다")
+        }
+        let frontVowels: Set<TrainingVowel> = [.i, .e]
+        if frontVowels.contains(target) {
+            if userF2 < t.f2 - 200 { tips.append("혀를 더 앞으로 가져가세요 — F2이 목표보다 낮습니다") }
+        } else if userF2 < t.f2 - 200 {
+            tips.append("입술을 더 둥글게 말아보세요 — F2이 목표보다 낮습니다")
+        }
+        return tips
+    }
+
+    /// 0...100 round score from the formant strength ratio.
+    public static func vowelRoundScore(strength: Double) -> Int {
+        Int((min(1.0, max(0, strength)) * 100).rounded())
+    }
+
+    /// Contrastive-pair progression: level 1 practices maximally distinct
+    /// vowels (아 vs 이), later levels add close pairs (에 vs 이).
+    public static func vowelGameRounds(level: Int) -> [TrainingVowel] {
+        switch min(3, max(1, level)) {
+        case 1: return [.a, .i, .o, .i]          // open vs front vs round
+        case 2: return [.a, .e, .o, .u]          // add close neighbors
+        default: return [.e, .i, .u, .o, .a, .e] // full discrimination
+        }
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.

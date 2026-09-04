@@ -278,6 +278,56 @@ final class StreakSystemTests: XCTestCase {
         XCTAssertEqual(VocalLogic.formantStrength(magnitudes: [0, 0, 0], sampleRate: 48000, vowel: .a), 0)
     }
 
+    func testPeakFrequency() {
+        // 512 bins @ 48kHz, peak at bin 8 (750Hz).
+        var mags = [Double](repeating: 0.001, count: 512)
+        mags[8] = 1.0
+        let peak = VocalLogic.peakFrequency(magnitudes: mags, sampleRate: 48000, band: 250...1000)
+        XCTAssertEqual(peak ?? 0, 750, accuracy: 50)
+        // Band outside the peak returns the band's own max (0.001 noise).
+        let outside = VocalLogic.peakFrequency(magnitudes: mags, sampleRate: 48000, band: 2000...3000)
+        XCTAssertNotNil(outside)  // noise floor still has a max
+        // Empty spectrum.
+        XCTAssertNil(VocalLogic.peakFrequency(magnitudes: [], sampleRate: 48000, band: 250...1000))
+    }
+
+    func testMeasuredFormants() {
+        // /아/-like spectrum: F1 peak at 730Hz(bin 7), F2 at 1090(bin 11).
+        var mags = [Double](repeating: 0.001, count: 512)
+        mags[7] = 1.0
+        mags[11] = 0.7
+        let f = VocalLogic.measuredFormants(magnitudes: mags, sampleRate: 48000)
+        XCTAssertNotNil(f)
+        XCTAssertEqual(f!.f1, 730, accuracy: 95)   // bin width
+        XCTAssertEqual(f!.f2, 1090, accuracy: 95)
+    }
+
+    func testVowelDirectionFeedback() {
+        // User F1 far below /아/ target (730): "open more".
+        let open = VocalLogic.vowelDirectionFeedback(target: .a, userF1: 500, userF2: 1000)
+        XCTAssertTrue(open.contains { $0.contains("벌려") })
+        // On-target: no tips.
+        let good = VocalLogic.vowelDirectionFeedback(target: .a, userF1: 720, userF2: 1100)
+        XCTAssertTrue(good.isEmpty)
+        // /이/ with low F2: front-vowel tip (tongue forward).
+        let front = VocalLogic.vowelDirectionFeedback(target: .i, userF1: 280, userF2: 1800)
+        XCTAssertTrue(front.contains { $0.contains("앞으로") })
+        // /오/ with low F2: round-vowel tip (lips).
+        let round = VocalLogic.vowelDirectionFeedback(target: .o, userF1: 560, userF2: 600)
+        XCTAssertTrue(round.contains { $0.contains("둥글게") })
+    }
+
+    func testVowelRoundScoreAndGameRounds() {
+        XCTAssertEqual(VocalLogic.vowelRoundScore(strength: 0.78), 78)
+        XCTAssertEqual(VocalLogic.vowelRoundScore(strength: 1.5), 100)  // clamps
+        XCTAssertEqual(VocalLogic.vowelRoundScore(strength: -1), 0)
+        // L1: contrastive 4 rounds; L3: full 6.
+        XCTAssertEqual(VocalLogic.vowelGameRounds(level: 1).count, 4)
+        XCTAssertEqual(VocalLogic.vowelGameRounds(level: 3).count, 6)
+        XCTAssertEqual(VocalLogic.vowelGameRounds(level: 0).count, 4)   // clamps
+        XCTAssertEqual(VocalLogic.vowelGameRounds(level: 99).count, 6)
+    }
+
     func testPassaggioZonePerType() {
         XCTAssertEqual(VocalLogic.passaggioZone(for: .tenor), 66...69)
         XCTAssertEqual(VocalLogic.passaggioZone(for: .soprano), 74...78)

@@ -57,6 +57,18 @@ public struct PitchTrackerView: View {
                             .foregroundColor(.textSecondary)
                             .frame(maxWidth: .infinity)
                     }
+                    if viewModel.mode == .vowel {
+                        Text("목표 모음: \(viewModel.vowelTarget.rawValue) — 소리를 듣고 그대로 따라 하세요")
+                            .font(.caption2)
+                            .foregroundColor(.brandSecondary)
+                            .frame(maxWidth: .infinity)
+                        if !viewModel.lastVowelTips.isEmpty {
+                            Text(viewModel.lastVowelTips.joined(separator: "\n"))
+                                .font(.caption2)
+                                .foregroundColor(.textSecondary)
+                                .multilineTextAlignment(.center)
+                        }
+                    }
 
                     targetNoteSelectorBar
                         .padding(.horizontal, 20)
