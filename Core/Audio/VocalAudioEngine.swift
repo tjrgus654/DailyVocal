@@ -1,6 +1,6 @@
 //
 //  VocalAudioEngine.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Single shared AVAudioEngine owning both the microphone analysis tap and the
 //  guide-tone player. One engine + one audio session prevents the two-node

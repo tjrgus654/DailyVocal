@@ -1,6 +1,6 @@
 //
 //  VocalCategory.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  6 Core Vocal Training Categories mapped from OhVocal 48 Shorts.
 //  Foundation-pure core (enum/titles/emoji) so preset contract tests run

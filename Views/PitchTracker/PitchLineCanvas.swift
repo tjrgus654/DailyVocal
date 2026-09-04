@@ -1,6 +1,6 @@
 //
 //  PitchLineCanvas.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Canvas renderer for the live pitch trajectory. Log-frequency vertical axis,
 //  dashed target line, and segment breaks at unvoiced gaps.

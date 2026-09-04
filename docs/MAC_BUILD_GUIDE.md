@@ -1,4 +1,4 @@
-# 🎙️ "5분 보컬" (5VocalMaster) — Xcode 빌드 가이드
+# 🎙️ "하루보컬" (DailyVocal) — Xcode 빌드 가이드
 
 > **대상:** iPhone(iOS 17.0+, Dynamic Island 기기 권장)
 > **스택:** SwiftUI · SwiftData · AVAudioEngine(단일 엔진: YIN/vDSP 피치 감지 + 가이드 신디사이저) · ActivityKit · @Observable
@@ -14,8 +14,8 @@
 ## 📱 1. 프로젝트 구조
 
 ```
-5VocalMaster/
-├── 5VocalMasterApp.swift          # @main 진입점, SwiftData 컨테이너
+DailyVocal/
+├── DailyVocalApp.swift          # @main 진입점, SwiftData 컨테이너
 ├── Info.plist                     # 마이크 권한, 백그라운드 오디오, arm64
 │
 ├── Design/
@@ -55,14 +55,14 @@
 ## 🛠️ 2. Xcode 프로젝트 만들기
 
 1. Xcode → **Create New Project…** → **iOS App**
-   - Product Name: `5VocalMaster` / Interface: **SwiftUI** / Storage: **SwiftData** (체크 안 해도 됨 — 컨테이너를 코드로 생성)
+   - Product Name: `DailyVocal` / Interface: **SwiftUI** / Storage: **SwiftData** (체크 안 해도 됨 — 컨테이너를 코드로 생성)
    - Minimum Deployments: **iOS 17.0**
 2. 위 폴더의 **`Widget/`을 제외한** 모든 파일·폴더를 네비게이터로 드래그
-   - `Copy items if needed` ✅ / `Create groups` ✅ / 타깃 `5VocalMaster` ✅
+   - `Copy items if needed` ✅ / `Create groups` ✅ / 타깃 `DailyVocal` ✅
    - **`PrivacyInfo.xcprivacy`도 반드시 포함** (앱 타깃). UserDefaults가
      required-reason API라 매니페스트 없으면 App Store 제출이 거부됨
      (UserDefaults 이유 코드 CA92.1, 수집 데이터 없음, 추적 없음으로 작성돼 있음)
-3. `Resources/vocal_tips.json` 선택 → File Inspector의 **Target Membership**에 `5VocalMaster` 체크 확인
+3. `Resources/vocal_tips.json` 선택 → File Inspector의 **Target Membership**에 `DailyVocal` 체크 확인
 4. Info 탭에 아래 키가 있는지 확인 (직접 `Info.plist`를 쓰지 않는 경우):
    - `NSMicrophoneUsageDescription` (마이크 권한 문구)
    - `NSSupportsLiveActivities` = YES
@@ -85,7 +85,7 @@
 2. 자동 생성된 위젯 파일들의 내용을 `Widget/VocalWidgetBundle.swift`로 교체
    (이 파일은 `VocalWidget` 타깃에만 속함)
 3. `Core/LiveActivity/VocalActivityAttributes.swift`의 Target Membership을
-   `5VocalMaster` + `VocalWidget` **둘 다** 체크
+   `DailyVocal` + `VocalWidget` **둘 다** 체크
 
 ---
 

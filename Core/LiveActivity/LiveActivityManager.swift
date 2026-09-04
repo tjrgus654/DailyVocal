@@ -1,6 +1,6 @@
 //
 //  LiveActivityManager.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Dynamic Island / Lock Screen Live Activity lifecycle. No-ops gracefully
 //  when Live Activities are unavailable (Simulator, denied, not supported).

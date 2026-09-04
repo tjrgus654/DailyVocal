@@ -1,6 +1,6 @@
 //
 //  VocalProgressView.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Growth dashboard driven by live SwiftData queries: streak, 12-week
 //  heatmap, real vocal range growth (onboarding baseline vs current),

@@ -1,6 +1,6 @@
 //
 //  PitchTrackerViewModel.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Real-time pitch measurement session: target selection, accuracy scoring,
 //  haptic feedback (edge-triggered, throttled), trajectory history, and

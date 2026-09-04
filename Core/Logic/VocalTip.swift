@@ -1,6 +1,6 @@
 //
 //  VocalTip.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Data model for Vocal Tips (48 OhVocal shorts + 4 research-based).
 //  Foundation-pure Codable so the shipped JSON is contract-testable.

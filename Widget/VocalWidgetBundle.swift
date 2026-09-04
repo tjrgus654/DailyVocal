@@ -1,9 +1,9 @@
 //
 //  VocalWidgetBundle.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Widget extension target ONLY (do not add this file to the app target —
-//  it declares @main, which would collide with FiveVocalMasterApp).
+//  it declares @main, which would collide with HaruVocalApp).
 //  Core/LiveActivity/VocalActivityAttributes.swift must be a member of BOTH
 //  the app and the widget target.
 //

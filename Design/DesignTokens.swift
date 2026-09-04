@@ -1,6 +1,6 @@
 //
 //  DesignTokens.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Design system: colors, typography (SF Pro Rounded display stack),
 //  gradients, layout constants, and the shared app background.

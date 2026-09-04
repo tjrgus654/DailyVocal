@@ -1,6 +1,6 @@
 //
 //  DailyRoutineViewModel.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Business logic for the 15-minute routine: step timer, partial-completion
 //  tracking (a step counts as practiced after 70% of its duration), guide-tone

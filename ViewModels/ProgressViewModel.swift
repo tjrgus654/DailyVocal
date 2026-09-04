@@ -1,6 +1,6 @@
 //
 //  ProgressViewModel.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Growth dashboard statistics computed from real SwiftData records:
 //  streak, totals, weekday-aligned 12-week heatmap, and vocal range growth

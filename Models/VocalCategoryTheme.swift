@@ -1,6 +1,6 @@
 //
 //  VocalCategoryTheme.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  SwiftUI presentation layer of the category enum defined in Core/Logic.
 //

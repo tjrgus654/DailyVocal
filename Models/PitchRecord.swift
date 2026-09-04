@@ -1,6 +1,6 @@
 //
 //  PitchRecord.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  SwiftData model summarizing one pitch-tracking measurement session
 //  (created when the user stops tracking), used for range growth statistics.

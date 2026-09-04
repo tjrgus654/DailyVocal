@@ -1,6 +1,6 @@
 //
 //  HeatmapCalendarView.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  GitHub-style contribution heatmap over the last 12 weeks. The day list is
 //  built Monday-aligned (see ProgressViewModel), so the 7 columns line up

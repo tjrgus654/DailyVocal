@@ -1,6 +1,6 @@
 //
 //  VocalLabViewModel.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Loads the 48 tip records from the bundle, provides category filtering and
 //  search, deterministic "today's tip" selection, and related-tip lookup.

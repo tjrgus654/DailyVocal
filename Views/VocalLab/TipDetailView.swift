@@ -1,6 +1,6 @@
 //
 //  TipDetailView.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Tip detail sheet: diagnosis, analogy, 3-step practice guide, related tips,
 //  and the original YouTube shorts link (reference only — the app works
@@ -88,7 +88,7 @@ public struct TipDetailView: View {
                     sectionCard(
                         icon: "sparkles",
                         iconColor: .brandSecondary,
-                        title: tip.viewCount > 0 ? "오보컬 핵심 진단" : "핵심 원리"
+                        title: tip.viewCount > 0 ? "핵심 진단" : "핵심 원리"
                     ) {
                         Text(tip.shortsSummary)
                             .font(.tipBody)
@@ -160,7 +160,7 @@ public struct TipDetailView: View {
                                 Image(systemName: "play.rectangle.fill")
                                     .font(.headline)
                                     .foregroundColor(.red)
-                                Text("오보컬 유튜브 쇼츠 원본 보기")
+                                Text("출처 영상 보기")
                                     .font(.headline)
                                     .foregroundColor(.white)
                                 Spacer()

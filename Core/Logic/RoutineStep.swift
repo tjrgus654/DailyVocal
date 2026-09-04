@@ -1,6 +1,6 @@
 //
 //  RoutineStep.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  5-step daily routine definition with week-specific presets.
 //  Every training week has a different emphasis following the 4-week roadmap

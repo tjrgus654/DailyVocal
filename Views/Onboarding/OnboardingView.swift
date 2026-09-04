@@ -1,6 +1,6 @@
 //
 //  OnboardingView.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  4-step onboarding: welcome -> analogy intro -> REAL vocal range
 //  measurement (mic + live pitch, saved as the growth baseline) ->
@@ -63,7 +63,7 @@ public struct OnboardingView: View {
         VStack(spacing: 14) {
             Button(action: handleNext) {
                 HStack {
-                    Text(currentPage == pageCount - 1 ? "5분 보컬 시작하기" : "다음")
+                    Text(currentPage == pageCount - 1 ? "하루보컬 시작하기" : "다음")
                         .font(.headline)
                         .fontWeight(.bold)
                     Image(systemName: "arrow.right")
@@ -128,7 +128,7 @@ public struct OnboardingView: View {
                 .multilineTextAlignment(.center)
                 .foregroundColor(.white)
 
-            Text("발성 이론을 몰라도 괜찮습니다.\n오보컬 쇼츠 48개와 연구 기반 비법,\n실시간 피치 가이드가 혼자 연습의 길을 안내합니다.")
+            Text("발성 이론을 몰라도 괜찮습니다.\n52가지 발성 비법과 실시간 피치 가이드가\n혼자 하는 연습의 길을 안내합니다.")
                 .font(.body)
                 .multilineTextAlignment(.center)
                 .foregroundColor(.textSecondary)
@@ -358,7 +358,7 @@ private struct RangeTestPage: View {
                 .foregroundColor(.white)
 
             if rangeTest.audio.isMicPermissionDenied {
-                Text("마이크 권한이 거부되어 측정할 수 없습니다.\n설정 > 5분 보컬 > 마이크를 허용한 뒤 돌아오세요.\n(건너뛰고 나중에 피치 트래커에서 측정해도 됩니다.)")
+                Text("마이크 권한이 거부되어 측정할 수 없습니다.\n설정 > 하루보컬 > 마이크를 허용한 뒤 돌아오세요.\n(건너뛰고 나중에 피치 트래커에서 측정해도 됩니다.)")
                     .font(.caption)
                     .foregroundColor(.vocalWarning)
                     .multilineTextAlignment(.center)

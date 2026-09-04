@@ -1,6 +1,6 @@
 //
 //  GlassCard.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Frosted glassmorphism modifier + container. The "깔쌈" recipe:
 //  ultra-thin material + dark tint, a 0.8pt top sheen stroke (cardSheen),

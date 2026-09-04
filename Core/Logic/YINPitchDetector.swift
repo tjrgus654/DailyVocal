@@ -1,6 +1,6 @@
 //
 //  YINPitchDetector.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  YIN fundamental-frequency (F0) estimator.
 //  Pure value type: no shared state, safe to call from any thread.

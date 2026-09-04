@@ -150,7 +150,7 @@ custom_types = ['DailyRoutineView', 'PitchTrackerView', 'VocalLabView', 'VocalPr
                 'YINPitchDetector', 'VocalAudioEngine', 'ScaleSequencer', 'HapticManager', 'LiveActivityManager',
                 'VocalActivityAttributes', 'NotificationManager', 'PitchPoint', 'HeatmapDay',
                 'DailyRoutineViewModel', 'PitchTrackerViewModel', 'ProgressViewModel', 'VocalLabViewModel',
-                'VocalLiveActivityWidget', 'VocalWidgetBundle', 'FiveVocalMasterApp', 'GlassCard',
+                'VocalLiveActivityWidget', 'VocalWidgetBundle', 'HaruVocalApp', 'GlassCard',
                 'GlassCardModifier']
 missing = [t for t in custom_types if not re.search(r'\b(?:class|struct|enum)\s+' + t + r'\b', all_src)]
 fail(f"missing definitions: {missing}") if missing else ok(f"all {len(custom_types)} custom types defined")

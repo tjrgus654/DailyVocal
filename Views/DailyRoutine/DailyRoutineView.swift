@@ -1,6 +1,6 @@
 //
 //  DailyRoutineView.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  15-minute routine screen: circular step timer, step dots, step detail
 //  card with live feedback, guide-tone settings, and transport controls.
@@ -149,7 +149,7 @@ public struct DailyRoutineView: View {
     private var headerView: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("5분 보컬")
+                Text("하루보컬")
                     .font(.eyebrow)
                     .foregroundColor(.brandSecondary)
                 Text("일일 루틴")

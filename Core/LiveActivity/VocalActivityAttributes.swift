@@ -1,6 +1,6 @@
 //
 //  VocalActivityAttributes.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  ActivityKit attributes shared between the app target and the widget
 //  extension target (both targets must include this file — see README).
@@ -48,7 +48,7 @@ public struct VocalActivityAttributes: ActivityAttributes {
     public var sessionStartTime: Date
 
     public init(
-        routineName: String = "5분 보컬 데일리 루틴",
+        routineName: String = "하루보컬 데일리 루틴",
         sessionStartTime: Date = .now
     ) {
         self.routineName = routineName

@@ -1,6 +1,6 @@
 //
 //  ScaleSequencer.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Guide-tone scale sequencer: plays 5-tone / octave / arpeggio / sustained
 //  patterns through VocalAudioEngine's shared tone output, rising a semitone

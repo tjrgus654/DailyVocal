@@ -1,6 +1,6 @@
 //
-//  5VocalMasterApp.swift
-//  5VocalMaster
+//  HaruVocalApp.swift
+//  DailyVocal
 //
 //  App entry point: SwiftData container + default profile bootstrap.
 //  Audio session configuration is owned by VocalAudioEngine and applied
@@ -12,7 +12,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct FiveVocalMasterApp: App {
+struct HaruVocalApp: App {
 
     private let container: ModelContainer
 

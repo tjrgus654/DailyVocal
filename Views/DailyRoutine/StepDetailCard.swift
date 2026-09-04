@@ -1,6 +1,6 @@
 //
 //  StepDetailCard.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Current step explanation card: category badge, analogy, expandable action
 //  guide, and the live mic waveform. While the guide tone is playing, the

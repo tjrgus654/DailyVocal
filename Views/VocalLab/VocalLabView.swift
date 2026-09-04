@@ -1,6 +1,6 @@
 //
 //  VocalLabView.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  48-tip library: today's featured card, 6-category grid, filtering chips,
 //  and search. Detail opens as a sheet.
@@ -74,7 +74,7 @@ public struct VocalLabView: View {
     private var headerView: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("오보컬 쇼츠 · 연구 기반 비법")
+                Text("발성 비법 · 연구 기반")
                     .font(.caption)
                     .fontWeight(.bold)
                     .foregroundColor(.brandSecondary)

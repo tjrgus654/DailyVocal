@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>5분 보컬 — 프리뷰 v3 (디자인 오버홀: 라운드 타이포·오로라 배경·아일랜드 프레임)</title>
+<title>하루보컬 — 프리뷰 v3 (디자인 오버홀: 라운드 타이포·오로라 배경·아일랜드 프레임)</title>
 <style>
  /* ===== DesignTokens.swift v2 반영 ===== */
  :root {
@@ -133,7 +133,7 @@
 </style>
 </head>
 <body>
-<div class="meta">5분 보컬 프리뷰 v3 — 재구현 DesignTokens 기준 · 화면: <span id="scrname">routine</span></div>
+<div class="meta">하루보컬 프리뷰 v3 — 재구현 DesignTokens 기준 · 화면: <span id="scrname">routine</span></div>
 <div class="phone">
  <div class="island"></div>
  <div class="statusbar"><span>9:41</span><span class="right">●●●● 5G <b>▮</b> 87%</span></div>
@@ -184,7 +184,7 @@ SCREENS.intro = () => `
  <div style="font-size:96px;filter:drop-shadow(0 6px 18px rgba(99,102,241,.6));">🎤</div>
  </div>
  <div class="screen-title" style="font-size:26px;text-align:center;line-height:1.35;">하루 15분,<br>목소리가 달라집니다</div>
- <div style="color:var(--text-secondary);text-align:center;font-size:15px;line-height:1.7;">발성 이론을 몰라도 괜찮습니다.<br>오보컬 48개 비법과 실시간 피치 가이드로<br>혼자서도 고음을 편안하게 뚫어보세요.</div>
+ <div style="color:var(--text-secondary);text-align:center;font-size:15px;line-height:1.7;">발성 이론을 몰라도 괜찮습니다.<br>52가지 발성 비법과 실시간 피치 가이드로<br>혼자서도 고음을 편안하게 올려보세요.</div>
  </div>
  <div class="pagefoot">
  <div class="btn-primary">다음 <span style="font-size:15px;">→</span></div>
@@ -232,7 +232,7 @@ const routineBody = (opt) => {
  return `
  <div class="content">
  <div class="scroll">
- ${header('5분 보컬 · 일일 루틴', mode, `
+ ${header('하루보컬 · 일일 루틴', mode, `
  <div style="display:flex;align-items:center;gap:8px;">
  <div style="display:flex;gap:4px;align-items:center;">
  <div style="width:6px;height:6px;border-radius:50%;background:var(--vocal-alert);"></div>
@@ -423,7 +423,7 @@ SCREENS.lab = () => {
  return `
  <div class="content">
  <div class="scroll">
- ${header('오보컬 48개 쇼츠 비법', '발성 연구소', `
+ ${header('발성 비법 · 연구 기반', '발성 연구소', `
  <div class="glass" style="border-radius:10px;padding:4px 10px;font-size:12px;color:var(--text-secondary);font-weight:700;">총 48개 비법</div>`)}
 
  <div class="glass" style="margin:10px 20px 0;padding:12px 14px;display:flex;gap:10px;align-items:center;border-radius:14px;">
@@ -465,7 +465,7 @@ SCREENS.lab = () => {
 SCREENS.lab_fav = () => `
  <div class="content">
  <div class="scroll">
- ${header('오보컬 48개 쇼츠 비법', '발성 연구소', `
+ ${header('발성 비법 · 연구 기반', '발성 연구소', `
  <div class="glass" style="border-radius:10px;padding:4px 10px;font-size:12px;color:var(--text-secondary);font-weight:700;">총 48개 비법</div>`)}
  <div style="display:flex;gap:8px;padding:12px 20px 6px;overflow:hidden;">
  <span class="chip">전체 보기</span>
@@ -495,7 +495,7 @@ SCREENS.tipdetail = () => `
  <div class="screen-title" style="font-size:22px;line-height:1.4;">가성 쓰면 바로 뚫리는데 안쓰고 뭐해요</div>
 
  ${[
- ['','오보컬 핵심 진단','오보컬 레슨 #2: 가성 쓰면 바로 뚫리는데 안쓰고 뭐해요. 잘못된 보컬 상식을 깨고 몸으로 바로 느껴지는 감각적 해결책을 제시합니다.','var(--brand-secondary)'],
+ ['','핵심 진단','가성 쓰면 바로 뚫리는데 안쓰고 뭐해요. 잘못된 보컬 상식을 깨고 몸으로 바로 느껴지는 감각적 해결책을 제시합니다.','var(--brand-secondary)'],
  ['💡','초보자 찰떡 비유','👏 손바닥 포개기 비유: 진성으로만 억지로 때리면 성대가 다칩니다. 높은 가성을 먼저 켜고 손바닥을 살짝 포개듯 부드럽게 붙여줍니다.','var(--vocal-warning)'],
  ['🚶','이렇게 따라해보세요','1. 부엉이처럼 편안하게 높은 음으로 \'후~\' 가성을 냅니다.<br>2. 그 소리 앞에 \'응\'을 붙여 \'응-후-\'로 연결하며 성대를 살짝 닫아줍니다.<br>3. 소리가 뒤로 빠지지 않고 앞니 뒤쪽에서 진동이 느껴지는지 확인합니다.','var(--vocal-success)'],
  ].map(s=>`
@@ -518,7 +518,7 @@ SCREENS.tipdetail = () => `
  </div>
 
  <div class="glass" style="margin-top:14px;height:52px;display:flex;align-items:center;padding:0 16px;gap:10px;border-radius:16px;">
- <span style="font-size:17px;">▶️</span><span style="font-size:16px;font-weight:800;flex:1;">오보컬 유튜브 쇼츠 원본 보기</span><span style="color:var(--text-secondary);">↗</span>
+ <span style="font-size:17px;">▶️</span><span style="font-size:16px;font-weight:800;flex:1;">출처 영상 보기</span><span style="color:var(--text-secondary);">↗</span>
  </div>
  </div>
  </div>`;

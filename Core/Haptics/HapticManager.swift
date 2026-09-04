@@ -1,6 +1,6 @@
 //
 //  HapticManager.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Centralized UIKit haptic feedback. All engines are prepared up front so
 //  the first event has no latency.

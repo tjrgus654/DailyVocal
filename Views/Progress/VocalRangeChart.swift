@@ -1,6 +1,6 @@
 //
 //  VocalRangeChart.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Vocal range growth chart. All values are real data passed in from the
 //  profile: the onboarding baseline vs the current measured range, with the

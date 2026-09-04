@@ -1,6 +1,6 @@
 //
 //  UserProfile.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  SwiftData model for the single user profile: baseline vocal range (measured
 //  during onboarding), current vocal range (extended as the user practices),

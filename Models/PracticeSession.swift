@@ -1,6 +1,6 @@
 //
 //  PracticeSession.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  SwiftData model for one completed (or partially completed) routine run.
 //

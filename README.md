@@ -1,4 +1,4 @@
-# 5분 보컬 (5VocalMaster)
+# 하루보컬 (DailyVocal)
 
 초보자를 위한 iOS 보컬 트레이닝 앱. 하루 15분(또는 2분 퀵) 루틴, 실시간 YIN 피치
 감지, 근거기반 훈련 콘텐츠로 혼자서도 안전하게 발성을 연습합니다.
@@ -19,7 +19,7 @@
 ## 저장소 구조
 
 ```
-5VocalMasterApp.swift   # @main 진입점
+DailyVocalApp.swift   # @main 진입점
 Core/                   # 오디오 엔진·YIN·시퀀서·로직(Logic은 순수 Swift, Windows 테스트 가능)
 Design/                 # 디자인 토큰·글래스 카드
 Models/                 # SwiftData 모델 + 루틴 프리셋 + 팁 모델

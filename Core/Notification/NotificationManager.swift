@@ -1,6 +1,6 @@
 //
 //  NotificationManager.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Local daily reminder (default 20:00) and streak-protection alert (22:30).
 //  Local notifications need no Push Notifications capability — only the
@@ -72,7 +72,7 @@ public final class NotificationManager {
         center.removePendingNotificationRequests(withIdentifiers: [Self.dailyReminderID])
 
         let content = UNMutableNotificationContent()
-        content.title = "🎙️ 오늘의 15분 보컬 타임!"
+        content.title = "🎙️ 오늘의 1하루보컬 타임!"
         content.body = "목 풀 준비 되셨나요? 가벼운 립트릴부터 5단계 루틴으로 목소리를 깨워보세요."
         content.sound = .default
 

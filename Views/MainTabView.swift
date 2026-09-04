@@ -1,6 +1,6 @@
 //
 //  MainTabView.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Root switch between onboarding and the 4-tab main interface.
 //  Every tab owns its NavigationStack.

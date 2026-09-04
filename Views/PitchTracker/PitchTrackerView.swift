@@ -1,6 +1,6 @@
 //
 //  PitchTrackerView.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Real-time pitch coaching screen. The live note display reads the audio
 //  engine directly (isolated subview), history/accuracy/target come from the
@@ -440,7 +440,7 @@ private struct PermissionGuideCard: View {
                 .font(.headline)
                 .foregroundColor(.white)
 
-            Text("실시간 음정 분석은 기기 안에서만 처리되고\n어디에도 전송되지 않습니다.\n설정 > 5분 보컬 > 마이크를 허용해주세요.")
+            Text("실시간 음정 분석은 기기 안에서만 처리되고\n어디에도 전송되지 않습니다.\n설정 > 하루보컬 > 마이크를 허용해주세요.")
                 .font(.caption)
                 .foregroundColor(.textSecondary)
                 .multilineTextAlignment(.center)

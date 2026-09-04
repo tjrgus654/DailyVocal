@@ -1,6 +1,6 @@
 //
 //  VocalLogic.swift
-//  5VocalMaster
+//  DailyVocal
 //
 //  Pure, Foundation-only decision logic shared by the app AND by the
 //  cross-platform unit tests (swift test on Windows/macOS). No UIKit,
