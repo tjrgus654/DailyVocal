@@ -130,6 +130,7 @@ public struct PitchTrackerView: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("기준 피치 0.5 헤르츠 내리기")
             Text(String(format: "%.1f Hz", displayedA4))
                 .font(.caption.weight(.bold).monospacedDigit())
                 .foregroundColor(.white)
@@ -145,6 +146,7 @@ public struct PitchTrackerView: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("기준 피치 0.5 헤르츠 올리기")
         }
         .glassCard(cornerRadius: 14, padding: 10)
     }
