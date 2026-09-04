@@ -361,10 +361,6 @@ public final class VocalAudioEngine {
         }
         toneNode.scheduleBuffer(buffer, at: nil)
         toneNode.play()
-        // Stop after the buffer finishes.
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.1) { [weak self] in
-            if !(self?.isToneLooping ?? false) { self?.toneNode.stop() }
-        }
     }
 
     public func playTone(frequency: Double, duration: TimeInterval = 0.7, volume: Float = 0.5) {
@@ -450,8 +446,9 @@ public final class VocalAudioEngine {
     }
     private var lastSpectrum: [Double]?
     /// Set by the tracker VM during vowel rounds so the FFT only runs when
-    /// a consumer actually reads the spectrum.
-    public var isSpectrumWanted = false
+    /// a consumer actually reads the spectrum. Read from the nonisolated tap
+    /// handler: a stale read for one frame is harmless (bool flag).
+    nonisolated(unsafe) public var isSpectrumWanted = false
 
     private func attachToneNodeIfNeeded() {
         guard !isToneNodeAttached else { return }
