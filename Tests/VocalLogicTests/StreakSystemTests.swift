@@ -373,6 +373,31 @@ final class StreakSystemTests: XCTestCase {
         XCTAssertEqual(VocalLogic.earTrainingLevel(currentLevel: 2, correctStreak: 3, wrongStreak: 1), 2)  // hold
     }
 
+    func testBestTakeComparison() {
+        let base = Date()
+        let best = VocalLogic.BestTake(timestamp: base, accuracy: 75, medianF1: 730, medianF2: 1090, noteMidi: 64)
+        // Growth: accuracy up.
+        let better = VocalLogic.BestTake(timestamp: base.addingTimeInterval(86400), accuracy: 82, medianF1: 728, medianF2: 1085, noteMidi: 64)
+        let growth = VocalLogic.compareTakes(best: best, current: better)
+        XCTAssertEqual(growth.accuracyDelta, 7)
+        XCTAssertTrue(growth.summary.contains("성장"))
+        // Decline.
+        let worse = VocalLogic.BestTake(timestamp: base.addingTimeInterval(86400), accuracy: 65, medianF1: 730, medianF2: 1090, noteMidi: 64)
+        let decline = VocalLogic.compareTakes(best: best, current: worse)
+        XCTAssertEqual(decline.accuracyDelta, -10)
+        XCTAssertTrue(decline.summary.contains("컨디션"))
+        // Stable.
+        let same = VocalLogic.BestTake(timestamp: base.addingTimeInterval(86400), accuracy: 76, medianF1: 730, medianF2: 1090, noteMidi: 64)
+        let stable = VocalLogic.compareTakes(best: best, current: same)
+        XCTAssertEqual(stable.accuracyDelta, 1)
+        XCTAssertTrue(stable.summary.contains("비슷"))
+        // Large F2 drift gets called out.
+        let drifted = VocalLogic.BestTake(timestamp: base.addingTimeInterval(86400), accuracy: 76, medianF1: 730, medianF2: 1300, noteMidi: 64)
+        let driftResult = VocalLogic.compareTakes(best: best, current: drifted)
+        XCTAssertGreaterThan(abs(driftResult.formantDriftCents), 100)
+        XCTAssertTrue(driftResult.summary.contains("모음"))
+    }
+
     func testPassaggioZonePerType() {
         XCTAssertEqual(VocalLogic.passaggioZone(for: .tenor), 66...69)
         XCTAssertEqual(VocalLogic.passaggioZone(for: .soprano), 74...78)

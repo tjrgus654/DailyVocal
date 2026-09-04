@@ -676,6 +676,51 @@ public enum VocalLogic {
         return currentLevel
     }
 
+    // MARK: - Best-take comparison (self-reference growth)
+
+    /// A saved "best take" snapshot the user can compare against later.
+    /// Vowel formants + accuracy form the fingerprint — no audio recording
+    /// needed, just the measurable features.
+    public struct BestTake: Codable, Equatable {
+        public var timestamp: Date
+        public var accuracy: Int
+        public var medianF1: Double
+        public var medianF2: Double
+        public var noteMidi: Int
+
+        public init(timestamp: Date, accuracy: Int, medianF1: Double, medianF2: Double, noteMidi: Int) {
+            self.timestamp = timestamp
+            self.accuracy = accuracy
+            self.medianF1 = medianF1
+            self.medianF2 = medianF2
+            self.noteMidi = noteMidi
+        }
+    }
+
+    /// Compare a current take to the saved best: positive deltas mean growth.
+    /// Accuracy delta + formant stability (closer to canonical = better vowel
+    /// control) combine into a single growth summary.
+    public static func compareTakes(best: BestTake, current: BestTake) -> (accuracyDelta: Int, formantDriftCents: Double, summary: String) {
+        let accDelta = current.accuracy - best.accuracy
+        // Formant drift in "cents" (log-frequency distance between F2s — the
+        // vowel-identity formant).
+        let f2Drift = current.medianF2 > 0 && best.medianF2 > 0
+            ? 1200 * log2(current.medianF2 / best.medianF2)
+            : 0
+        var summary: String
+        if accDelta > 5 {
+            summary = "베스트 테이크보다 정확도 +\(accDelta)점 — 성장하고 있습니다"
+        } else if accDelta < -5 {
+            summary = "베스트보다 \(-accDelta)점 낮습니다 — 컨디션 관리도 실력입니다"
+        } else {
+            summary = "베스트 테이크와 비슷한 수준입니다"
+        }
+        if abs(f2Drift) > 100 {
+            summary += " · 모음 안정성 변화 \(Int(f2Drift))¢"
+        }
+        return (accDelta, f2Drift, summary)
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.
