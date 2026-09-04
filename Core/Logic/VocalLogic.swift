@@ -539,7 +539,7 @@ public enum VocalLogic {
     /// Extract the speaker's F1/F2 from a magnitude spectrum.
     public static func measuredFormants(magnitudes: [Double], sampleRate: Double) -> (f1: Double, f2: Double)? {
         guard let f1 = peakFrequency(magnitudes: magnitudes, sampleRate: sampleRate, band: 250...1000),
-              let f2 = peakFrequency(magnitudes: magnitudes, sampleRate: sampleRate, band: 800...2800)
+              let f2 = peakFrequency(magnitudes: magnitudes, sampleRate: sampleRate, band: 1000...2800)
         else { return nil }
         return (f1, f2)
     }

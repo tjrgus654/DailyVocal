@@ -384,6 +384,120 @@ function playVowel(vowel, f0, dur){
  return "played " + vowel + " @" + f0 + "Hz";
 }
 window.playVowel = playVowel;
+// 모음 피드백 게임: 합성 데모 → 3초 녹음 → 포먼트 채점 → 방향 코칭
+const VOWEL_GAME = {
+ level: 1, rounds: [], idx: 0, scores: [], spectra: [], tips: [], active: false,
+};
+function vowelGameRounds(level){
+ if (level <= 1) return ["아","이","오","이"];
+ if (level === 2) return ["아","에","오","우"];
+ return ["에","이","우","오","아","에"];
+}
+function peakFrequency(mags, sampleRate, loHz, hiHz){
+ const binHz = sampleRate / mags.length;
+ let best = -1, bi = -1;
+ for (let i = Math.max(0, Math.floor(loHz / binHz)); i <= Math.min(mags.length - 1, Math.floor(hiHz / binHz)); i++){
+  if (mags[i] > best){ best = mags[i]; bi = i; }
+ }
+ return best > 0 ? bi * binHz : null;
+}
+function measuredFormants(mags, sampleRate){
+ const f1 = peakFrequency(mags, sampleRate, 250, 1000);
+ const f2 = peakFrequency(mags, sampleRate, 1000, 2800);
+ return (f1 !== null && f2 !== null) ? {f1, f2} : null;
+}
+function vowelDirectionFeedback(target, userF1, userF2){
+ const [t1, t2] = FORMANTS[target];
+ const tips = [];
+ if (userF1 < t1 - 120) tips.push("입을 더 크게 벌려보세요 — F1이 목표보다 낮습니다");
+ else if (userF1 > t1 + 120) tips.push("입을 조금만 벌려보세요 — F1이 목표보다 높습니다");
+ const front = target === "이" || target === "에";
+ if (userF2 < t2 - 200) tips.push(front ? "혀를 더 앞으로 가져가세요 — F2이 목표보다 낮습니다" : "입술을 더 둥글게 말아보세요 — F2이 목표보다 낮습니다");
+ return tips;
+}
+async function startVowelGame(){
+ Audio5.startMic().then(ok => { if (!ok) toast("마이크 권한이 필요합니다."); });
+ VOWEL_GAME.level = Store.data.prefs.vowelLevel || 1;
+ VOWEL_GAME.rounds = vowelGameRounds(VOWEL_GAME.level);
+ VOWEL_GAME.idx = 0; VOWEL_GAME.scores = []; VOWEL_GAME.spectra = []; VOWEL_GAME.active = true;
+ render();
+ await playVowelRound();
+}
+async function playVowelRound(){
+ if (VOWEL_GAME.idx >= VOWEL_GAME.rounds.length){ finishVowelGame(); return; }
+ const target = VOWEL_GAME.rounds[VOWEL_GAME.idx];
+ VOWEL_GAME.target = target;
+ VOWEL_GAME.spectra = [];
+ render();
+ // 1) 데모 재생
+ playVowel(target, midiToFreq(App.target.midi), 1.2);
+ await new Promise(r => setTimeout(r, 1500));
+ // 2) 3초 녹음 (스펙트로그램 프레임 수집)
+ App.listening = true;
+ const collect = setInterval(() => {
+  if (!Audio5.analyser || !App.listening) return;
+  const bins = new Uint8Array(Audio5.analyser.frequencyBinCount);
+  Audio5.analyser.getByteFrequencyData(bins);
+  VOWEL_GAME.spectra.push(Array.from(bins, b => b / 255));
+ }, 60);
+ await new Promise(r => setTimeout(r, 3000));
+ clearInterval(collect);
+ App.listening = false;
+ // 3) 채점
+ scoreVowelRound(target);
+ VOWEL_GAME.idx++;
+ render();
+ await new Promise(r => setTimeout(r, 800));
+ await playVowelRound();
+}
+function scoreVowelRound(target){
+ if (!VOWEL_GAME.spectra.length){
+  VOWEL_GAME.scores.push(0);
+  VOWEL_GAME.tips = ["소리가 너무 작았어요 — 다음 라운드에서 더 또렷하게 발성해주세요"];
+  return;
+ }
+ // AnalyserNode: fftSize/2 bins, sampleRate 48k(전형) — formantStrength 재사용 불가(로그 스케일) →
+ // byte 크기에서 직접: 목표 포먼트 밴드 에너지 비율
+ const sr = Audio5.ctx ? Audio5.ctx.sampleRate : 48000;
+ const binCount = VOWEL_GAME.spectra[0].length;
+ const binHz = sr / binCount;
+ const [t1, t2] = FORMANTS[target];
+ let strength = 0;
+ for (const frame of VOWEL_GAME.spectra){
+  const band = c => {
+   let sum = 0;
+   for (let i = Math.max(0, Math.floor((c - binHz * 1.5) / binHz)); i <= Math.min(binCount - 1, Math.floor((c + binHz * 1.5) / binHz)); i++) sum += frame[i];
+   return sum;
+  };
+  const total = frame.reduce((a, b) => a + b, 0) || 1;
+  strength += Math.min(1, (band(t1) + band(t2)) / total);
+ }
+ strength /= VOWEL_GAME.spectra.length;
+ VOWEL_GAME.scores.push(Math.round(strength * 100));
+ // 평균 스펙트럼에서 측정 포먼트 → 방향 피드백
+ const avg = new Array(binCount).fill(0);
+ for (const f of VOWEL_GAME.spectra) for (let i = 0; i < binCount; i++) avg[i] += f[i];
+ for (let i = 0; i < binCount; i++) avg[i] /= VOWEL_GAME.spectra.length;
+ const mf = measuredFormants(avg, sr);
+ VOWEL_GAME.tips = mf ? vowelDirectionFeedback(target, mf.f1, mf.f2) : [];
+ if (!VOWEL_GAME.tips.length) VOWEL_GAME.tips = ["포먼트가 목표와 잘 맞습니다"];
+}
+function finishVowelGame(){
+ VOWEL_GAME.active = false;
+ const avg = Math.round(VOWEL_GAME.scores.reduce((a, b) => a + b, 0) / VOWEL_GAME.scores.length);
+ if (avg >= 80 && VOWEL_GAME.level < 3){
+  Store.data.prefs.vowelLevel = VOWEL_GAME.level + 1;
+  Store.save();
+  toast(`모음 게임 완료! 평균 <b>${avg}점</b><br>레벨 ${VOWEL_GAME.level + 1}로 올라갑니다 — 더 비슷한 모음 쌍에 도전합니다`, 3600);
+ } else {
+  toast(`모음 게임 완료! 평균 <b>${avg}점</b><br>${VOWEL_GAME.tips[0] || ""}`, 3400);
+ }
+ // 최근 기록에 반영
+ Store.data.pitchRecords.push({t: Date.now(), target: "모음게임-L" + VOWEL_GAME.level, acc: avg, lo: 0, hi: 0, dur: 30});
+ Store.save();
+ render();
+}
+window.startVowelGame = startVowelGame;
 function passaggioZone(type){
  const zones = {"테너":[66,69],"바리톤":[64,67],"베이스":[62,65],"알토":[74,77],"메조소프라노":[74,77],"소프라노":[74,78]};
  return zones[type] || null;
@@ -843,9 +957,10 @@ function screenTracker(){
  </div>
 
  <div class="glass" style="margin:10px 20px 0;padding:8px 12px;display:flex;gap:8px;border-radius:14px;">
- ${[["single","단음 유지"],["echo","에코 3음"],["speak","말하기 10초"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')">${label}</span>`).join("")}
+ ${[["single","단음"],["echo","에코"],["speak","말하기"],["vowel","모음게임"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')">${label}</span>`).join("")}
  </div>
 
+ ${App.trMode==='vowel'&&VOWEL_GAME.active?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">라운드 ${Math.min(VOWEL_GAME.idx + 1, VOWEL_GAME.rounds.length)}/${VOWEL_GAME.rounds.length} · 목표 모음: ${VOWEL_GAME.target || "-"}${VOWEL_GAME.tips.length ? "<br><span style='color:var(--text-secondary);font-weight:400;'>" + VOWEL_GAME.tips[0] + "</span>" : ""}</div>`:""}
  ${App.trMode==='echo'?`<div class="cap2" style="text-align:center;color:var(--text-secondary);margin:8px 0 0;">에코 난이도 ${echoLevel()}단계 · ${echoLevel()>=3?"최고 난이도입니다":"성공하면 이동 폭이 넓어져요"}</div>`:""}
 
  <div class="glass" style="margin:10px 20px 0;padding:8px 14px;display:flex;align-items:center;gap:10px;border-radius:14px;">
@@ -1003,11 +1118,16 @@ async function startTracking(){
  render();
  return;
  }
+ if (App.trMode === "vowel"){
+  await startVowelGame();
+  return;
+ }
  if (App.trMode === "speak"){
   App._speakTimer = setTimeout(() => { if (App.listening) stopTracking(); }, 10000);
  } else if (App.trMode === "echo") startEchoFlow();
 }
 function stopTracking(){
+ if (VOWEL_GAME.active){ VOWEL_GAME.active = false; VOWEL_GAME.idx = 99; App.listening = false; Audio5.stopMic(); render(); return; }
  if (!App.listening) return; // 자동정지·수동정지 경합 시 이중 기록 방지
  App.listening = false; Audio5.stopMic();
  App.echo.timers.forEach(clearTimeout); App.echo.timers = [];
