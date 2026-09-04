@@ -462,6 +462,59 @@ public enum VocalLogic {
         return speech
     }
 
+    // MARK: - Own audio engine: formant synthesis targets
+
+    /// Korean training vowels with their canonical formant frequencies
+    /// (F1/F2/F3 in Hz, Peterson & Barney-style reference values).
+    /// Formant values are acoustic facts, not copyrightable content — this
+    /// table powers an in-app synthesis demo engine so exercises can
+    /// DEMONSTRATE sounds without shipping anyone's recordings.
+    public enum TrainingVowel: String, CaseIterable {
+        case a = "아"
+        case e = "에"
+        case i = "이"
+        case o = "오"
+        case u = "우"
+    }
+
+    /// (F1, F2, F3) bandpass centers for a vowel.
+    public static func formants(for vowel: TrainingVowel) -> (f1: Double, f2: Double, f3: Double) {
+        switch vowel {
+        case .a: return (730, 1090, 2440)
+        case .e: return (530, 1840, 2480)
+        case .i: return (270, 2290, 3010)
+        case .o: return (570, 840, 2410)
+        case .u: return (300, 870, 2240)
+        }
+    }
+
+    /// FFT bin index for a frequency given sample rate and bin count.
+    public static func fftBin(frequency: Double, sampleRate: Double, binCount: Int) -> Int {
+        guard sampleRate > 0, binCount > 0 else { return 0 }
+        return min(binCount - 1, max(0, Int(frequency / (sampleRate / Double(binCount)))))
+    }
+
+    /// Formant region energy ratio helper for vowel-feedback scoring:
+    /// maps [binCount] magnitudes to the (0...1) strength of a vowel's
+    /// F1/F2 regions vs total energy — the spectrogram feedback contract.
+    public static func formantStrength(magnitudes: [Double], sampleRate: Double,
+                                       vowel: TrainingVowel) -> Double {
+        guard !magnitudes.isEmpty else { return 0 }
+        let binHz = sampleRate / Double(magnitudes.count)
+        guard binHz > 0 else { return 0 }
+        let f = formants(for: vowel)
+        func bandEnergy(_ center: Double) -> Double {
+            let lo = max(0, Int((center - binHz * 1.5) / binHz))
+            let hi = min(magnitudes.count - 1, Int((center + binHz * 1.5) / binHz))
+            guard lo <= hi else { return 0 }
+            return magnitudes[lo...hi].reduce(0, +)
+        }
+        let total = magnitudes.reduce(0, +)
+        guard total > 0 else { return 0 }
+        let formantSum = bandEnergy(f.f1) + bandEnergy(f.f2)
+        return min(1.0, formantSum / total)
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.

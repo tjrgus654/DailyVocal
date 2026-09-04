@@ -239,6 +239,45 @@ final class StreakSystemTests: XCTestCase {
         XCTAssertEqual(VocalLogic.refinedVoiceType(rangeBased: .undetermined, medianSpeechMidi: 45, isFemale: false), .undetermined)
     }
 
+    func testFormantTable() {
+        // Canonical F1/F2 values (Hz) for the five training vowels.
+        XCTAssertEqual(VocalLogic.formants(for: .a).f1, 730)
+        XCTAssertEqual(VocalLogic.formants(for: .i).f2, 2290)
+        // Every vowel has physically ordered formants F1 < F2 < F3.
+        for vowel in VocalLogic.TrainingVowel.allCases {
+            let f = VocalLogic.formants(for: vowel)
+            XCTAssertLessThan(f.f1, f.f2)
+            XCTAssertLessThan(f.f2, f.f3)
+            XCTAssertTrue((150...900).contains(f.f1), "\(vowel) F1")
+            XCTAssertTrue((500...2600).contains(f.f2), "\(vowel) F2")
+        }
+    }
+
+    func testFftBinMapping() {
+        // 48kHz, 512 bins -> 93.75 Hz per bin.
+        XCTAssertEqual(VocalLogic.fftBin(frequency: 0, sampleRate: 48000, binCount: 512), 0)
+        XCTAssertEqual(VocalLogic.fftBin(frequency: 93.75, sampleRate: 48000, binCount: 512), 1)
+        XCTAssertEqual(VocalLogic.fftBin(frequency: 730, sampleRate: 48000, binCount: 512), 7)
+        // Out-of-range clamps into bounds.
+        XCTAssertEqual(VocalLogic.fftBin(frequency: 999999, sampleRate: 48000, binCount: 512), 511)
+        XCTAssertEqual(VocalLogic.fftBin(frequency: 440, sampleRate: 0, binCount: 512), 0)
+    }
+
+    func testFormantStrength() {
+        // 512 bins @ 48kHz: /a/ F1=730Hz -> bin ~7, F2=1090 -> bin ~11.
+        var mags = [Double](repeating: 0.001, count: 512)
+        mags[7] = 1.0
+        mags[11] = 0.8
+        let strength = VocalLogic.formantStrength(magnitudes: mags, sampleRate: 48000, vowel: .a)
+        XCTAssertGreaterThan(strength, 0.7)  // most energy lands in the /a/ formant bands
+        // Same spectrum scored against /i/ (F1 270=bin 2, F2 2290=bin 24) is weak.
+        let wrongVowel = VocalLogic.formantStrength(magnitudes: mags, sampleRate: 48000, vowel: .i)
+        XCTAssertLessThan(wrongVowel, 0.05)
+        // Degenerate inputs.
+        XCTAssertEqual(VocalLogic.formantStrength(magnitudes: [], sampleRate: 48000, vowel: .a), 0)
+        XCTAssertEqual(VocalLogic.formantStrength(magnitudes: [0, 0, 0], sampleRate: 48000, vowel: .a), 0)
+    }
+
     func testPassaggioZonePerType() {
         XCTAssertEqual(VocalLogic.passaggioZone(for: .tenor), 66...69)
         XCTAssertEqual(VocalLogic.passaggioZone(for: .soprano), 74...78)

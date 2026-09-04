@@ -359,6 +359,31 @@ function speechVoiceTypeBand(medianSpeechMidi, isFemale){
  if (medianSpeechMidi < 57) return "메조소프라노";
  return "소프라노";
 }
+// 모음 포먼트 합성 (자체 엔진): 톱니파 성문원 → 3 밴드패스 = 모음 색깔
+const FORMANTS = {"아":[730,1090,2440],"에":[530,1840,2480],"이":[270,2290,3010],"오":[570,840,2410],"우":[300,870,2240]};
+function playVowel(vowel, f0, dur){
+ const ctx = Audio5.ensureCtx();
+ const t0 = ctx.currentTime + 0.02;
+ const src = ctx.createOscillator();
+ src.type = "sawtooth"; src.frequency.value = f0;
+ const [f1, f2, f3] = FORMANTS[vowel];
+ const gains = [1.0, 0.5, 0.25];
+ [f1, f2, f3].forEach((freq, i) => {
+  const bp = ctx.createBiquadFilter();
+  bp.type = "bandpass"; bp.frequency.value = freq; bp.Q.value = 8;
+  const g = ctx.createGain(); g.gain.value = gains[i];
+  src.connect(bp); bp.connect(g); g.connect(ctx.destination);
+ });
+ const env = ctx.createGain();
+ env.gain.setValueAtTime(0, t0);
+ env.gain.linearRampToValueAtTime(0.3, t0 + 0.05);
+ env.gain.setValueAtTime(0.3, t0 + dur - 0.08);
+ env.gain.linearRampToValueAtTime(0, t0 + dur);
+ src.connect(env); env.connect(ctx.destination);
+ src.start(t0); src.stop(t0 + dur);
+ return "played " + vowel + " @" + f0 + "Hz";
+}
+window.playVowel = playVowel;
 function passaggioZone(type){
  const zones = {"테너":[66,69],"바리톤":[64,67],"베이스":[62,65],"알토":[74,77],"메조소프라노":[74,77],"소프라노":[74,78]};
  return zones[type] || null;
@@ -872,6 +897,11 @@ function screenTracker(){
  </div>` : ""}
  </div>
 
+ <div class="glass" style="margin:14px 20px 0;padding:10px;border-radius:18px;">
+ <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">내 목소리 스펙트로그램 <span style="font-weight:400">(가로 줄 = 배음·띠 = 포먼트)</span></div>
+ <canvas id="spectrogram" width="386" height="110" style="width:100%;height:110px;border-radius:10px;"></canvas>
+ </div>
+
  <div style="padding:0 24px 16px;">
  <button class="btn-primary" style="background:${App.listening?'var(--vocal-alert)':'linear-gradient(90deg,var(--brand-primary),var(--brand-accent))'};" onclick="toggleTracking()">
  ${App.listening?"⏹ 측정 종료":"🎙 실시간 피치 측정 시작"}</button>
@@ -1044,6 +1074,30 @@ function trackerPitchHandler(f, note, cents, voiced){
  updateTrackerDom(f, note, cents, onPitch);
 }
 Audio5.onPitch(trackerPitchHandler);
+// 스펙트로그램: 트래킹 중 AnalyserNode 데이터로 스크롤 히트맵
+(function startSpectrogram(){
+ const cv = document.getElementById("spectrogram");
+ if (!cv) return setTimeout(startSpectrogram, 500);
+ const ctx2 = cv.getContext("2d");
+ ctx2.fillStyle = "#0d0d18"; ctx2.fillRect(0, 0, cv.width, cv.height);
+ let specTimer = null;
+ window.drawSpectrogram = function(){
+  if (!App.listening || !Audio5.analyser){ return; }
+  const bins = new Uint8Array(Audio5.analyser.frequencyBinCount);
+  Audio5.analyser.getByteFrequencyData(bins);
+  const W = cv.width, H = cv.height;
+  ctx2.drawImage(cv, -2, 0);
+  const usable = Math.floor(bins.length * 0.35);
+  for (let y = 0; y < H; y++){
+   const idx = Math.floor(y / H * usable);
+   const v = bins[idx] / 255;
+   const hue = 260 - v * 260;
+   ctx2.fillStyle = v > 0.03 ? "hsl(" + hue + ",80%," + Math.round(15 + v * 55) + "%)" : "#0d0d18";
+   ctx2.fillRect(W - 2, H - 1 - y, 2, 1);
+  }
+ };
+ setInterval(() => { if (App.listening && App.tab === "tracker") drawSpectrogram(); }, 50);
+})();
 let _domKey = "";
 function updateTrackerDom(f, note, cents, onPitch){
  const el = document.getElementById("liveNote");
