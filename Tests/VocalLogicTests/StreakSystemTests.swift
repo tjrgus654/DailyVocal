@@ -426,6 +426,67 @@ final class StreakSystemTests: XCTestCase {
         XCTAssertEqual(VocalLogic.recommendNextGame(vowelAccuracy: 30, intervalAccuracy: 70, earAccuracy: 80, lastGame: .vowel), .vowel)
     }
 
+    // MARK: - Game integration scenario
+
+    /// Full progression: a beginner plays all three games across multiple
+    /// sessions, improving over time. The personalized difficulty and game
+    /// recommendation should track their growth.
+    func testGameProgressionScenario() {
+        var vowelLevel = 1, intervalLevel = 1, earLevel = 1
+        var vowelHistory: [Int] = [], intervalHistory: [Int] = [], earHistory: [Int] = []
+
+        // Week 1: struggling (40-55% across all games).
+        for accuracy in [45, 50, 55] {
+            vowelHistory.append(accuracy)
+            vowelLevel = VocalLogic.recommendedLevel(recentAccuracies: vowelHistory, currentLevel: vowelLevel)
+        }
+        XCTAssertEqual(vowelLevel, 1, "should hold at 1 with mixed low scores")
+
+        // Week 2: vowel improves (80%+ streak).
+        for accuracy in [82, 85, 88] {
+            vowelHistory.append(accuracy)
+            vowelLevel = VocalLogic.recommendedLevel(recentAccuracies: vowelHistory, currentLevel: vowelLevel)
+        }
+        XCTAssertEqual(vowelLevel, 2, "3 sessions 80%+ should promote to 2")
+
+        // Week 3: keeps improving, reaches level 3.
+        for accuracy in [85, 90, 92] {
+            vowelHistory.append(accuracy)
+            vowelLevel = VocalLogic.recommendedLevel(recentAccuracies: vowelHistory, currentLevel: vowelLevel)
+        }
+        XCTAssertEqual(vowelLevel, 3, "should reach max level 3")
+
+        // Cap: can't go above 3.
+        vowelHistory.append(95)
+        XCTAssertEqual(VocalLogic.recommendedLevel(recentAccuracies: vowelHistory, currentLevel: vowelLevel), 3)
+
+        // Game recommendation: interval is weakest, ear is second.
+        let next = VocalLogic.recommendNextGame(
+            vowelAccuracy: 90, intervalAccuracy: 40, earAccuracy: 65, lastGame: .vowel)
+        XCTAssertEqual(next, .interval, "weakest skill should be recommended")
+
+        // After interval improves, ear becomes weakest.
+        let next2 = VocalLogic.recommendNextGame(
+            vowelAccuracy: 90, intervalAccuracy: 85, earAccuracy: 60, lastGame: .interval)
+        XCTAssertEqual(next2, .ear)
+
+        // Variety: ear is weakest but was the last game, interval close.
+        let next3 = VocalLogic.recommendNextGame(
+            vowelAccuracy: 90, intervalAccuracy: 70, earAccuracy: 65, lastGame: .ear)
+        XCTAssertEqual(next3, .interval, "close gap + same as last -> variety wins")
+
+        // Regression: interval crashes (2 consecutive < 50%).
+        intervalHistory = [45, 40]
+        XCTAssertEqual(VocalLogic.recommendedLevel(recentAccuracies: intervalHistory, currentLevel: 2), 1,
+                       "2 consecutive sub-50% should demote")
+    }
+
+    /// Level transitions respect bounds: never below 1, never above max.
+    func testLevelBounds() {
+        XCTAssertEqual(VocalLogic.recommendedLevel(recentAccuracies: [20, 20], currentLevel: 1), 1)
+        XCTAssertEqual(VocalLogic.recommendedLevel(recentAccuracies: [99, 99, 99], currentLevel: 3), 3)
+    }
+
     func testPassaggioZonePerType() {
         XCTAssertEqual(VocalLogic.passaggioZone(for: .tenor), 66...69)
         XCTAssertEqual(VocalLogic.passaggioZone(for: .soprano), 74...78)

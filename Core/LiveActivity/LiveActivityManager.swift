@@ -90,6 +90,48 @@ public final class LiveActivityManager {
         return formatter
     }()
 
+    /// Starts a Live Activity for a game session (vowel/interval/ear).
+    public func startGameActivity(gameMode: String, totalRounds: Int) {
+        let state = VocalActivityAttributes.ContentState(
+            currentStepIndex: 0,
+            stepTitle: gameMode,
+            soundKeyword: "듣고 따라하기",
+            stepStartTime: Date(),
+            stepEndTime: Date().addingTimeInterval(TimeInterval(totalRounds * 5)),
+            totalProgress: 0,
+            gameMode: gameMode,
+            gameRound: 1,
+            gameTotal: totalRounds
+        )
+        Task { @MainActor in
+            if let current = currentActivity {
+                await current.update(ActivityContent(state: state, staleDate: nil))
+            } else {
+                await startActivity(state: state)
+            }
+        }
+    }
+
+    /// Updates the game round in the Live Activity.
+    public func updateGameRound(_ round: Int, of total: Int) {
+        guard let activity = currentActivity else { return }
+        let state = activity.content.state
+        let updated = VocalActivityAttributes.ContentState(
+            currentStepIndex: state.currentStepIndex,
+            stepTitle: state.stepTitle,
+            soundKeyword: state.soundKeyword,
+            stepStartTime: state.stepStartTime,
+            stepEndTime: state.stepEndTime,
+            totalProgress: Double(round) / Double(max(total, 1)),
+            gameMode: state.gameMode,
+            gameRound: round,
+            gameTotal: total
+        )
+        Task { @MainActor in
+            await activity.update(ActivityContent(state: updated, staleDate: nil))
+        }
+    }
+
     public func endLiveActivity() {
         guard let activity = currentActivity else { return }
         currentActivity = nil

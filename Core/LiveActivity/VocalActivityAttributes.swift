@@ -12,6 +12,11 @@ import ActivityKit
 public struct VocalActivityAttributes: ActivityAttributes {
 
     public struct ContentState: Codable, Hashable {
+/// Game session mode (nil for regular routine).
+    public var gameMode: String?
+    public var gameRound: Int
+    public var gameTotal: Int
+
         public var currentStepIndex: Int       // 1...5
         public var stepTitle: String
         public var soundKeyword: String
@@ -31,7 +36,10 @@ public struct VocalActivityAttributes: ActivityAttributes {
             stepEndTime: Date,
             totalProgress: Double,
             isPaused: Bool = false,
-            pausedRemainingText: String = ""
+            pausedRemainingText: String = "",
+            gameMode: String? = nil,
+            gameRound: Int = 0,
+            gameTotal: Int = 0
         ) {
             self.currentStepIndex = currentStepIndex
             self.stepTitle = stepTitle
@@ -41,6 +49,9 @@ public struct VocalActivityAttributes: ActivityAttributes {
             self.totalProgress = totalProgress
             self.isPaused = isPaused
             self.pausedRemainingText = pausedRemainingText
+            self.gameMode = gameMode
+            self.gameRound = gameRound
+            self.gameTotal = gameTotal
         }
     }
 

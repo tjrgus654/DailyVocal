@@ -273,6 +273,7 @@ public final class PitchTrackerViewModel {
         activeEchoIndex = 0
         ignorePitchUntil = Date.distantPast
         audio.isSpectrumWanted = false
+        LiveActivityManager.shared.endLiveActivity()
         audio.stopMicrophone()
         audio.onPitchUpdate = nil
         haptics.buttonTap()
@@ -285,6 +286,10 @@ public final class PitchTrackerViewModel {
     private func startVowelGame() {
         audio.isSpectrumWanted = true
         echoGeneration += 1
+        LiveActivityManager.shared.startGameActivity(
+            gameMode: "모음 게임",
+            totalRounds: VocalLogic.vowelGameRounds(level: echoLevel).count
+        )
         let generation = echoGeneration
         vowelRoundIndex = 0
         vowelScores = []
@@ -298,6 +303,7 @@ public final class PitchTrackerViewModel {
             return
         }
         vowelTarget = rounds[vowelRoundIndex]
+        LiveActivityManager.shared.updateGameRound(vowelRoundIndex + 1, of: rounds.count)
         ignorePitchUntil = .distantFuture
         echoPhaseTask = Task { @MainActor [weak self] in
             guard let self else { return }

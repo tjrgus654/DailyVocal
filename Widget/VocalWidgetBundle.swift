@@ -27,7 +27,15 @@ struct VocalLiveActivityWidget: Widget {
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Step \(context.state.currentStepIndex)/5")
+                        if let game = context.state.gameMode {
+                        Text("🎮 \(game) \(context.state.gameRound)/\(context.state.gameTotal)")
+                    } else {
+                        if let game = context.state.gameMode {
+                            Text("🎮 \(game) \(context.state.gameRound)/\(context.state.gameTotal)")
+                        } else {
+                            Text("Step \(context.state.currentStepIndex)/5")
+                        }
+                    }
                             .font(.caption2)
                             .fontWeight(.bold)
                             .foregroundColor(.cyan)
