@@ -389,6 +389,79 @@ public enum VocalLogic {
         }
     }
 
+    /// Median of an unsorted list (even count averages the middle two).
+    public static func median(_ values: [Double]) -> Double {
+        guard !values.isEmpty else { return 0 }
+        let sorted = values.sorted()
+        let mid = sorted.count / 2
+        if sorted.count % 2 == 1 { return sorted[mid] }
+        return (sorted[mid - 1] + sorted[mid]) / 2
+    }
+
+    /// Speaking-fundamental-frequency voice screening (Baken & Orlikoff
+    /// norms): habitual speech pitch is the most anatomy-driven signal
+    /// available from a mic — trained singers shift tessitura, but speech
+    /// habits move far less.
+    /// Male speech norms: bass ~85-95Hz, baritone ~100-120Hz, tenor ~125-150Hz.
+    /// Female speech norms: alto ~165-180Hz, mezzo ~190-215Hz, soprano ~220-240Hz.
+    public static func speechVoiceTypeBand(medianSpeechMidi: Int, isFemale: Bool?) -> VoiceType {
+        if isFemale == true {
+            switch medianSpeechMidi {
+            case ..<54: return .contralto   // below ~185Hz
+            case 54..<57: return .mezzo     // ~185-215Hz
+            default: return .soprano        // ~220Hz and above
+            }
+        }
+        if isFemale == false {
+            switch medianSpeechMidi {
+            case ..<43: return .bass        // below ~98Hz
+            case 43..<47: return .baritone  // ~98-123Hz
+            default: return .tenor          // ~123Hz and above
+            }
+        }
+        // Unknown gender: split the merged scale at the alto floor (~185Hz).
+        switch medianSpeechMidi {
+        case ..<47: return .baritone
+        case 47..<50: return .tenor
+        case 50..<54: return .contralto
+        case 54..<57: return .mezzo
+        default: return .soprano
+        }
+    }
+
+    /// Two-axis classification: speech f0 (anatomy) confirms or corrects the
+    /// range-based guess. When both axes land in the same register family
+    /// (male vs female scale), speech wins ties because it is harder to train
+    /// away; when they contradict across families, the measurement is
+    /// unreliable and stays undetermined.
+    public static func refinedVoiceType(
+        rangeBased: VoiceType,
+        medianSpeechMidi: Int,
+        isFemale: Bool?
+    ) -> VoiceType {
+        guard rangeBased != .undetermined else { return .undetermined }
+        let speech = speechVoiceTypeBand(medianSpeechMidi: medianSpeechMidi, isFemale: isFemale)
+        let rangeFamily: Bool? = {
+            switch rangeBased {
+            case .bass, .baritone, .tenor: return false
+            case .contralto, .mezzo, .soprano: return true
+            case .undetermined: return nil
+            }
+        }()
+        let speechFamily: Bool? = {
+            switch speech {
+            case .bass, .baritone, .tenor: return false
+            case .contralto, .mezzo, .soprano: return true
+            case .undetermined: return nil
+            }
+        }()
+        guard let rf = rangeFamily, let sf = speechFamily else { return rangeBased }
+        if rf != sf { return .undetermined }   // contradictory evidence
+        if rangeBased == speech { return speech } // agreement
+        // Same family, different weight: trust speech for the register axis.
+        return speech
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.

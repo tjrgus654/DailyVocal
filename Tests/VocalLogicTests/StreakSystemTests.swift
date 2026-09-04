@@ -206,6 +206,39 @@ final class StreakSystemTests: XCTestCase {
         XCTAssertNotEqual(VocalLogic.estimateVoiceType(comfortableLowMidi: 48, comfortableHighMidi: 58, absoluteHighMidi: 62, isFemale: false), .undetermined)
     }
 
+    func testMedian() {
+        XCTAssertEqual(VocalLogic.median([]), 0)
+        XCTAssertEqual(VocalLogic.median([5]), 5)
+        XCTAssertEqual(VocalLogic.median([3, 1, 2]), 2)
+        XCTAssertEqual(VocalLogic.median([4, 1, 3, 2]), 2.5, accuracy: 1e-9)
+        XCTAssertEqual(VocalLogic.median([9, 5, 7, 1, 3]), 5)
+    }
+
+    func testSpeechVoiceTypeBands() {
+        // Male speech norms (Baken): bass < 98Hz, baritone 98-123Hz, tenor 123Hz+.
+        XCTAssertEqual(VocalLogic.speechVoiceTypeBand(medianSpeechMidi: 41, isFemale: false), .bass)    // ~87Hz
+        XCTAssertEqual(VocalLogic.speechVoiceTypeBand(medianSpeechMidi: 45, isFemale: false), .baritone) // ~110Hz
+        XCTAssertEqual(VocalLogic.speechVoiceTypeBand(medianSpeechMidi: 48, isFemale: false), .tenor)    // ~131Hz
+        // Female speech norms: alto < 185Hz, mezzo 185-215Hz, soprano 220Hz+.
+        XCTAssertEqual(VocalLogic.speechVoiceTypeBand(medianSpeechMidi: 52, isFemale: true), .contralto) // ~165Hz
+        XCTAssertEqual(VocalLogic.speechVoiceTypeBand(medianSpeechMidi: 55, isFemale: true), .mezzo)     // ~196Hz
+        XCTAssertEqual(VocalLogic.speechVoiceTypeBand(medianSpeechMidi: 58, isFemale: true), .soprano)   // ~233Hz
+    }
+
+    func testRefinedVoiceTypeTwoAxes() {
+        // Agreement: range says tenor, speech 131Hz says tenor -> tenor.
+        XCTAssertEqual(VocalLogic.refinedVoiceType(rangeBased: .tenor, medianSpeechMidi: 48, isFemale: false), .tenor)
+        // Same family, speech corrects: range guessed tenor, speech baritone -> baritone.
+        XCTAssertEqual(VocalLogic.refinedVoiceType(rangeBased: .tenor, medianSpeechMidi: 45, isFemale: false), .baritone)
+        // Explicit gender keeps both axes in one family — no contradiction path.
+        XCTAssertEqual(VocalLogic.refinedVoiceType(rangeBased: .baritone, medianSpeechMidi: 48, isFemale: false), .tenor)
+        // Unknown gender + families disagree -> undetermined (unreliable input).
+        XCTAssertEqual(VocalLogic.refinedVoiceType(rangeBased: .tenor, medianSpeechMidi: 55, isFemale: nil), .undetermined)
+        XCTAssertEqual(VocalLogic.refinedVoiceType(rangeBased: .mezzo, medianSpeechMidi: 45, isFemale: nil), .undetermined)
+        // Undetermined range short-circuits.
+        XCTAssertEqual(VocalLogic.refinedVoiceType(rangeBased: .undetermined, medianSpeechMidi: 45, isFemale: false), .undetermined)
+    }
+
     func testPassaggioZonePerType() {
         XCTAssertEqual(VocalLogic.passaggioZone(for: .tenor), 66...69)
         XCTAssertEqual(VocalLogic.passaggioZone(for: .soprano), 74...78)

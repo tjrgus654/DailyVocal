@@ -315,6 +315,15 @@ public struct VocalProgressView: View {
             Text(viewModel.estimatedVoiceType.rawValue)
                 .font(.title2.weight(.heavy))
                 .foregroundColor(.brandSecondary)
+            if viewModel.speechMedianFrequency > 0 {
+                Text(String(format: "말하기 피치 중앙값 %.0fHz · 음역 추정과 교차 확인", viewModel.speechMedianFrequency))
+                    .font(.caption2)
+                    .foregroundColor(.textSecondary)
+            } else {
+                Text("피치 트래커의 '말하기 10초' 측정을 하면 정확도가 올라갑니다")
+                    .font(.caption2)
+                    .foregroundColor(.textSecondary)
+            }
             if let zone = viewModel.passaggioZone {
                 let low = VocalAudioEngine.noteAndCents(fromFrequency: VocalAudioEngine.frequency(forMidi: Double(zone.lowerBound))).note
                 let high = VocalAudioEngine.noteAndCents(fromFrequency: VocalAudioEngine.frequency(forMidi: Double(zone.upperBound))).note

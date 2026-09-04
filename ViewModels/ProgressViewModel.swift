@@ -35,6 +35,8 @@ public final class ProgressViewModel {
     /// Estimated 성종 (voice type) from the measured comfortable range.
     public private(set) var estimatedVoiceType: VocalLogic.VoiceType = .undetermined
     public private(set) var passaggioZone: ClosedRange<Int>? = nil
+    /// Hz; 0 = speak-mode measurement not yet taken.
+    public private(set) var speechMedianFrequency: Double = 0
 
     public init() {
         heatmapDays = VocalLogic.buildEmptyHeatmap(dayCount: 84)
@@ -85,14 +87,23 @@ public final class ProgressViewModel {
         heatmapDays = VocalLogic.buildHeatmap(dayCounts: dayCounts, dayCount: 84)
 
         if let profile {
-            let type = VocalLogic.estimateVoiceType(
+            let rangeType = VocalLogic.estimateVoiceType(
                 comfortableLowMidi: Int(VocalAudioEngine.midiNumber(forFrequency: profile.lowestFrequency).rounded()),
                 comfortableHighMidi: Int(VocalAudioEngine.midiNumber(forFrequency: profile.highestFrequency).rounded()),
                 absoluteHighMidi: Int(VocalAudioEngine.midiNumber(forFrequency: profile.baselineHighestFrequency).rounded()),
                 isFemale: profile.prefersHigherKeyGuide ? true : nil
             )
+            // Second axis: habitual speech pitch (anatomy-driven screen).
+            let type = profile.speechMedianFrequency > 0
+                ? VocalLogic.refinedVoiceType(
+                    rangeBased: rangeType,
+                    medianSpeechMidi: Int(VocalAudioEngine.midiNumber(forFrequency: profile.speechMedianFrequency).rounded()),
+                    isFemale: profile.prefersHigherKeyGuide ? true : nil
+                  )
+                : rangeType
             estimatedVoiceType = type
             passaggioZone = VocalLogic.passaggioZone(for: type)
+            speechMedianFrequency = profile.speechMedianFrequency
             streakFreezeTokens = profile.streakFreezeTokens
             hasMeasuredRange = profile.hasMeasuredRange
             baselineRangeText = "\(profile.baselineLowestNoteName) ~ \(profile.baselineHighestNoteName)"

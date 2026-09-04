@@ -35,6 +35,9 @@ public final class UserProfile {
 
     // Guide-tone key preference (false = male C3 base, true = female C4 base).
     public var prefersHigherKeyGuide: Bool
+    /// Habitual speech pitch in Hz (median over a 10s speaking sample).
+    /// 0 = not yet measured.
+    public var speechMedianFrequency: Double
 
     // Progress
     public var currentWeek: Int           // 1...4
@@ -64,6 +67,7 @@ public final class UserProfile {
         highestNoteName: String = "F4",
         highestFrequency: Double = 349.23,
         prefersHigherKeyGuide: Bool = false,
+        speechMedianFrequency: Double = 0,
         currentWeek: Int = 1,
         totalPracticeSeconds: Int = 0,
         completedSessionCount: Int = 0,
@@ -86,6 +90,7 @@ public final class UserProfile {
         self.highestNoteName = highestNoteName
         self.highestFrequency = highestFrequency
         self.prefersHigherKeyGuide = prefersHigherKeyGuide
+        self.speechMedianFrequency = speechMedianFrequency
         self.currentWeek = currentWeek
         self.totalPracticeSeconds = totalPracticeSeconds
         self.completedSessionCount = completedSessionCount

@@ -342,6 +342,23 @@ function estimateVoiceType(loMidi, hiMidi, ceilMidi, isFemale){
  if (mid >= 47) return "바리톤";
  return "베이스";
 }
+function speechVoiceTypeBand(medianSpeechMidi, isFemale){
+ if (isFemale === true){
+  if (medianSpeechMidi < 54) return "알토";
+  if (medianSpeechMidi < 57) return "메조소프라노";
+  return "소프라노";
+ }
+ if (isFemale === false){
+  if (medianSpeechMidi < 43) return "베이스";
+  if (medianSpeechMidi < 47) return "바리톤";
+  return "테너";
+ }
+ if (medianSpeechMidi < 47) return "바리톤";
+ if (medianSpeechMidi < 50) return "테너";
+ if (medianSpeechMidi < 54) return "알토";
+ if (medianSpeechMidi < 57) return "메조소프라노";
+ return "소프라노";
+}
 function passaggioZone(type){
  const zones = {"테너":[66,69],"바리톤":[64,67],"베이스":[62,65],"알토":[74,77],"메조소프라노":[74,77],"소프라노":[74,78]};
  return zones[type] || null;
@@ -801,7 +818,7 @@ function screenTracker(){
  </div>
 
  <div class="glass" style="margin:10px 20px 0;padding:8px 12px;display:flex;gap:8px;border-radius:14px;">
- ${[["single","단음 유지"],["echo","에코 3음"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')">${label}</span>`).join("")}
+ ${[["single","단음 유지"],["echo","에코 3음"],["speak","말하기 10초"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')">${label}</span>`).join("")}
  </div>
 
  ${App.trMode==='echo'?`<div class="cap2" style="text-align:center;color:var(--text-secondary);margin:8px 0 0;">에코 난이도 ${echoLevel()}단계 · ${echoLevel()>=3?"최고 난이도입니다":"성공하면 이동 폭이 넓어져요"}</div>`:""}
@@ -947,6 +964,7 @@ async function startTracking(){
  App.lo = 0; App.hi = 0; App.sessionStart = Date.now(); App.lastScore = null;
  App.echo.timers.forEach(clearTimeout); App.echo.timers = [];
  App.echo.gen++; App.echo.idx = 0; App.ignoreUntil = 0;
+ clearTimeout(App._speakTimer); App._speakFreqs = [];
  App.listening = true; render();
  const ok = await Audio5.startMic();
  if (!ok){
@@ -955,13 +973,22 @@ async function startTracking(){
  render();
  return;
  }
- if (App.trMode === "echo") startEchoFlow();
+ if (App.trMode === "speak"){
+  App._speakTimer = setTimeout(() => { if (App.listening) stopTracking(); }, 10000);
+ } else if (App.trMode === "echo") startEchoFlow();
 }
 function stopTracking(){
  if (!App.listening) return; // 자동정지·수동정지 경합 시 이중 기록 방지
  App.listening = false; Audio5.stopMic();
  App.echo.timers.forEach(clearTimeout); App.echo.timers = [];
  App.echo.gen++; App.ignoreUntil = 0;
+ if (App.trMode === "speak" && App.voiced >= 30){
+  Store.data.speechMedian = App._speakFreqs.slice().sort((a,b)=>a-b);
+  const m = Store.data.speechMedian;
+  Store.data.speechMedianHz = m.length % 2 ? m[(m.length-1)/2] : (m[m.length/2-1]+m[m.length/2])/2;
+  Store.save();
+  toast(`말하기 피치 중앙값 <b>${Math.round(Store.data.speechMedianHz)}Hz</b><br>성종 정확도가 올라갑니다 (성장 기록 확인)`, 3400);
+ }
  if (App.voiced >= 10){
  const score = Math.round(App.hits / App.voiced * 100);
  App.lastScore = score;
@@ -1004,6 +1031,7 @@ function trackerPitchHandler(f, note, cents, voiced){
  if (App.ignoreUntil && Date.now() < App.ignoreUntil) return;
  if (!voiced) return;
  App.voiced++;
+ if (App.trMode === "speak"){ (App._speakFreqs = App._speakFreqs || []).push(f); }
  App.centsSum += Math.abs(cents);
  if (App.lo === 0 || f < App.lo) App.lo = f;
  if (f > App.hi) App.hi = f;
@@ -1292,7 +1320,14 @@ function screenProgress(){
  ${(() => {
   const lo = midiOf(Store.data.range.lo), hi = midiOf(Store.data.range.hi);
   const ceil = midiOf(Store.data.baseline ? Store.data.baseline.hi : Store.data.range.hi);
-  const vtype = (hi - lo) >= 0 ? estimateVoiceType(lo, hi, ceil, null) : "미확정";
+  let vtype = (hi - lo) >= 0 ? estimateVoiceType(lo, hi, ceil, null) : "미확정";
+  if (vtype !== "미확정" && Store.data.speechMedianHz > 0){
+   const sm = midiOf(Store.data.speechMedianHz);
+   const speech = speechVoiceTypeBand(sm, null);
+   const rf = ["베이스","바리톤","테너"].includes(vtype);
+   const sf = ["베이스","바리톤","테너"].includes(speech);
+   vtype = rf !== sf ? "미확정" : speech;
+  }
   if (vtype === "미확정") return "";
   const zone = passaggioZone(vtype);
   const nn = m => freqToNoteCents(midiToFreq(m)).note;
@@ -1301,6 +1336,7 @@ function screenProgress(){
   <span class="caption" style="font-size:13px;font-weight:800;">내 성종 (추정)</span><div style="flex:1"></div>
   <span class="cap2" style="color:var(--text-secondary);">측정 음역 기준</span></div>
   <div style="font-size:24px;font-weight:900;color:var(--brand-secondary);margin-top:6px;">${vtype}</div>
+  ${Store.data.speechMedianHz > 0 ? `<div class="cap2" style="color:var(--text-secondary);margin-top:4px;">말하기 피치 중앙값 ${Math.round(Store.data.speechMedianHz)}Hz · 음역 추정과 교차 확인</div>` : `<div class="cap2" style="color:var(--text-secondary);margin-top:4px;">피치 트래커의 '말하기 10초' 측정을 하면 정확도가 올라갑니다</div>`}
   ${zone ? `<div class="cap2" style="color:var(--text-secondary);margin-top:6px;">성구전환(파사지오) 구간: ${nn(zone[0])} ~ ${nn(zone[1])}<br>3주차 루틴이 이 구간을 통과하도록 설계되어 있습니다.</div>` : ""}
   </div>`;
  })()}

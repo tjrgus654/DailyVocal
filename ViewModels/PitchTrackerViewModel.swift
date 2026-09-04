@@ -43,6 +43,9 @@ public final class PitchTrackerViewModel {
     /// octaves folded). Mirrors the "mirror for your ear" pattern of pitch
     /// monitors: shows which notes the voice actually lives on.
     public private(set) var noteBinCounts = Array(repeating: 0, count: 12)
+    /// All voiced frequencies this session — the median feeds the speech-pitch
+    /// voice-type screen in speak mode.
+    public private(set) var voicedFrequencies: [Double] = []
 
     public var targetNoteName = "E4" {
         didSet { syncTargetFrequency() }
@@ -73,6 +76,7 @@ public final class PitchTrackerViewModel {
     public enum TrackerMode: String, CaseIterable, Identifiable {
         case single = "단음 유지"
         case echo = "에코 3음"
+        case speak = "말하기 10초"
         public var id: String { rawValue }
     }
     public var mode: TrackerMode = .single {
@@ -217,6 +221,7 @@ public final class PitchTrackerViewModel {
         lastSessionTargetLabel = ""
         lastEchoLevelDelta = nil
         noteBinCounts = Array(repeating: 0, count: 12)
+        voicedFrequencies.removeAll()
         sessionStartDate = Date()
         isListening = true
 
@@ -225,7 +230,13 @@ public final class PitchTrackerViewModel {
         }
         audio.startMicrophone()
 
-        if mode == .echo {
+        if mode == .speak {
+            echoPhaseTask = Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(10))
+                guard !Task.isCancelled, let self, self.mode == .speak else { return }
+                self.stopTracking()
+            }
+        } else if mode == .echo {
             startEchoFlow()
         } else if isListenFirstMode {
             // Ear-training flow: hear the target twice first, then sing with
@@ -371,6 +382,7 @@ public final class PitchTrackerViewModel {
         }
 
         voicedFrameCount += 1
+        voicedFrequencies.append(frequency)
         totalCentsMagnitude += abs(cents)
 
         if sessionLowestFrequency == 0 || frequency < sessionLowestFrequency {
@@ -432,6 +444,14 @@ public final class PitchTrackerViewModel {
             highestFrequency: sessionHighestFrequency
         )
         context.insert(record)
+
+        // Speak mode: persist the habitual speech pitch median.
+        if mode == .speak, voicedFrequencies.count >= 30 {
+            let descriptor = FetchDescriptor<UserProfile>()
+            if let profile = (try? context.fetch(descriptor))?.first {
+                profile.speechMedianFrequency = VocalLogic.median(voicedFrequencies)
+            }
+        }
 
         // Extend the stored vocal range when this session went beyond it.
         let descriptor = FetchDescriptor<UserProfile>()
