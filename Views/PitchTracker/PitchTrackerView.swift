@@ -52,6 +52,12 @@ public struct PitchTrackerView: View {
                         VibratoResultCard(result: result, tips: viewModel.vibratoTips)
                     }
 
+                    if viewModel.mode == .dynamics,
+                       viewModel.dynamicsPhase == .done,
+                       let result = viewModel.dynamicsResult {
+                        DynamicsResultCard(result: result, tips: viewModel.dynamicsTips)
+                    }
+
                     modePicker
                         .padding(.horizontal, 20)
 
@@ -83,6 +89,18 @@ public struct PitchTrackerView: View {
                                 : (viewModel.vibratoResult != nil
                                    ? "측정 완료 — 결과 카드를 확인하세요"
                                    : "시작하면 기준음이 울립니다 — 그 음을 길게 끌며 비브라토를 넣어보세요")))
+                            .font(.caption2)
+                            .foregroundColor(.brandSecondary)
+                            .frame(maxWidth: .infinity)
+                    }
+                    if viewModel.mode == .dynamics {
+                        Text(viewModel.dynamicsPhase == .guide
+                             ? "기준음이 먼저 울립니다 — 그 음을 한 호흡으로 여리게 → 크게 → 여리게"
+                             : (viewModel.dynamicsPhase == .recording
+                                ? "지금 '아~'를 여리게 시작해 점점 크게, 다시 여리게 — 숨을 아껴가며"
+                                : (viewModel.dynamicsResult != nil
+                                   ? "측정 완료 — 아래 아치 결과를 확인하세요"
+                                   : "메사 디 보체: 한 음을 셈→여림으로 부풀렸다가 줄이는 왕도 훈련입니다")))
                             .font(.caption2)
                             .foregroundColor(.brandSecondary)
                             .frame(maxWidth: .infinity)
@@ -483,6 +501,91 @@ private struct VibratoResultCard: View {
                     title: "규칙성",
                     value: "\(Int((result.regularity * 100).rounded()))%",
                     reference: "주기 일관성"
+                )
+            }
+
+            ForEach(tips, id: \.self) { tip in
+                HStack(alignment: .top, spacing: 6) {
+                    Text("•")
+                        .foregroundColor(.brandSecondary)
+                    Text(tip)
+                        .font(.caption2)
+                        .foregroundColor(.textSecondary)
+                }
+            }
+        }
+        .glassCard(cornerRadius: 16, padding: 14)
+        .padding(.horizontal, 20)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var metricDivider: some View {
+        Divider()
+            .frame(height: 34)
+            .background(Color.borderGlass)
+            .padding(.horizontal, 10)
+    }
+
+    private func metric(title: String, value: String, reference: String) -> some View {
+        VStack(spacing: 3) {
+            Text(title)
+                .font(.caption2)
+                .foregroundColor(.textSecondary)
+            Text(value)
+                .font(.subheadline)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+                .monospacedDigit()
+            Text(reference)
+                .font(.system(size: 9))
+                .foregroundColor(.textSecondary.opacity(0.8))
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+/// Messa di voce readout: dynamic range, crescendo/decrescendo legs, apex
+/// position, envelope smoothness, plus coaching lines.
+private struct DynamicsResultCard: View {
+    let result: VocalLogic.DynamicsMeasurement
+    let tips: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("다이내믹스 아치")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                Spacer()
+                Text(result.hasArch ? "아치 완성 ✓" : "아치 미완성")
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(result.hasArch ? .vocalSuccess : .vocalWarning)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(
+                        (result.hasArch ? Color.vocalSuccess : Color.vocalWarning).opacity(0.18)
+                    )
+                    .clipShape(Capsule())
+            }
+
+            HStack(spacing: 0) {
+                metric(
+                    title: "레인지",
+                    value: String(format: "%.1f dB", result.rangeDb),
+                    reference: "목표 6dB+"
+                )
+                metricDivider
+                metric(
+                    title: "셈→여림",
+                    value: String(format: "+%.1f/−%.1f dB", result.crescendoDb, result.decrescendoDb),
+                    reference: "각 3dB+"
+                )
+                metricDivider
+                metric(
+                    title: "정점",
+                    value: "\(Int((result.peakPosition * 100).rounded()))%",
+                    reference: "중앙 25~75%"
                 )
             }
 

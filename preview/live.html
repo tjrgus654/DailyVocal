@@ -531,6 +531,83 @@ function vibratoScore(m){
  if (m.regularity >= 0.7) s += 10;
  return Math.min(100, s);
 }
+// ── 다이내믹스 아치 / 메사 디 보체 (Swift VocalLogic.DynamicsAnalysis 미러) ──
+// 한 음을 여리게→크게→여리게: RMS 포락선(dB)의 아치 형태를 채점한다.
+const DYN = { MIN_FRAMES: 45, MIN_RANGE_DB: 6.0, MIN_DIR_DB: 3.0 };
+const DYNAMICS_CHECK = { phase: "idle", amps: [], result: null, tips: [], timers: [] };
+function dynNone(frames){ return { rangeDb: 0, crescendoDb: 0, decrescendoDb: 0, peakPosition: 0, smoothness: 0, voicedFrames: frames || 0 }; }
+function dynHasArch(m){
+ return m.rangeDb >= DYN.MIN_RANGE_DB && m.crescendoDb >= DYN.MIN_DIR_DB
+  && m.decrescendoDb >= DYN.MIN_DIR_DB
+  && m.peakPosition >= 0.25 && m.peakPosition <= 0.75;
+}
+function dynMovingAvg(values, window){
+ if (window <= 1 || values.length <= window) return values.slice();
+ const half = Math.floor(window / 2);
+ const out = [];
+ for (let i = 0; i < values.length; i++){
+  const lo = Math.max(0, i - half), hi = Math.min(values.length - 1, i + half);
+  let sum = 0;
+  for (let k = lo; k <= hi; k++) sum += values[k];
+  out.push(sum / (hi - lo + 1));
+ }
+ return out;
+}
+function dynamicsAnalyze(amps){
+ const clean = amps.filter(a => a > 1e-5 && isFinite(a));
+ if (clean.length < DYN.MIN_FRAMES) return dynNone();
+ const dbs = clean.map(a => 20 * Math.log10(a));
+ const sm = dynMovingAvg(dbs, 5);
+ if (sm.length < 8) return dynNone();
+ let peakValue = -Infinity, minValue = Infinity, peakIndex = 0;
+ for (let i = 0; i < sm.length; i++){
+  if (sm[i] > peakValue){ peakValue = sm[i]; peakIndex = i; }
+  if (sm[i] < minValue) minValue = sm[i];
+ }
+ const n = sm.length;
+ const hq = sm.slice(0, Math.max(1, Math.floor(n / 4)));
+ const tq = sm.slice(Math.max(1, Math.floor(3 * n / 4)));
+ const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
+ const rangeDb = peakValue - minValue;
+ const crescendoDb = peakValue - avg(hq);
+ const decrescendoDb = peakValue - avg(tq);
+ const peakPosition = n > 1 ? peakIndex / (n - 1) : 0;
+ let jitter = 0;
+ for (let i = 1; i < n; i++) jitter += Math.abs(sm[i] - sm[i - 1]);
+ jitter /= (n - 1);
+ const smoothness = rangeDb > 1 ? Math.min(1, Math.max(0, 1 - jitter / (rangeDb / 4))) : 0;
+ return { rangeDb, crescendoDb, decrescendoDb, peakPosition, smoothness, voicedFrames: clean.length };
+}
+function dynamicsFeedback(m){
+ if (!(m.voicedFrames >= DYN.MIN_FRAMES))
+  return ["소리가 짧았어요 — 한 호흡으로 6초 이상 길게 유지해주세요"];
+ if (!dynHasArch(m)){
+  if (m.rangeDb < DYN.MIN_RANGE_DB)
+   return [`다이내믹 레인지가 ${m.rangeDb.toFixed(1)}dB — 가장 여리게 시작해 최고 음량까지 최소 6dB만 벌려보세요`];
+  if (m.crescendoDb < DYN.MIN_DIR_DB)
+   return ["크레셴도(점점 크게)가 약합니다 — 시작을 더 여리게 잡아보세요"];
+  if (m.decrescendoDb < DYN.MIN_DIR_DB)
+   return ["디크레셴도(점점 작게)가 약합니다 — 끝까지 음량을 끌어내려보세요"];
+  return m.peakPosition < 0.25
+   ? ["정점이 너무 일찍 찍혔어요 — 아치의 꼭대기를 중간쯤에 두세요"]
+   : ["정점이 너무 늦었어요 — 여리게 시작해 중간에서 최대 음량을 만드세요"];
+ }
+ const tips = [];
+ tips.push(`레인지 ${m.rangeDb.toFixed(1)}dB의 아치 완성 — 여림→셈→여림이 한 호흡에 잡혔습니다`);
+ if (m.rangeDb >= 12) tips.push("12dB 이상의 넓은 레인지 — 음량보다 음질(긴장 없는 셈여림)을 점검해보세요");
+ if (m.smoothness < 0.6) tips.push("음량 변화가 조금 튑니다 — '물 밀듯이' 일정한 속도로 밀어보세요");
+ return tips;
+}
+function dynamicsScore(m){
+ if (!(m.voicedFrames >= DYN.MIN_FRAMES)) return 0;
+ let s = 40;
+ if (m.crescendoDb >= DYN.MIN_DIR_DB) s += 15;
+ if (m.decrescendoDb >= DYN.MIN_DIR_DB) s += 15;
+ if (m.rangeDb >= 6.0) s += 15;
+ if (m.peakPosition >= 0.25 && m.peakPosition <= 0.75) s += 10;
+ if (m.smoothness >= 0.6) s += 5;
+ return Math.min(100, s);
+}
 function peakFrequency(mags, sampleRate, loHz, hiHz){
  const binHz = sampleRate / mags.length;
  let best = -1, bi = -1;
@@ -1287,7 +1364,7 @@ function screenTracker(){
  </div>
 
  <div class="glass" style="margin:10px 20px 0;padding:8px 12px;display:flex;gap:8px;border-radius:14px;">
- ${[["single","단음"],["echo","에코"],["speak","말하기"],["vowel","모음"],["interval","음정"],["ear","귀훈련"],["vibrato","비브라토"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')" role="button" tabindex="0" aria-label="모드 ${label}">${label}</span>`).join("")}
+ ${[["single","단음"],["echo","에코"],["speak","말하기"],["vowel","모음"],["interval","음정"],["ear","귀훈련"],["vibrato","비브라토"],["dynamics","셈여림"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')" role="button" tabindex="0" aria-label="모드 ${label}">${label}</span>`).join("")}
  </div>
 
  ${App.trMode==='vowel'&&VOWEL_GAME.active?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">라운드 ${Math.min(VOWEL_GAME.idx + 1, VOWEL_GAME.rounds.length)}/${VOWEL_GAME.rounds.length} · 목표 모음: ${VOWEL_GAME.target || "-"}${VOWEL_GAME.tips.length ? "<br><span style='color:var(--text-secondary);font-weight:400;'>" + VOWEL_GAME.tips[0] + "</span>" : ""}</div>`:""}
@@ -1303,6 +1380,7 @@ function screenTracker(){
  </div>`:""}
  ${App.trMode==='echo'?`<div class="cap2" style="text-align:center;color:var(--text-secondary);margin:8px 0 0;">에코 난이도 ${echoLevel()}단계 · ${echoLevel()>=3?"최고 난이도입니다":"성공하면 이동 폭이 넓어져요"}</div>`:""}
  ${App.trMode==='vibrato'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${VIBRATO_CHECK.phase==='guide'?"기준음이 먼저 울립니다 — 같은 음을 5초간 길게 끌며 비브라토를 넣어보세요":(VIBRATO_CHECK.phase==='recording'?"지금 길게 '아~' — 목소리를 자연스럽게 흔들어보세요":(VIBRATO_CHECK.result?"측정 완료 — 결과 카드를 확인하세요":"시작하면 기준음이 울립니다 — 그 음을 길게 끌며 비브라토를 넣어보세요"))}</div>`:""}
+ ${App.trMode==='dynamics'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${DYNAMICS_CHECK.phase==='guide'?"기준음이 먼저 울립니다 — 그 음을 한 호흡으로 여리게 → 크게 → 여리게":(DYNAMICS_CHECK.phase==='recording'?"지금 '아~'를 여리게 시작해 점점 크게, 다시 여리게 — 숨을 아껴가며":(DYNAMICS_CHECK.result?"측정 완료 — 아래 아치 결과를 확인하세요":"메사 디 보체: 한 음을 셈→여림으로 부풀렸다가 줄이는 왕도 훈련입니다"))}</div>`:""}
 
  <div class="glass" style="margin:10px 20px 0;padding:8px 14px;display:flex;align-items:center;gap:10px;border-radius:14px;">
  <span class="cap2" style="color:var(--text-secondary);">기준 피치 A4</span><div style="flex:1"></div>
@@ -1366,6 +1444,22 @@ function screenTracker(){
  ].map(([t,v,r])=>`<div style="flex:1;text-align:center;"><div class="cap2" style="color:var(--text-secondary);">${t}</div><div style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;margin:2px 0;">${v}</div><div style="font-size:9px;color:var(--text-secondary);opacity:.8;">${r}</div></div>`).join("")}
  </div>
  ${VIBRATO_CHECK.tips.map(tip=>`<div style="display:flex;gap:6px;margin-top:6px;"><span style="color:var(--brand-secondary);">•</span><span class="cap2" style="color:var(--text-secondary);">${tip}</span></div>`).join("")}
+ </div>` : ""}
+
+ ${App.trMode==='dynamics'&&DYNAMICS_CHECK.result?`
+ <div class="glass" style="margin:14px 20px 4px;padding:14px;border-radius:18px;">
+ <div style="display:flex;align-items:center;">
+ <div style="font-size:12px;font-weight:800;">다이내믹스 아치</div><div style="flex:1"></div>
+ <span style="font-size:11px;font-weight:800;color:${dynHasArch(DYNAMICS_CHECK.result)?'var(--vocal-success)':'var(--vocal-warning)'};background:${dynHasArch(DYNAMICS_CHECK.result)?'rgba(16,185,129,.16)':'rgba(245,158,11,.16)'};padding:3px 8px;border-radius:999px;">${dynHasArch(DYNAMICS_CHECK.result)?"아치 완성 ✓":"아치 미완성"}</span>
+ </div>
+ <div style="display:flex;align-items:center;margin-top:10px;">
+ ${[
+  ["레인지", DYNAMICS_CHECK.result.rangeDb.toFixed(1)+" dB", "목표 6dB+"],
+  ["셈→여림", "+"+DYNAMICS_CHECK.result.crescendoDb.toFixed(1)+"/−"+DYNAMICS_CHECK.result.decrescendoDb.toFixed(1)+" dB", "각 3dB+"],
+  ["정점", Math.round(DYNAMICS_CHECK.result.peakPosition*100)+"%", "중앙 25~75%"],
+ ].map(([t,v,r])=>`<div style="flex:1;text-align:center;"><div class="cap2" style="color:var(--text-secondary);">${t}</div><div style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;margin:2px 0;">${v}</div><div style="font-size:9px;color:var(--text-secondary);opacity:.8;">${r}</div></div>`).join("")}
+ </div>
+ ${DYNAMICS_CHECK.tips.map(tip=>`<div style="display:flex;gap:6px;margin-top:6px;"><span style="color:var(--brand-secondary);">•</span><span class="cap2" style="color:var(--text-secondary);">${tip}</span></div>`).join("")}
  </div>` : ""}
  </div>
 
@@ -1493,6 +1587,47 @@ function finishVibratoCheck(){
  }
  render();
 }
+// 다이내믹스 아치 흐름: 기준음 1회 → 7초 메사 디 보체 → RMS 포락선 채점
+async function startDynamicsCheck(){
+ DYNAMICS_CHECK.phase = "guide";
+ DYNAMICS_CHECK.result = null; DYNAMICS_CHECK.tips = [];
+ DYNAMICS_CHECK.amps = [];
+ DYNAMICS_CHECK.timers.forEach(clearTimeout); DYNAMICS_CHECK.timers = [];
+ App.ignoreUntil = Infinity;
+ playTarget();
+ DYNAMICS_CHECK.timers.push(setTimeout(() => {
+  DYNAMICS_CHECK.phase = "recording"; App.ignoreUntil = 0; render();
+ }, 1600));
+ DYNAMICS_CHECK.timers.push(setTimeout(() => { finishDynamicsCheck(); }, 1600 + 7000));
+}
+function finishDynamicsCheck(){
+ if (!App.listening) return;
+ DYNAMICS_CHECK.timers.forEach(clearTimeout); DYNAMICS_CHECK.timers = [];
+ DYNAMICS_CHECK.phase = "done";
+ const m = dynamicsAnalyze(DYNAMICS_CHECK.amps);
+ DYNAMICS_CHECK.result = m;
+ DYNAMICS_CHECK.tips = dynamicsFeedback(m);
+ const score = dynamicsScore(m);
+ App.listening = false; Audio5.stopMic(); App.ignoreUntil = 0;
+ if (App.voiced >= 10){
+  App.lastScore = score;
+  App.lastGrade = score >= 90 ? "S" : score >= 80 ? "A" : score >= 70 ? "B" : score >= 60 ? "C" : "D";
+  Store.data.pitchRecords.push({
+   t: Date.now(), target: "다이내믹스 아치", acc: score,
+   lo: App.lo, hi: App.hi, dur: Math.round((Date.now() - App.sessionStart) / 1000),
+  });
+  if (App.lo > 0 && (Store.data.range.lo === 0 || App.lo < Store.data.range.lo)) Store.data.range.lo = App.lo;
+  if (App.hi > Store.data.range.hi) Store.data.range.hi = App.hi;
+  Store.save();
+  const head = dynHasArch(m)
+   ? `아치 완성 ✓ <b style="font-size:20px;">${score}점</b>`
+   : `아치 미완성 — <b style="font-size:20px;">${score}점</b>`;
+  toast(`${head}<br>레인지 ${m.rangeDb.toFixed(1)}dB · 셈→여림 +${m.crescendoDb.toFixed(1)}/−${m.decrescendoDb.toFixed(1)}dB<br><span style="font-size:12px;color:var(--text-secondary);">${DYNAMICS_CHECK.tips[0] || ""}</span>`, 4200);
+ } else {
+  toast("소리가 너무 짧았어요 — 한 호흡으로 6초 이상 길게 유지해주세요", 3400);
+ }
+ render();
+}
 function playTarget(){
  haptic();
  App.ignoreUntil = Date.now() + 1600;
@@ -1532,6 +1667,10 @@ async function startTracking(){
   await startVibratoCheck();
   return;
  }
+ if (App.trMode === "dynamics"){
+  await startDynamicsCheck();
+  return;
+ }
  if (App.trMode === "speak"){
   App._speakTimer = setTimeout(() => { if (App.listening) stopTracking(); }, 10000);
  } else if (App.trMode === "echo") startEchoFlow();
@@ -1543,6 +1682,11 @@ function stopTracking(){
  if (VIBRATO_CHECK.phase === "guide" || VIBRATO_CHECK.phase === "recording"){
   VIBRATO_CHECK.timers.forEach(clearTimeout); VIBRATO_CHECK.timers = [];
   VIBRATO_CHECK.phase = "idle"; VIBRATO_CHECK.times = []; VIBRATO_CHECK.freqs = [];
+  App.listening = false; Audio5.stopMic(); App.ignoreUntil = 0; render(); return;
+ }
+ if (DYNAMICS_CHECK.phase === "guide" || DYNAMICS_CHECK.phase === "recording"){
+  DYNAMICS_CHECK.timers.forEach(clearTimeout); DYNAMICS_CHECK.timers = [];
+  DYNAMICS_CHECK.phase = "idle"; DYNAMICS_CHECK.amps = [];
   App.listening = false; Audio5.stopMic(); App.ignoreUntil = 0; render(); return;
  }
  if (!App.listening) return; // 자동정지·수동정지 경합 시 이중 기록 방지
@@ -1598,6 +1742,19 @@ function trackerPitchHandler(f, note, cents, voiced){
  if (App.trMode === "speak"){ (App._speakFreqs = App._speakFreqs || []).push(f); }
  if (App.trMode === "vibrato" && VIBRATO_CHECK.phase === "recording"){
   VIBRATO_CHECK.times.push(Date.now() / 1000); VIBRATO_CHECK.freqs.push(f);
+ }
+ if (App.trMode === "dynamics" && DYNAMICS_CHECK.phase === "recording"){
+  // 웹은 엔진 평활 RMS가 없으므로 AnalyserNode 시계열에서 직접 계산
+  // (앱의 0.6/0.4 지수평활에 해당하는 스무딩은 분석부 이동평균이 담당).
+  let rms = 0;
+  if (Audio5.analyser){
+   const buf = new Float32Array(Audio5.analyser.fftSize);
+   Audio5.analyser.getFloatTimeDomainData(buf);
+   let s = 0;
+   for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
+   rms = Math.sqrt(s / buf.length);
+  }
+  DYNAMICS_CHECK.amps.push(rms);
  }
  App.centsSum += Math.abs(cents);
  if (App.lo === 0 || f < App.lo) App.lo = f;

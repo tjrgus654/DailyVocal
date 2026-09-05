@@ -1002,6 +1002,142 @@ public enum VocalLogic {
         return min(100, score)
     }
 
+    // MARK: - Dynamics analysis (messa di voce arch)
+
+    /// Dynamic-control measurement of a sustained note (messa di voce:
+    /// soft → loud → soft on one breath). The coaching target the literature
+    /// describes: an even arch with a centered peak, not just "louder/softer".
+    public struct DynamicsMeasurement: Equatable, Sendable {
+        /// Loudest-minus-quietest of the smoothed envelope, in dB.
+        public let rangeDb: Double
+        /// Rise from the quiet opening quarter to the peak, in dB.
+        public let crescendoDb: Double
+        /// Fall from the peak to the quiet closing quarter, in dB.
+        public let decrescendoDb: Double
+        /// Where the loudest moment sits in 0...1 (0 = first frame).
+        public let peakPosition: Double
+        /// 0...1 — how even the envelope changes are (1 = no jitter).
+        public let smoothness: Double
+        public let voicedFrames: Int
+
+        public var hasArch: Bool {
+            rangeDb >= 6.0 && crescendoDb >= 3.0 && decrescendoDb >= 3.0
+                && peakPosition >= 0.25 && peakPosition <= 0.75
+        }
+
+        public static let none = DynamicsMeasurement(
+            rangeDb: 0, crescendoDb: 0, decrescendoDb: 0,
+            peakPosition: 0, smoothness: 0, voicedFrames: 0)
+    }
+
+    public enum DynamicsAnalysis {
+        public static let minFrames = 45
+        /// A musically useful dynamic swing on one note (dB).
+        public static let minRangeDb = 6.0
+        /// Each half of the arch must rise/fall at least this much (dB).
+        public static let minDirectionDb = 3.0
+
+        /// Analyzes a per-frame linear RMS envelope (0...~0.3 from the audio
+        /// engine). Converts to dB, smooths, then reads the arch shape.
+        public static func analyze(amplitudes: [Double]) -> DynamicsMeasurement {
+            let amps = amplitudes.filter { $0 > 1e-5 && $0.isFinite }
+            guard amps.count >= minFrames else { return .none }
+
+            let dbs = amps.map { 20 * log10($0) }
+            let smoothed = movingAverage(dbs, window: 5)
+            guard smoothed.count >= 8,
+                  let peakValue = smoothed.max(),
+                  let minValue = smoothed.min() else { return .none }
+
+            let n = smoothed.count
+            let peakIndex = smoothed.firstIndex(of: peakValue) ?? 0
+            let headQuarter = smoothed[0..<max(1, n / 4)]
+            let tailQuarter = smoothed[max(1, (3 * n) / 4)..<n]
+            let headAvg = Double(headQuarter.reduce(0, +)) / Double(headQuarter.count)
+            let tailAvg = Double(tailQuarter.reduce(0, +)) / Double(tailQuarter.count)
+
+            let rangeDb = peakValue - minValue
+            let crescendoDb = peakValue - headAvg
+            let decrescendoDb = peakValue - tailAvg
+            let peakPosition = n > 1 ? Double(peakIndex) / Double(n - 1) : 0
+
+            // Smoothness: successive-frame jitter relative to the swing.
+            var jitterSum = 0.0
+            for i in 1..<n { jitterSum += abs(smoothed[i] - smoothed[i - 1]) }
+            let jitter = jitterSum / Double(n - 1)
+            let smoothness = rangeDb > 1
+                ? Swift.min(1, Swift.max(0, 1 - jitter / (rangeDb / 4)))
+                : 0
+
+            return DynamicsMeasurement(
+                rangeDb: rangeDb,
+                crescendoDb: crescendoDb,
+                decrescendoDb: decrescendoDb,
+                peakPosition: peakPosition,
+                smoothness: smoothness,
+                voicedFrames: amps.count
+            )
+        }
+
+        static func movingAverage(_ values: [Double], window: Int) -> [Double] {
+            guard window > 1, values.count > window else { return values }
+            let half = window / 2
+            var output: [Double] = []
+            output.reserveCapacity(values.count)
+            for i in values.indices {
+                let lo = Swift.max(0, i - half)
+                let hi = Swift.min(values.count - 1, i + half)
+                let slice = values[lo...hi]
+                output.append(Double(slice.reduce(0, +)) / Double(slice.count))
+            }
+            return output
+        }
+    }
+
+    /// What to change about the arch — the personalization a dB meter app
+    /// (the "Loud" style) cannot give.
+    public static func dynamicsFeedback(for m: DynamicsMeasurement) -> [String] {
+        guard m.voicedFrames >= DynamicsAnalysis.minFrames else {
+            return ["소리가 짧았어요 — 한 호흡으로 6초 이상 길게 유지해주세요"]
+        }
+        guard m.hasArch else {
+            if m.rangeDb < DynamicsAnalysis.minRangeDb {
+                return ["다이내믹 레인지가 \(String(format: "%.1f", m.rangeDb))dB — 가장 여리게 시작해 최고 음량까지 최소 6dB만 벌려보세요"]
+            }
+            if m.crescendoDb < DynamicsAnalysis.minDirectionDb {
+                return ["크레셴도(점점 크게)가 약합니다 — 시작을 더 여리게 잡아보세요"]
+            }
+            if m.decrescendoDb < DynamicsAnalysis.minDirectionDb {
+                return ["디크레셴도(점점 작게)가 약합니다 — 끝까지 음량을 끌어내려보세요"]
+            }
+            return m.peakPosition < 0.25
+                ? ["정점이 너무 일찍 찍혔어요 — 아치의 꼭대기를 중간쯤에 두세요"]
+                : ["정점이 너무 늦었어요 — 여리게 시작해 중간에서 최대 음량을 만드세요"]
+        }
+        var tips: [String] = []
+        let range = String(format: "%.1f", m.rangeDb)
+        tips.append("레인지 \(range)dB의 아치 완성 — 여림→셈→여림이 한 호흡에 잡혔습니다")
+        if m.rangeDb >= 12 {
+            tips.append("12dB 이상의 넓은 레인지 — 음량보다 음질(긴장 없는 셈여림)을 점검해보세요")
+        }
+        if m.smoothness < 0.6 {
+            tips.append("음량 변화가 조금 튑니다 — '물 밀듯이' 일정한 속도로 밀어보세요")
+        }
+        return tips
+    }
+
+    /// 0...100 messa di voce score.
+    public static func dynamicsScore(_ m: DynamicsMeasurement) -> Int {
+        guard m.voicedFrames >= DynamicsAnalysis.minFrames else { return 0 }
+        var score = 40
+        if m.crescendoDb >= DynamicsAnalysis.minDirectionDb { score += 15 }
+        if m.decrescendoDb >= DynamicsAnalysis.minDirectionDb { score += 15 }
+        if m.rangeDb >= 6.0 { score += 15 }
+        if m.peakPosition >= 0.25 && m.peakPosition <= 0.75 { score += 10 }
+        if m.smoothness >= 0.6 { score += 5 }
+        return min(100, score)
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.

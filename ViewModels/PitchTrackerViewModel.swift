@@ -52,22 +52,31 @@ public final class PitchTrackerViewModel {
     public private(set) var vowelScores: [Int] = []
     public private(set) var lastVowelTips: [String] = []
 
-    // MARK: - Vibrato check state
+    // MARK: - Sustain-check state (vibrato / dynamics share the phase shape)
 
-    public enum VibratoPhase: Equatable {
+    /// Shared phase machine for the guided sustained-note checks.
+    public enum SustainPhase: Equatable {
         case idle
         /// Waiting for the guide tone to finish before the record window opens.
         case guide
         case recording
         case done
     }
-    public private(set) var vibratoPhase: VibratoPhase = .idle
+    public private(set) var vibratoPhase: SustainPhase = .idle
     public private(set) var vibratoResult: VocalLogic.VibratoMeasurement?
     public private(set) var vibratoTips: [String] = []
     private var vibratoTrace: [(time: TimeInterval, frequency: Double)] = []
     /// Guide tone + tail, then the sustained-note record window.
     private static let vibratoGuideDuration = 1.6
     private static let vibratoRecordDuration = 5.5
+
+    public private(set) var dynamicsPhase: SustainPhase = .idle
+    public private(set) var dynamicsResult: VocalLogic.DynamicsMeasurement?
+    public private(set) var dynamicsTips: [String] = []
+    /// Per-frame smoothed RMS from the engine (messa di voce envelope).
+    private var dynamicsAmps: [Double] = []
+    private static let dynamicsGuideDuration = 1.6
+    private static let dynamicsRecordDuration = 7.0
 
     public var targetNoteName = "E4" {
         didSet { syncTargetFrequency() }
@@ -101,6 +110,7 @@ public final class PitchTrackerViewModel {
         case speak = "말하기 10초"
         case vowel = "모음 게임"
         case vibrato = "비브라토 체크"
+        case dynamics = "다이내믹스 아치"
         public var id: String { rawValue }
     }
     public var mode: TrackerMode = .single {
@@ -259,6 +269,8 @@ public final class PitchTrackerViewModel {
             startVowelGame()
         } else if mode == .vibrato {
             startVibratoCheck()
+        } else if mode == .dynamics {
+            startDynamicsCheck()
         } else if mode == .speak {
             echoPhaseTask = Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .seconds(10))
@@ -295,6 +307,10 @@ public final class PitchTrackerViewModel {
         if mode == .vibrato {
             vibratoPhase = .idle
             vibratoTrace = []
+        }
+        if mode == .dynamics {
+            dynamicsPhase = .idle
+            dynamicsAmps = []
         }
         ignorePitchUntil = Date.distantPast
         audio.isSpectrumWanted = false
@@ -449,6 +465,52 @@ public final class PitchTrackerViewModel {
         persistSessionSummary()
     }
 
+    /// Messa di voce flow: guide tone once, then a 7 s window to swell the
+    /// note soft→loud→soft on one breath; the RMS envelope is scored.
+    private func startDynamicsCheck() {
+        echoGeneration += 1
+        let generation = echoGeneration
+        dynamicsPhase = .guide
+        dynamicsResult = nil
+        dynamicsTips = []
+        dynamicsAmps = []
+        ignorePitchUntil = .distantFuture
+        LiveActivityManager.shared.startGameActivity(gameMode: "다이내믹스", totalRounds: 1)
+        LiveActivityManager.shared.updateGameRound(1, of: 1)
+
+        echoPhaseTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.playTargetTone()
+            try? await Task.sleep(for: .seconds(Self.dynamicsGuideDuration))
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.dynamicsPhase = .recording
+            self.ignorePitchUntil = Date()
+            try? await Task.sleep(for: .seconds(Self.dynamicsRecordDuration))
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.finishDynamicsCheck()
+        }
+    }
+
+    private func finishDynamicsCheck() {
+        dynamicsPhase = .done
+        lastSessionTargetLabel = "다이내믹스 아치"
+        let result = VocalLogic.DynamicsAnalysis.analyze(amplitudes: dynamicsAmps)
+        dynamicsResult = result
+        dynamicsTips = VocalLogic.dynamicsFeedback(for: result)
+        let score = VocalLogic.dynamicsScore(result)
+        accuracyScore = Double(score)
+        lastSessionScore = voicedFrameCount >= 10 ? score : nil
+        lastSessionGrade = VocalLogic.sessionGrade(forScore: score)
+        haptics.routineCompleted()
+        // Same ownership pattern as the vowel/vibrato finishes: end here so a
+        // later stopTracking() cannot overwrite the dynamics score.
+        isListening = false
+        LiveActivityManager.shared.endLiveActivity()
+        audio.stopMicrophone()
+        audio.onPitchUpdate = nil
+        persistSessionSummary()
+    }
+
     // MARK: - Echo sequence flow
 
     private func generateEchoSequence() -> [Int] {
@@ -557,6 +619,10 @@ public final class PitchTrackerViewModel {
         voicedFrequencies.append(frequency)
         if mode == .vibrato {
             vibratoTrace.append((Date().timeIntervalSince1970, frequency))
+        }
+        if mode == .dynamics {
+            // Engine updates the smoothed RMS before this callback fires.
+            dynamicsAmps.append(audio.amplitude)
         }
         if mode == .vowel {
             vowelMagnitudes.append(audio.currentMagnitudeSpectrum)

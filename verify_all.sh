@@ -57,7 +57,11 @@ step 7 "비브라토 파리티 (웹 ↔ Swift, 상수+공식+15실행축)"
 python evidence/20260903-rebuild/verify_vibrato_parity.py > /tmp/va_vib.log 2>&1
 record $? "vibrato parity ($(tail -1 /tmp/va_vib.log))"
 
+step 8 "다이내믹스 파리티 (웹 ↔ Swift, 상수+공식+16실행축)"
+python evidence/20260903-rebuild/verify_dynamics_parity.py > /tmp/va_dyn.log 2>&1
+record $? "dynamics parity ($(tail -1 /tmp/va_dyn.log))"
+
 echo ""
 echo "=============================================="
-echo "RESULT: $PASS 통과 / $FAIL 실패 (7 게이트)"
+echo "RESULT: $PASS 통과 / $FAIL 실패 (8 게이트)"
 [ "$FAIL" -eq 0 ] && echo "ALL GREEN" || { echo "FAILURES PRESENT"; exit 1; }

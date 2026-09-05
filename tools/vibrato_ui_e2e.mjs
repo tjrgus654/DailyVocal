@@ -1,7 +1,7 @@
-// Vibrato-mode UI E2E: drives the web prototype in headless Edge, walks the
-// full vibrato flow (guide caption -> recording caption -> synthetic analysis
-// -> result card) using the same test-hook path as audio_e2e.mjs, and checks
-// for console errors. Usage: node tools/vibrato_ui_e2e.mjs (serve :8766 first).
+// Vibrato + dynamics UI E2E: drives the web prototype in headless Edge, walks
+// both sustain-check flows (captions, synthetic analysis, result cards) using
+// the same test-hook path as audio_e2e.mjs, and checks for console errors.
+// Usage: node tools/vibrato_ui_e2e.mjs (serve :8766 first).
 import { chromium } from "playwright-core";
 
 const URL = "http://127.0.0.1:8766/preview/live.html";
@@ -29,7 +29,7 @@ const ok = (name, cond, detail = "") => {
 
 // 1. Mode chip exists and switches.
 const chipCount = await page.locator('.chip[onclick^="setTrMode"]').count();
-ok("mode chips rendered", chipCount === 7, `count=${chipCount}`);
+ok("mode chips rendered", chipCount === 8, `count=${chipCount}`);
 await page.click('span.chip[onclick="setTrMode(\'vibrato\')"]');
 ok("vibrato mode selected", await page.evaluate("App.trMode") === "vibrato");
 await page.waitForTimeout(200);
@@ -82,6 +82,39 @@ ok("result card title", (await page.locator("text=비브라토 분석").count())
 ok("badge 감지", (await page.locator("text=비브라토 감지").count()) >= 1);
 ok("metric 규칙성", (await page.locator("text=주기 일관성").count()) >= 1);
 ok("coaching line rendered", (await page.locator("text=이상적인 비브라토 범위").count()) >= 1);
+
+// 5. Dynamics (messa di voce) flow: chips, captions, analysis, result card.
+await page.click('span.chip[onclick="setTrMode(\'dynamics\')"]');
+ok("dynamics mode selected", await page.evaluate("App.trMode") === "dynamics");
+await page.waitForTimeout(200);
+ok("dynamics idle caption", (await page.locator("text=메사 디 보체").count()) >= 1);
+await page.evaluate('(() => { DYNAMICS_CHECK.phase = "guide"; render(); })()');
+ok("dynamics guide caption", (await page.locator("text=여리게 → 크게 → 여리게").count()) >= 1);
+await page.evaluate('(() => { DYNAMICS_CHECK.phase = "recording"; render(); })()');
+ok("dynamics recording caption", (await page.locator("text=숨을 아껴가며").count()) >= 1);
+await page.evaluate('(() => { DYNAMICS_CHECK.phase = "idle"; render(); })()');
+const dyn = await page.evaluate(`(() => {
+  const amps = Array.from({length: 150}, (_, i) => {
+    const t = i / 149;
+    return Math.pow(10, (-20 + 14 * Math.sin(Math.PI * t)) / 20);
+  });
+  const m = dynamicsAnalyze(amps);
+  return { range: m.rangeDb, has: dynHasArch(m), score: dynamicsScore(m),
+           tips: dynamicsFeedback(m) };
+})()`);
+ok("dynamics analysis range ~14", Math.abs(dyn.range - 14) <= 2, dyn.range.toFixed(2));
+ok("dynamics hasArch", dyn.has === true);
+ok("dynamics score 100", dyn.score === 100, String(dyn.score));
+await page.evaluate(`(() => {
+  DYNAMICS_CHECK.phase = "done";
+  DYNAMICS_CHECK.result = { rangeDb: 13.2, crescendoDb: 9.4, decrescendoDb: 9.1, peakPosition: 0.5, smoothness: 0.9, voicedFrames: 160 };
+  DYNAMICS_CHECK.tips = dynamicsFeedback(DYNAMICS_CHECK.result);
+  render();
+})()`);
+await page.waitForTimeout(200);
+ok("dynamics card title", (await page.locator("text=다이내믹스 아치").count()) >= 1);
+ok("dynamics badge 아치", (await page.locator("text=아치 완성").count()) >= 1);
+ok("dynamics coaching line", (await page.locator("text=한 호흡에 잡혔습니다").count()) >= 1);
 
 await browser.close();
 

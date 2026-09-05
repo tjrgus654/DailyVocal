@@ -452,3 +452,20 @@ Mac 인계 전 검증 총량. 각 항목은 실행 증거(명령 출력/CI 런 I
 | 198 | UI E2E가 잡은 결함 C: 모드 진입 직후(idle) "측정 완료" 문구 표시 | 수정 | 4상태 문구로 수정(앱+웹 동일) — idle=시작 안내 |
 | 199 | 404 리소스 콘솔 에러 → favicon.ico 요청 판별 | 오판 판별 | 앱 결함 아님, 브라우저 자동 요청 |
 | 200 | verify_all 7게이트(파스 43·swift test 92·정적·에코 8축·스트릭 5축·JS·비브라토 15축) | ALL GREEN | swift 83→92 (+9) |
+
+
+## 다이내믹스 아치(메사 디 보체) 기능 (세션 8 계속 — 2026-09-06)
+
+기능: 트래커 6번째 모드 — 기준음 → 7초 한 호흡 유지(RMS 포락선) → 아치 형태 분석
+(레인지 dB·크레셴도/디크레셴도 dB·정점 위치·부드러움) → 코칭. 리서치: Sing Sharp의
+Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-09-05 검색).
+
+| # | 검증 행위 | 결과 | 증거/비고 |
+|---|---|---|---|
+| 201 | 다이내믹스 알고리즘 테스트 8종: 이상적 아치(-20dB+14dB 사인→hasArch·range 14±2·score 100)·플랫·크레셴도만·이른 정점·짧은 트레이스·점수 조합·이동평균 대칭 | swift 8/8 | Tests/VocalLogicTests/DynamicsAnalysisTests.swift |
+| 202 | movingAverage 대칭 테스트 인덱스 오류 2회 수정(스파이크 중심 거울쌍 out[3]/out[7]) | 수정 | 테스트 버그, 알고리즘 무결 |
+| 203 | 웹 미러 이식: DYN 알고리즘+흐름+RMS 수집(AnalyserNode 시계열)+칩 8개+캡션 3상태+결과카드 | JS OK | 캡션 템플릿 닫는 괄호 1개 초과 → vm.Script가 즉시 포착·수정 |
+| 204 | 다이내믹스 패리티 게이트 신설(verify_all 8번): 상수 3종·hasArch·점수공식·4단계 + JS 실행 16축(Swift 테스트 동일 벡터) | ALL PASS | 섹션 슬라이스 버그(struct vs enum 시작점) 수정 후 |
+| 205 | UI E2E 26축(비브라토 16 + 다이내믹스 10): 칩 8개·idle/guide/recording 캡션·합성 분석(range 13.70·score 100)·아치 카드·코칭 라인 | 26/26 | tools/vibrato_ui_e2e.mjs |
+| 206 | verify_all 8게이트(파스 44·swift test 100·정적·에코·스트릭·JS·비브라토 15축·다이내믹스 16축) | ALL GREEN | swift 92→100 (+8) |
+| 207 | 직전 비브라토 커밋(c6b46d0) CI: iOS typecheck + 시뮬레이터 스모크 | 2/2 success | 새 UI/VM 코드 iOS SDK 타입 검증 |
