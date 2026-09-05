@@ -63,6 +63,11 @@ public struct VocalProgressView: View {
                                 .padding(.horizontal, 20)
                         }
 
+                        if viewModel.lastVibratoRateHz > 0 || viewModel.lastDynamicsRangeDb > 0 {
+                            techniqueSnapshotCard
+                                .padding(.horizontal, 20)
+                        }
+
                         statsSummaryGrid
                             .padding(.horizontal, 20)
 
@@ -295,6 +300,61 @@ public struct VocalProgressView: View {
     }
 
     // MARK: - Summary grid
+
+    /// Last measured technique fingerprints from the sustain checks — the
+    /// growth loop for vibrato rate and dynamic range.
+    private var techniqueSnapshotCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "waveform.path")
+                    .foregroundColor(.brandAccent)
+                Text("테크닉 스냅샷 (최근 측정)")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                Spacer()
+                Text("피치 트래커에서 측정")
+                    .font(.caption2)
+                    .foregroundColor(.textSecondary)
+            }
+            HStack(spacing: 0) {
+                if viewModel.lastVibratoRateHz > 0 {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("비브라토")
+                            .font(.caption2)
+                            .foregroundColor(.textSecondary)
+                        Text(String(format: "%.1fHz · ±%.0f¢", viewModel.lastVibratoRateHz, viewModel.lastVibratoExtentCents))
+                            .font(.subheadline.weight(.bold))
+                            .foregroundColor((4.5...6.5).contains(viewModel.lastVibratoRateHz) ? .vocalSuccess : .brandSecondary)
+                            .monospacedDigit()
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                if viewModel.lastVibratoRateHz > 0 && viewModel.lastDynamicsRangeDb > 0 {
+                    Divider()
+                        .frame(height: 30)
+                        .background(Color.borderGlass)
+                }
+                if viewModel.lastDynamicsRangeDb > 0 {
+                    VStack(alignment: .trailing, spacing: 3) {
+                        Text("셈여림 레인지")
+                            .font(.caption2)
+                            .foregroundColor(.textSecondary)
+                        Text(String(format: "%.1fdB", viewModel.lastDynamicsRangeDb))
+                            .font(.subheadline.weight(.bold))
+                            .foregroundColor(viewModel.lastDynamicsRangeDb >= 6 ? .vocalSuccess : .brandSecondary)
+                            .monospacedDigit()
+                    }
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            }
+            Text("비브라토 4.5~6.5Hz·±50~100¢ / 셈여림 6dB+ 가 목표 범위입니다")
+                .font(.caption2)
+                .foregroundColor(.textSecondary)
+        }
+        .glassCard(cornerRadius: 16, padding: 14)
+        .accessibilityElement(children: .combine)
+    }
 
     /// 성종(voice type) card: estimated type, why, and the personal
     /// passaggio zone the W3 routine targets.

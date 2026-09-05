@@ -697,6 +697,26 @@ public final class PitchTrackerViewModel {
             }
         }
 
+        // Sustain checks: keep the last measured technique fingerprints so
+        // the growth dashboard can show them (0 = not yet measured).
+        if mode == .vibrato,
+           let result = vibratoResult,
+           result.voicedFrames >= VocalLogic.VibratoAnalysis.minFrames {
+            let descriptor = FetchDescriptor<UserProfile>()
+            if let profile = (try? context.fetch(descriptor))?.first {
+                profile.lastVibratoRateHz = result.rateHz
+                profile.lastVibratoExtentCents = result.extentCents
+            }
+        }
+        if mode == .dynamics,
+           let result = dynamicsResult,
+           result.voicedFrames >= VocalLogic.DynamicsAnalysis.minFrames {
+            let descriptor = FetchDescriptor<UserProfile>()
+            if let profile = (try? context.fetch(descriptor))?.first {
+                profile.lastDynamicsRangeDb = result.rangeDb
+            }
+        }
+
         // Extend the stored vocal range when this session went beyond it.
         let descriptor = FetchDescriptor<UserProfile>()
         if let profile = (try? context.fetch(descriptor))?.first {

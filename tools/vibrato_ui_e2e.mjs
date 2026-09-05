@@ -116,6 +116,19 @@ ok("dynamics card title", (await page.locator("text=다이내믹스 아치").cou
 ok("dynamics badge 아치", (await page.locator("text=아치 완성").count()) >= 1);
 ok("dynamics coaching line", (await page.locator("text=한 호흡에 잡혔습니다").count()) >= 1);
 
+// 6. Growth dashboard: technique snapshot persists through Store.
+await page.evaluate(`(() => {
+  Store.data.lastVibratoRateHz = 5.4;
+  Store.data.lastVibratoExtentCents = 82;
+  Store.data.lastDynamicsRangeDb = 13.2;
+  Store.save();
+  go("progress");
+})()`);
+await page.waitForTimeout(200);
+ok("growth snapshot card", (await page.locator("text=테크닉 스냅샷").count()) >= 1);
+ok("growth snapshot vibrato value", (await page.locator("text=5.4Hz").count()) >= 1);
+ok("growth snapshot dynamics value", (await page.locator("text=13.2dB").count()) >= 1);
+
 await browser.close();
 
 console.log(checks.join("\n"));

@@ -278,6 +278,7 @@ const Store = {
  baseline:{lo:0, hi:0}, range:{lo:0, hi:0},
  sessions:[], pitchRecords:[], frozenDays:[], freezeTokens:2,
  favorites:[], prefs:{femaleKey:false, transpose:0, autoplay:true},
+ speechMedianHz:0, lastVibratoRateHz:0, lastVibratoExtentCents:0, lastDynamicsRangeDb:0,
  };
  },
  load(){
@@ -1568,9 +1569,13 @@ function finishVibratoCheck(){
  VIBRATO_CHECK.tips = vibratoFeedback(m);
  const score = vibratoScore(m);
  App.listening = false; Audio5.stopMic(); App.ignoreUntil = 0;
- if (App.voiced >= 10){
+  if (App.voiced >= 10){
   App.lastScore = score;
   App.lastGrade = score >= 90 ? "S" : score >= 80 ? "A" : score >= 70 ? "B" : score >= 60 ? "C" : "D";
+  if (m.voicedFrames >= VIB.MIN_FRAMES){
+   Store.data.lastVibratoRateHz = m.rateHz;
+   Store.data.lastVibratoExtentCents = m.extentCents;
+  }
   Store.data.pitchRecords.push({
    t: Date.now(), target: "비브라토 체크", acc: score,
    lo: App.lo, hi: App.hi, dur: Math.round((Date.now() - App.sessionStart) / 1000),
@@ -1609,9 +1614,12 @@ function finishDynamicsCheck(){
  DYNAMICS_CHECK.tips = dynamicsFeedback(m);
  const score = dynamicsScore(m);
  App.listening = false; Audio5.stopMic(); App.ignoreUntil = 0;
- if (App.voiced >= 10){
+  if (App.voiced >= 10){
   App.lastScore = score;
   App.lastGrade = score >= 90 ? "S" : score >= 80 ? "A" : score >= 70 ? "B" : score >= 60 ? "C" : "D";
+  if (m.voicedFrames >= DYN.MIN_FRAMES){
+   Store.data.lastDynamicsRangeDb = m.rangeDb;
+  }
   Store.data.pitchRecords.push({
    t: Date.now(), target: "다이내믹스 아치", acc: score,
    lo: App.lo, hi: App.hi, dur: Math.round((Date.now() - App.sessionStart) / 1000),
@@ -2088,6 +2096,18 @@ function screenProgress(){
   ${zone ? `<div class="cap2" style="color:var(--text-secondary);margin-top:6px;">성구전환(파사지오) 구간: ${nn(zone[0])} ~ ${nn(zone[1])}<br>3주차 루틴이 이 구간을 통과하도록 설계되어 있습니다.</div>` : ""}
   </div>`;
  })()}
+
+ ${(Store.data.lastVibratoRateHz > 0 || Store.data.lastDynamicsRangeDb > 0) ? `<div class="glass" style="margin:14px 20px 0;padding:16px;">
+ <div style="display:flex;align-items:center;">
+ <span class="caption" style="font-size:13px;font-weight:800;">테크닉 스냅샷 (최근 측정)</span><div style="flex:1"></div>
+ <span class="cap2" style="color:var(--text-secondary);">피치 트래커에서 측정</span></div>
+ <div style="display:flex;margin-top:8px;">
+ ${Store.data.lastVibratoRateHz > 0 ? `<div style="flex:1;"><div class="cap2" style="color:var(--text-secondary);">비브라토</div><div style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;">${Store.data.lastVibratoRateHz.toFixed(1)}Hz · ±${Math.round(Store.data.lastVibratoExtentCents)}¢</div></div>` : ""}
+ ${(Store.data.lastVibratoRateHz > 0 && Store.data.lastDynamicsRangeDb > 0) ? `<div style="width:1px;height:30px;background:rgba(255,255,255,.10);margin:0 12px;"></div>` : ""}
+ ${Store.data.lastDynamicsRangeDb > 0 ? `<div style="flex:1;text-align:${Store.data.lastVibratoRateHz > 0 ? "right" : "left"};"><div class="cap2" style="color:var(--text-secondary);">셈여림 레인지</div><div style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;">${Store.data.lastDynamicsRangeDb.toFixed(1)}dB</div></div>` : ""}
+ </div>
+ <div class="cap2" style="color:var(--text-secondary);margin-top:6px;">비브라토 4.5~6.5Hz·±50~100¢ / 셈여림 6dB+ 가 목표 범위입니다</div>
+ </div>` : ""}
 
  ${(() => {
   const summary = bestTakeSummary();

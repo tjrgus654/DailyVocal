@@ -38,6 +38,12 @@ public final class UserProfile {
     /// Habitual speech pitch in Hz (median over a 10s speaking sample).
     /// 0 = not yet measured.
     public var speechMedianFrequency: Double
+    /// Last vibrato check: oscillation rate in Hz (0 = not yet measured).
+    public var lastVibratoRateHz: Double = 0
+    /// Last vibrato check: extent in cents from the mean.
+    public var lastVibratoExtentCents: Double = 0
+    /// Last messa di voce check: dynamic range in dB.
+    public var lastDynamicsRangeDb: Double = 0
 
     // Progress
     public var currentWeek: Int           // 1...4

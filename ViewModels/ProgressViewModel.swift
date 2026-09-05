@@ -37,6 +37,11 @@ public final class ProgressViewModel {
     public private(set) var passaggioZone: ClosedRange<Int>? = nil
     /// Hz; 0 = speak-mode measurement not yet taken.
     public private(set) var speechMedianFrequency: Double = 0
+    /// Last vibrato check: rate in Hz. 0 = not yet measured.
+    public private(set) var lastVibratoRateHz: Double = 0
+    public private(set) var lastVibratoExtentCents: Double = 0
+    /// Last messa di voce check: dynamic range in dB. 0 = not yet measured.
+    public private(set) var lastDynamicsRangeDb: Double = 0
 
     public init() {
         heatmapDays = VocalLogic.buildEmptyHeatmap(dayCount: 84)
@@ -104,6 +109,9 @@ public final class ProgressViewModel {
             estimatedVoiceType = type
             passaggioZone = VocalLogic.passaggioZone(for: type)
             speechMedianFrequency = profile.speechMedianFrequency
+            lastVibratoRateHz = profile.lastVibratoRateHz
+            lastVibratoExtentCents = profile.lastVibratoExtentCents
+            lastDynamicsRangeDb = profile.lastDynamicsRangeDb
             streakFreezeTokens = profile.streakFreezeTokens
             hasMeasuredRange = profile.hasMeasuredRange
             baselineRangeText = "\(profile.baselineLowestNoteName) ~ \(profile.baselineHighestNoteName)"
