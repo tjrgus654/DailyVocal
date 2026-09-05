@@ -336,15 +336,17 @@ public struct VocalProgressView: View {
         return (game, reason)
     }
 
-    /// In-app tracker mode a recommended game maps to. Interval/ear games
-    /// live in the web prototype only — no in-app mode to switch to yet.
+    /// In-app tracker mode a recommended game maps to. All six games ship
+    /// in the app since the interval/ear port — every recommendation deep
+    /// links to its mode.
     private func trackerMode(for game: VocalLogic.GameType) -> PitchTrackerViewModel.TrackerMode? {
         switch game {
         case .vowel: return .vowel
         case .vibrato: return .vibrato
         case .dynamics: return .dynamics
         case .scale: return .scale
-        case .interval, .ear: return nil
+        case .interval: return .interval
+        case .ear: return .ear
         }
     }
 

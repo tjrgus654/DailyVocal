@@ -626,6 +626,15 @@ public enum VocalLogic {
         return 0
     }
 
+    /// The interval the user actually sang over `baseMidi`: rounded
+    /// difference between the median of the sung (fractional) midi values
+    /// and the base. nil when nothing was voiced in the window.
+    public static func performedSemitones(midiEstimates: [Double], baseMidi: Int) -> Int? {
+        guard !midiEstimates.isEmpty else { return nil }
+        let medianMidi = median(midiEstimates)
+        return Int((medianMidi - Double(baseMidi)).rounded())
+    }
+
     /// Coaching feedback for a wrong interval.
     public static func intervalFeedback(target: TrainingInterval, userSemitones: Int) -> String {
         let diff = userSemitones - target.semitones

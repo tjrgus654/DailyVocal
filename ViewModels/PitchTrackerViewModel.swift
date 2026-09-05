@@ -54,12 +54,15 @@ public final class PitchTrackerViewModel {
 
     // MARK: - Sustain-check state (vibrato / dynamics share the phase shape)
 
-    /// Shared phase machine for the guided sustained-note checks.
+    /// Shared phase machine for the guided sustained-note checks and the
+    /// ear-training answer wait.
     public enum SustainPhase: Equatable {
         case idle
         /// Waiting for the guide tone to finish before the record window opens.
         case guide
         case recording
+        /// Ear training: the two notes played, waiting for the answer buttons.
+        case waitingAnswer
         case done
     }
     public private(set) var vibratoPhase: SustainPhase = .idle
@@ -84,6 +87,34 @@ public final class PitchTrackerViewModel {
     /// Longest hold of the just-finished single-note session (seconds).
     public private(set) var lastSustainSeconds: Double = 0
     public private(set) var lastSustainTip: String?
+
+    // MARK: - Interval game state
+
+    public private(set) var intervalPhase: SustainPhase = .idle
+    public private(set) var intervalTarget: VocalLogic.TrainingInterval = .unison
+    public private(set) var intervalRoundIndex = 0
+    public private(set) var intervalScores: [Int] = []
+    public private(set) var lastIntervalFeedback: String?
+    private var intervalBaseMidi = 60
+    /// Fractional midis sung during the current record window.
+    private var intervalMidis: [Double] = []
+    private static let intervalDemoDuration = 0.9
+    private static let intervalDemoGap = 0.35
+    private static let intervalRecordDuration = 3.0
+
+    // MARK: - Ear training state
+
+    public private(set) var earPhase: SustainPhase = .idle
+    public private(set) var earTrial: (baseMidi: Int, offset: Int)?
+    public private(set) var earRoundIndex = 0
+    public let earTotalRounds = 10
+    public private(set) var earCorrect = 0
+    public private(set) var earLevel = min(3, max(1, UserDefaults.standard.integer(forKey: "earTrainingLevel") == 0 ? 1 : UserDefaults.standard.integer(forKey: "earTrainingLevel")))
+    private var earCorrectStreak = 0
+    private var earWrongStreak = 0
+    public private(set) var lastEarFeedback: String?
+    private static let earNoteDuration = 0.8
+    private static let earNoteGap = 0.5
 
     public var targetNoteName = "E4" {
         didSet { syncTargetFrequency() }
@@ -121,6 +152,8 @@ public final class PitchTrackerViewModel {
         case vibrato = "비브라토 체크"
         case dynamics = "다이내믹스 아치"
         case scale = "스케일 따라부르기"
+        case interval = "음정 게임"
+        case ear = "귀훈련"
         public var id: String { rawValue }
     }
     public var mode: TrackerMode = .single {
@@ -289,6 +322,10 @@ public final class PitchTrackerViewModel {
             startVibratoCheck()
         } else if mode == .dynamics {
             startDynamicsCheck()
+        } else if mode == .interval {
+            startIntervalGame()
+        } else if mode == .ear {
+            startEarGame()
         } else if mode == .speak {
             echoPhaseTask = Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .seconds(10))
@@ -335,6 +372,14 @@ public final class PitchTrackerViewModel {
         if mode == .dynamics {
             dynamicsPhase = .idle
             dynamicsAmps = []
+        }
+        if mode == .interval {
+            intervalPhase = .idle
+            intervalMidis = []
+        }
+        if mode == .ear {
+            earPhase = .idle
+            earTrial = nil
         }
         ignorePitchUntil = Date.distantPast
         audio.isSpectrumWanted = false
@@ -535,6 +580,172 @@ public final class PitchTrackerViewModel {
         persistSessionSummary()
     }
 
+    // MARK: - Interval game flow
+
+    /// Per round: base note + target note sound, then a 3 s window to sing
+    /// the SECOND note; the median sung midi becomes the performed interval.
+    private func startIntervalGame() {
+        echoGeneration += 1
+        let generation = echoGeneration
+        intervalPhase = .guide
+        intervalRoundIndex = 0
+        intervalScores = []
+        lastIntervalFeedback = nil
+        let rounds = VocalLogic.intervalRounds(level: echoLevel) { Int.random(in: 0..<1_000_000) }
+        LiveActivityManager.shared.startGameActivity(gameMode: "음정 게임", totalRounds: rounds.count)
+        playIntervalRound(rounds: rounds, generation: generation)
+    }
+
+    private func playIntervalRound(rounds: [VocalLogic.TrainingInterval], generation: Int) {
+        guard intervalRoundIndex < rounds.count else {
+            finishIntervalGame()
+            return
+        }
+        intervalTarget = rounds[intervalRoundIndex]
+        LiveActivityManager.shared.updateGameRound(intervalRoundIndex + 1, of: rounds.count)
+        intervalPhase = .guide
+        ignorePitchUntil = .distantFuture
+        echoPhaseTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.intervalBaseMidi = self.targetMidi
+            // 1) Demo: the base, a short gap, then the target note above it.
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.audio.playTone(
+                frequency: VocalAudioEngine.frequency(forMidi: Double(self.intervalBaseMidi)),
+                duration: Self.intervalDemoDuration, volume: 0.5)
+            try? await Task.sleep(for: .seconds(Self.intervalDemoDuration + Self.intervalDemoGap))
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.audio.playTone(
+                frequency: VocalAudioEngine.frequency(forMidi: Double(self.intervalBaseMidi + self.intervalTarget.semitones)),
+                duration: Self.intervalDemoDuration, volume: 0.5)
+            try? await Task.sleep(for: .seconds(Self.intervalDemoDuration + 0.3))
+            // 2) Record: 3 s to sing the target note alone.
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.intervalMidis = []
+            self.intervalPhase = .recording
+            self.ignorePitchUntil = Date()
+            try? await Task.sleep(for: .seconds(Self.intervalRecordDuration))
+            // 3) Score and advance.
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.scoreIntervalRound()
+            self.intervalRoundIndex += 1
+            self.playIntervalRound(rounds: rounds, generation: generation)
+        }
+    }
+
+    private func scoreIntervalRound() {
+        defer { intervalMidis = [] }
+        guard let performed = VocalLogic.performedSemitones(midiEstimates: intervalMidis, baseMidi: intervalBaseMidi) else {
+            intervalScores.append(0)
+            lastIntervalFeedback = "소리가 잡히지 않았어요 — 다음 라운드에서 두 번째 음을 또렷하게 불러주세요"
+            return
+        }
+        intervalScores.append(VocalLogic.intervalScore(target: intervalTarget, userSemitones: performed))
+        lastIntervalFeedback = VocalLogic.intervalFeedback(target: intervalTarget, userSemitones: performed)
+    }
+
+    private func finishIntervalGame() {
+        guard !intervalScores.isEmpty else { return }
+        accuracyScore = Double(intervalScores.reduce(0, +)) / Double(intervalScores.count)
+        lastSessionScore = Int(accuracyScore.rounded())
+        lastSessionGrade = VocalLogic.sessionGrade(forScore: lastSessionScore ?? 0)
+        lastSessionTargetLabel = VocalLogic.gameLabel(for: .interval)
+        haptics.routineCompleted()
+        isListening = false
+        LiveActivityManager.shared.endLiveActivity()
+        audio.stopMicrophone()
+        audio.onPitchUpdate = nil
+        persistSessionSummary()
+    }
+
+    // MARK: - Ear training flow
+
+    /// Pure listening game: two notes play, the user answers higher/same/
+    /// lower. Streak-based level progression, 10 trials per session.
+    private func startEarGame() {
+        echoGeneration += 1
+        let generation = echoGeneration
+        earPhase = .guide
+        earRoundIndex = 0
+        earCorrect = 0
+        earTrial = nil
+        lastEarFeedback = nil
+        LiveActivityManager.shared.startGameActivity(gameMode: "귀훈련", totalRounds: earTotalRounds)
+        playEarTrial(generation: generation)
+    }
+
+    private func playEarTrial(generation: Int) {
+        guard earRoundIndex < earTotalRounds else {
+            finishEarGame()
+            return
+        }
+        let trial = VocalLogic.earTrainingTrial(level: earLevel) { Int.random(in: 0..<1_000_000) }
+        earTrial = trial
+        earPhase = .guide
+        LiveActivityManager.shared.updateGameRound(earRoundIndex + 1, of: earTotalRounds)
+        echoPhaseTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.audio.playTone(
+                frequency: VocalAudioEngine.frequency(forMidi: Double(trial.baseMidi)),
+                duration: Self.earNoteDuration, volume: 0.5)
+            try? await Task.sleep(for: .seconds(Self.earNoteDuration + Self.earNoteGap))
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.audio.playTone(
+                frequency: VocalAudioEngine.frequency(forMidi: Double(trial.baseMidi + trial.offset)),
+                duration: Self.earNoteDuration, volume: 0.5)
+            try? await Task.sleep(for: .seconds(Self.earNoteDuration + 0.2))
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.earPhase = .waitingAnswer
+        }
+    }
+
+    /// Answer button handler (higher / same / lower).
+    public func answerEar(_ answer: VocalLogic.PitchComparison) {
+        guard mode == .ear, earPhase == .waitingAnswer, let trial = earTrial else { return }
+        haptics.buttonTap()
+        let correct = VocalLogic.earTrainingAnswer(offset: trial.offset) == answer
+        if correct {
+            earCorrect += 1
+            earCorrectStreak += 1
+            earWrongStreak = 0
+            lastEarFeedback = "정답! \(earCorrect)/\(earRoundIndex + 1)"
+        } else {
+            earWrongStreak += 1
+            earCorrectStreak = 0
+            lastEarFeedback = "아쉬워요 — 정답은 \(VocalLogic.earTrainingAnswer(offset: trial.offset).rawValue)"
+        }
+        let newLevel = VocalLogic.earTrainingLevel(
+            currentLevel: earLevel, correctStreak: earCorrectStreak, wrongStreak: earWrongStreak)
+        if newLevel != earLevel {
+            earLevel = newLevel
+            UserDefaults.standard.set(earLevel, forKey: "earTrainingLevel")
+        }
+        earPhase = .guide
+        earTrial = nil
+        earRoundIndex += 1
+        // Brief pause so the feedback is readable, then the next trial.
+        echoPhaseTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(1.1))
+            guard let self, !Task.isCancelled else { return }
+            self.playEarTrial(generation: self.echoGeneration)
+        }
+    }
+
+    private func finishEarGame() {
+        accuracyScore = Double(earCorrect) / Double(earTotalRounds) * 100.0
+        lastSessionScore = Int(accuracyScore.rounded())
+        lastSessionGrade = VocalLogic.sessionGrade(forScore: lastSessionScore ?? 0)
+        lastSessionTargetLabel = VocalLogic.gameLabel(for: .ear)
+        haptics.routineCompleted()
+        earPhase = .done
+        isListening = false
+        LiveActivityManager.shared.endLiveActivity()
+        audio.stopMicrophone()
+        audio.onPitchUpdate = nil
+        persistSessionSummary()
+    }
+
     // MARK: - Echo sequence flow
 
     private func generateEchoSequence() -> [Int] {
@@ -651,9 +862,9 @@ public final class PitchTrackerViewModel {
     /// Personalized difficulty: session history drives level transitions
     /// through VocalLogic.recommendedLevel (same rule the contract tests
     /// and the web prototype use), replacing the ad-hoc fail-streak.
-    /// Applies to both sequence drills: echo and scale sing-through.
+    /// Applies to the sequence drills: echo, scale, and interval games.
     private func updateEchoLevelIfNeeded(score: Int) {
-        guard mode == .echo || mode == .scale else { return }
+        guard mode == .echo || mode == .scale || mode == .interval else { return }
         lastEchoLevelDelta = nil
         echoHistory.append(score)
         let newLevel = VocalLogic.recommendedLevel(
@@ -702,6 +913,9 @@ public final class PitchTrackerViewModel {
         }
         if mode == .single {
             singleVoicedTimes.append(Date().timeIntervalSince1970)
+        }
+        if mode == .interval, intervalPhase == .recording {
+            intervalMidis.append(VocalAudioEngine.midiNumber(forFrequency: frequency))
         }
         if mode == .vowel {
             vowelMagnitudes.append(audio.currentMagnitudeSpectrum)

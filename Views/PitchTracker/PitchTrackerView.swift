@@ -100,6 +100,31 @@ public struct PitchTrackerView: View {
                             .foregroundColor(.brandSecondary)
                             .frame(maxWidth: .infinity)
                     }
+                    if viewModel.mode == .interval {
+                        let roundTotal = VocalLogic.intervalRounds(level: viewModel.echoLevel) { 0 }.count
+                        Text("라운드 \(min(viewModel.intervalRoundIndex + 1, roundTotal))/\(roundTotal) · 목표 간격: \(viewModel.intervalTarget.rawValue) — 두 번째 음을 따라 부르세요")
+                            .font(.caption2)
+                            .foregroundColor(.brandSecondary)
+                            .frame(maxWidth: .infinity)
+                        if let feedback = viewModel.lastIntervalFeedback {
+                            Text(feedback)
+                                .font(.caption2)
+                                .foregroundColor(.textSecondary)
+                                .multilineTextAlignment(.center)
+                        }
+                    }
+                    if viewModel.mode == .ear {
+                        Text("문제 \(min(viewModel.earRoundIndex + 1, viewModel.earTotalRounds))/\(viewModel.earTotalRounds) · 레벨 \(viewModel.earLevel) — 두 번째 음은 첫 번째 음보다?")
+                            .font(.caption2)
+                            .foregroundColor(.brandSecondary)
+                            .frame(maxWidth: .infinity)
+                        if let feedback = viewModel.lastEarFeedback {
+                            Text(feedback)
+                                .font(.caption2)
+                                .foregroundColor(.textSecondary)
+                                .multilineTextAlignment(.center)
+                        }
+                    }
                     if viewModel.mode == .dynamics {
                         Text(viewModel.dynamicsPhase == .guide
                              ? "기준음이 먼저 울립니다 — 그 음을 한 호흡으로 여리게 → 크게 → 여리게"
@@ -111,6 +136,11 @@ public struct PitchTrackerView: View {
                             .font(.caption2)
                             .foregroundColor(.brandSecondary)
                             .frame(maxWidth: .infinity)
+                    }
+
+                    if viewModel.mode == .ear,
+                       viewModel.earPhase == .waitingAnswer {
+                        earAnswerButtons
                     }
 
                     targetNoteSelectorBar
@@ -216,6 +246,28 @@ public struct PitchTrackerView: View {
 
     private func hapticTick() {
         HapticManager.shared.buttonTap()
+    }
+
+    /// Ear-training answer row: the two notes have played, now choose.
+    private var earAnswerButtons: some View {
+        HStack(spacing: 10) {
+            ForEach([VocalLogic.PitchComparison.higher, .same, .lower], id: \.self) { choice in
+                Button {
+                    viewModel.answerEar(choice)
+                } label: {
+                    Text(choice.rawValue)
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(LinearGradient.primaryButton)
+                        .clipShape(Capsule())
+                }
+                .accessibilityLabel("답변 \(choice.rawValue)")
+            }
+        }
+        .padding(.horizontal, 20)
     }
 
     // MARK: - Mode

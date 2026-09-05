@@ -72,7 +72,7 @@ check("timings", "note: 900" in scale_block and "gap: 250" in scale_block and "w
 check("scoring shares active target", '(App.trMode === "echo" || App.trMode === "scale")' in js
       and "mode == .echo || mode == .scale" in vm)
 check("level applies to scale", 'App.trMode === "echo" || App.trMode === "scale"' in js
-      and "guard mode == .echo || mode == .scale else" in vm)
+      and "guard mode == .echo || mode == .scale || mode == .interval else" in vm)
 
 import subprocess, json
 node_code = r"""

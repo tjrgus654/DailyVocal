@@ -576,3 +576,18 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 250 | CI 실측 결과: 통합 6테스트 중 비브라토 종단만 실패(rate=0·conf 중앙값 0) — 나머지 5종(버퍼·YIN·다이내믹스·포먼트·지속) 실측 통과 | CI가 포착 | |
 | 251 | 근본 원인: 합성기가 변조를 2π·f(t)·t로 계산 — f가 움직일 때 위상 불연속(파형 찢김) → YIN 주기성 붕괴(voiced 21%). Windows 스칼라 YIN 경로로 동일 재현(디버그 테스트) 후 위상 누적 적분으로 수정 | 재현·수정 | voiced 171/171·conf 0.99·rate 5.493Hz·ext 67.2¢·reg 0.96 |
 | 252 | 수정 커밋(e3b928b) CI: typecheck(macOS 119 테스트: 113+6 통합) + 시뮬레이터 스모크 | 2/2 success | Swift 오디오 파이프라인 마이크 이후 전 경로 실측 확정 |
+
+
+## 음정·귀훈련 게임 앱 이식 — 딥링크 6종 완성 (세션 15 — 2026-09-06)
+
+순수 로직(intervalRounds·intervalScore·earTrainingTrial·earTrainingLevel·레벨 규칙)은
+이미 VocalLogic에 있었고 웹 미러가 공유 중 — 갭은 VM 흐름과 UI뿐이었다.
+
+| # | 검증 행위 | 결과 | 증거/비고 |
+|---|---|---|---|
+| 253 | performedSemitones(녹음 미디 중앙값→반올림 음정) 신규 + 테스트 5종(유니즌·장3도·하행 옥타브·빈배열·이상치에 강한 중앙값) | swift 39/39 | 음정 게임 채점 입력 |
+| 254 | VM 음정 게임: 데모 2음(기준+목표) → 3s 녹음(두 번째 음만) → 중앙값 미디로 채점 → 방향 피드백 → 라운드 반복 | 구현 | 에코/스케일과 동일 세대 가드 패턴 |
+| 255 | VM 귀훈련: 2음 재생 → waitingAnswer 위상 → 답변 3버튼(answerEar) → earTrainingLevel 연속 규칙 → 10문제 · 레벨 UserDefaults 지속 | 구현 | 녹음 없는 순수 청음 |
+| 256 | 뷰: 게임 진행 캡션 2종 + 귀훈련 답변 버튼 행 + 딥링크 매핑 6종 완성(interval/ear → 모드) | 파스 48/48 | 편집 중 dynamics 캡션 오버라이드 사고 → grep으로 즉시 포착·복구 |
+| 257 | 에코 패리티 'level applies' 축 갱신(조건에 interval 추가 반영) | ALL PASS | 게이트가 조건 확장을 즉시 포착 |
+| 258 | verify_all 9게이트 + swift test 114(+1) + UI E2E 46/46(웹 회귀 없음) | ALL GREEN | |

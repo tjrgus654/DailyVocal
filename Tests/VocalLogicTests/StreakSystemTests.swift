@@ -350,6 +350,19 @@ final class StreakSystemTests: XCTestCase {
         XCTAssertEqual(VocalLogic.intervalFeedback(target: .unison, userSemitones: 0), "정확합니다")
     }
 
+    func testPerformedSemitonesFromSungMidis() {
+        // Precise unison: median 60.2 over base 60 rounds to 0.
+        XCTAssertEqual(VocalLogic.performedSemitones(midiEstimates: [60.1, 60.2, 60.3], baseMidi: 60), 0)
+        // A major third sung slightly flat: median ~63.7 rounds to 4.
+        XCTAssertEqual(VocalLogic.performedSemitones(midiEstimates: [63.5, 63.7, 63.8], baseMidi: 60), 4)
+        // Octave down: median 47.9 over base 60 rounds to -12.
+        XCTAssertEqual(VocalLogic.performedSemitones(midiEstimates: [47.8, 47.9, 48.0], baseMidi: 60), -12)
+        // Nothing voiced.
+        XCTAssertNil(VocalLogic.performedSemitones(midiEstimates: [], baseMidi: 60))
+        // Median (not mean) wins against a stray outlier frame.
+        XCTAssertEqual(VocalLogic.performedSemitones(midiEstimates: [67.0, 67.1, 67.2, 67.1, 12.0], baseMidi: 60), 7)
+    }
+
     func testEarTraining() {
         // L1 trials only have obvious gaps or unison.
         for _ in 0..<20 {
