@@ -348,6 +348,7 @@ public struct VocalProgressView: View {
         }
     }
 
+    @ViewBuilder
     private func nextGameCard(_ rec: (game: VocalLogic.GameType, reason: String)) -> some View {
         let targetMode = trackerMode(for: rec.game)
         let card = VStack(alignment: .leading, spacing: 8) {
@@ -379,7 +380,7 @@ public struct VocalProgressView: View {
         .accessibilityElement(children: .combine)
 
         if let mode = targetMode {
-            return Button {
+            Button {
                 AppRouter.shared.pendingTrackerMode = mode
                 AppRouter.shared.selectedTab = 1
             } label: {
@@ -387,7 +388,7 @@ public struct VocalProgressView: View {
             }
             .buttonStyle(.plain)
         } else {
-            return card
+            card
         }
     }
 
