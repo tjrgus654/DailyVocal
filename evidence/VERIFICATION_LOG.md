@@ -597,3 +597,4 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 262 | 온보딩 페이지 런치 인자 후크: --onboarding-page N(DEBUG 전용) — simctl이 스와이프 주입 불가해 페이지 도달의 유일한 CI 경로 | 파스 통과 | OnboardingView.initialOnboardingPage |
 | 263 | 시뮬레이터 스모크 CI에 5페이지 캡처·검증 스텝: terminate→launch(인자)→screenshot 루프 + 존재·30KB+(빈 화면 걸름)·해시 5상이(페이지 미렌더/중복 걸름) + 아티팩트 | 커밋 | 페이지 2(트래커 소개)가 고유 콘텐츠로 렌더됨을 증명 |
 | 264 | verify_all 9게이트 | ALL GREEN | |
+| 265 | 온보딩 5페이지 CI 검증 첫 실행(커밋 8bb3d81): "5 onboarding pages captured, all non-blank and distinct ✓" — 신규 트래커 소개 페이지(2)가 고유 콘텐츠로 렌더됨을 실증 + CI 2/2 성공 | 확정 | 시뮬레이터 iPhone 16 Pro |
