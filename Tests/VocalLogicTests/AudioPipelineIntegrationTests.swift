@@ -24,6 +24,10 @@ final class AudioPipelineIntegrationTests: XCTestCase {
     ) -> [Float] {
         let n = Int(seconds * sampleRate)
         var out = [Float](repeating: 0, count: n)
+        // Phase integration: vibrato is frequency modulation, so the phase
+        // must accumulate (2π·∫f dt). Using 2π·f(t)·t instead tears the
+        // waveform — YIN confidence collapses to 0 and nothing is voiced.
+        var phase = 0.0
         for i in 0..<n {
             let t = Double(i) / sampleRate
             let cents = vibratoRate > 0 ? vibratoCents * sin(2 * .pi * vibratoRate * t) : 0
@@ -37,8 +41,9 @@ final class AudioPipelineIntegrationTests: XCTestCase {
                 if f > 16_000 { break }
                 let harmonicGain = 1.0 / Double(h)
                 let formant = 1.0 + 3.0 * exp(-pow((f - 700) / 180, 2))
-                s += harmonicGain * formant * sin(2 * .pi * f * t + Double(h))
+                s += harmonicGain * formant * sin(phase * Double(h) + Double(h))
             }
+            phase += 2 * .pi * instF0 / sampleRate
             out[i] = Float(s * amp / 8)
         }
         return out
