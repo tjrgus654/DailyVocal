@@ -84,4 +84,47 @@ final class MelodyContourTests: XCTestCase {
         }
         XCTAssertEqual(phrase(0), phrase(1), "same roll sequence must give the same phrase")
     }
+
+    // MARK: - Dictation ladder (phrase length grows with level)
+
+    func testMelodyLengthLadder() {
+        XCTAssertEqual(VocalLogic.melodyLength(level: 1), 4)
+        XCTAssertEqual(VocalLogic.melodyLength(level: 2), 6)
+        XCTAssertEqual(VocalLogic.melodyLength(level: 3), 8)
+        // Clamped outside 1...3.
+        XCTAssertEqual(VocalLogic.melodyLength(level: 0), 4)
+        XCTAssertEqual(VocalLogic.melodyLength(level: 9), 8)
+    }
+
+    func testLadderPhraseShapes() {
+        // L3 arch (8 notes, roll 0): rise through 4, then fall — symmetric.
+        let arch8 = VocalLogic.melodyPhrase(contour: .arch, baseMidi: 60, roll: { 0 }, noteCount: 8)
+        XCTAssertEqual(arch8, [60, 61, 62, 63, 64, 63, 62, 61])
+        // L3 wave (8 notes): flip every two notes.
+        let wave8 = VocalLogic.melodyPhrase(contour: .wave, baseMidi: 60, roll: { 0 }, noteCount: 8)
+        XCTAssertEqual(wave8, [60, 61, 60, 59, 60, 61, 60, 59])
+        // L1 lengths apply to every contour.
+        for contour in VocalLogic.MelodyContour.allCases {
+            let phrase = VocalLogic.melodyPhrase(contour: contour, baseMidi: 60, roll: { 0 }, noteCount: 4)
+            XCTAssertEqual(phrase.count, 4, "\(contour)")
+        }
+        // Degenerate noteCount is floored at 2, never crashes.
+        XCTAssertEqual(VocalLogic.melodyPhrase(contour: .ascending, baseMidi: 60, roll: { 0 }, noteCount: 0).count, 2)
+    }
+
+    func testLadderPhrasesStayInBand() {
+        for level in 1...3 {
+            let length = VocalLogic.melodyLength(level: level)
+            for base in 43...72 {
+                for contour in VocalLogic.MelodyContour.allCases {
+                    let phrase = VocalLogic.melodyPhrase(
+                        contour: contour, baseMidi: base, roll: { 7 }, noteCount: length)
+                    XCTAssertEqual(phrase.count, length)
+                    XCTAssertEqual(phrase.first!, base, "\(contour) L\(level) from \(base)")
+                    XCTAssertTrue(phrase.allSatisfy { (43...72).contains($0) },
+                                  "\(contour) L\(level) from \(base): \(phrase)")
+                }
+            }
+        }
+    }
 }

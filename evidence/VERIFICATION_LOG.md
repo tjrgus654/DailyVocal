@@ -638,3 +638,18 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 282 | 패리티 9b: 9벡터(+melody 최약 1) + latest melody 축 + '7-entry score table' 축 | ALL PASS | 기존 벡터 3건 melody 열 부여로 동점 제거 |
 | 283 | E2E 55/55: 추천 벡터에 멜로디 76점 추가(미측정 동점 방지) — 첫 추천 vibrato·최약 dynamics·근거 문구·딥링크 전부 유지 확인 | 55/55 | |
 | 284 | verify_all 9게이트 | ALL GREEN | |
+
+
+## 멜로디 딕테이션 사다리 — 프레이즈 길이 점진 확장 (세션 19 — 2026-09-06)
+
+리서치 확정: Theta Music Trainer "3-4음 아주 짧은 조각으로 시작" + Teoria 단계(1-3음→1-5음→1-7음)
+— 합의 시퀀스(짧은 조각→5-7음→긴 프레이즈)와 4→6→8 사다리가 부합.
+
+| # | 검증 행위 | 결과 | 증거/비고 |
+|---|---|---|---|
+| 285 | melodyLength 래더(1→4·2→6·3→8, 클램프) + melodyPhrase에 noteCount 파라미터(기본값=컨투어 표준 길이라 기존 테스트 무손상, 최소 2 플로어) | 파스 통과 | arch/wave 로직은 길이 무관 일반화 이미 성립 |
+| 286 | 사다리 테스트 3종 신규: 래더 값·L3 8음 벡터(아치 대칭 [60..64..61]·웨이브 4회 반전)·전 레벨×전 컨투어×전 기저 밴드 준수(3×4×30 전수) | swift 11/11 | Tests/MelodyContourTests |
+| 287 | VM: startMelodyFlow가 melodyLength(level:) 적용 + 라벨 '멜로디 {컨투어} {n}음' · 웹 미러 동일(melodyLength + noteCount 인자) | JS OK | 캡션에 길이 노출 |
+| 288 | 에코 패리티에 dictation-ladder 축 2종(함수 존재·래더 값·noteCount 파라미터) | ALL PASS | |
+| 289 | E2E 58축(+3: 길이 래더 4/6/8·L3 아치 8음·L3 웨이브 8음) | 58/58 | |
+| 290 | verify_all 9게이트 | ALL GREEN | swift test 126/126(+3) |

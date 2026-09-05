@@ -1758,11 +1758,11 @@ function melodyContour(level, roll){
       : level === 2 ? pick(["arch", "wave"])
       : pick(Object.keys(MELODY_CONTOURS));
 }
-function melodyPhrase(contourKey, base, roll){
+function melodyPhrase(contourKey, base, roll, noteCount){
  roll = roll || (() => Math.floor(Math.random() * 1000));
  const cl = m => Math.min(72, Math.max(43, m));
  const step = () => 1 + Math.abs(roll()) % 4;
- const count = MELODY_CONTOURS[contourKey].count;
+ const count = Math.max(2, noteCount || MELODY_CONTOURS[contourKey].count);
  const phrase = [cl(base)];
  while (phrase.length < count){
   const prev = phrase[phrase.length - 1];
@@ -1780,14 +1780,19 @@ function melodyPhrase(contourKey, base, roll){
  }
  return phrase;
 }
+function melodyLength(level){
+ level = Math.min(3, Math.max(1, level));
+ return level === 1 ? 4 : level === 2 ? 6 : 8;
+}
 function startScaleFlow(){
  const patternKey = scalePattern(echoLevel());
  startSequenceDrillFlow(scaleSequence(App.target.midi, patternKey), SCALE_PATTERNS[patternKey].name);
 }
 function startMelodyFlow(){
  const contourKey = melodyContour(echoLevel());
- App._melodyLabel = "멜로디 " + MELODY_CONTOURS[contourKey].name;
- startSequenceDrillFlow(melodyPhrase(contourKey, App.target.midi), App._melodyLabel);
+ const length = melodyLength(echoLevel());
+ App._melodyLabel = "멜로디 " + MELODY_CONTOURS[contourKey].name + " " + length + "음";
+ startSequenceDrillFlow(melodyPhrase(contourKey, App.target.midi, null, length), App._melodyLabel);
 }
 // 스케일 래더·멜로디 프레이즈 공용: 데모 1회 → 노트마다 따라부르기 창
 function startSequenceDrillFlow(midis, label){

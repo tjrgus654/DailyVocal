@@ -1369,19 +1369,35 @@ public enum VocalLogic {
         }
     }
 
+    /// Dictation ladder: phrase length grows with the level — 4 → 6 → 8
+    /// notes. Pedagogy consensus (Theta Music Trainer "start with very short
+    /// fragments of three or four notes"; Teoria's 1-3 → 1-5 → 1-7 steps):
+    /// extend the phrase only as accuracy holds.
+    public static func melodyLength(level: Int) -> Int {
+        switch min(3, max(1, level)) {
+        case 1: return 4
+        case 2: return 6
+        default: return 8
+        }
+    }
+
     /// A phrase realizing the contour from `baseMidi`: constrained random
     /// steps (±1..4 semitones) that follow the contour direction, clamped
-    /// to the singing band. Deterministic under a fixed roll sequence.
+    /// to the singing band. `noteCount` defaults to the contour's standard
+    /// length; pass `melodyLength(level:)` to walk the dictation ladder.
+    /// Deterministic under a fixed roll sequence.
     public static func melodyPhrase(
         contour: MelodyContour, baseMidi: Int, roll: () -> Int,
+        noteCount: Int? = nil,
         band: ClosedRange<Int> = 43...72
     ) -> [Int] {
+        let length = max(2, noteCount ?? contour.noteCount)
         func clamped(_ m: Int) -> Int { min(band.upperBound, max(band.lowerBound, m)) }
         func step() -> Int { 1 + abs(roll()) % 4 }
 
         var phrase: [Int] = [clamped(baseMidi)]
         var up = true
-        for _ in 1..<contour.noteCount {
+        for _ in 1..<length {
             let previous = phrase[phrase.count - 1]
             var next: Int
             switch contour {
@@ -1390,7 +1406,7 @@ public enum VocalLogic {
             case .arch:
                 // Rise through the first half (inclusive midpoint), then
                 // fall — a symmetric arch.
-                up = phrase.count <= contour.noteCount / 2
+                up = phrase.count <= length / 2
                 next = previous + (up ? step() : -step())
             case .wave:
                 // Alternate direction every two notes.

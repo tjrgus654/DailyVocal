@@ -815,10 +815,13 @@ public final class PitchTrackerViewModel {
     /// and the echo level ladder with the scale drill.
     private func startMelodyFlow() {
         let contour = VocalLogic.melodyContour(level: echoLevel) { Int.random(in: 0..<1_000_000) }
-        melodyDrillLabel = "멜로디 \(contour.rawValue)"
+        let length = VocalLogic.melodyLength(level: echoLevel)
+        melodyDrillLabel = "멜로디 \(contour.rawValue) \(length)음"
         startSequenceDrill(
             midis: VocalLogic.melodyPhrase(
-                contour: contour, baseMidi: targetMidi, roll: { Int.random(in: 0..<1_000_000) }
+                contour: contour, baseMidi: targetMidi,
+                roll: { Int.random(in: 0..<1_000_000) },
+                noteCount: length
             ),
             gameMode: melodyDrillLabel
         )

@@ -64,6 +64,10 @@ check("patterns", '[0,2,4,7,9]' in js.replace(" ", "") and "[0, 2, 4, 7, 9]" in 
 check("major scale", '[0,2,4,5,7,9,11,12]' in js.replace(" ", "") and "[0, 2, 4, 5, 7, 9, 11, 12]" in sw)
 check("arpeggio", '[0,4,7,12,7,4,0]' in js.replace(" ", "") and "[0, 4, 7, 12, 7, 4, 0]" in sw)
 check("level->pattern", 'level === 1 ? "pentatonicUp"' in js and "case 1: return .pentatonicUp" in sw)
+check("dictation length ladder", "function melodyLength" in js and "func melodyLength" in sw
+      and "level === 1 ? 4 : level === 2 ? 6 : 8" in js and "case 1: return 4" in sw)
+check("noteCount param", "melodyPhrase(contourKey, base, roll, noteCount)" in js
+      and "noteCount: Int? = nil" in sw)
 check("band clamp", "Math.min(72, Math.max(43, m))" in js and "min(band.upperBound, max(band.lowerBound" in sw)
 check("one demo pass", "SCALE_T" in js and "scaleNoteDuration" in vm)
 scale_block = js[js.find("const SCALE_T"):js.find("function startScaleFlow")]

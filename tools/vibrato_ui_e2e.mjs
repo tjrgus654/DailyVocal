@@ -252,6 +252,10 @@ const melody = await page.evaluate(`(() => {
   const ladder = melodyContour(1, () => 0) === "ascending"
     && melodyContour(2, () => 0) === "arch"
     && melodyContour(9, () => 1) === "descending";
+  const lengthLadder = melodyLength(1) === 4 && melodyLength(2) === 6
+    && melodyLength(3) === 8 && melodyLength(9) === 8;
+  const arch8 = melodyPhrase("arch", 60, () => 0, 8);
+  const wave8 = melodyPhrase("wave", 60, () => 0, 8);
   return {
     asc: JSON.stringify(asc) === JSON.stringify([60, 61, 62, 63]),
     desc: JSON.stringify(desc) === JSON.stringify([67, 66, 65, 64]),
@@ -259,6 +263,9 @@ const melody = await page.evaluate(`(() => {
     wave: JSON.stringify(wave) === JSON.stringify([60, 61, 60, 59, 60, 61]),
     clamp: clamped.every(m => m >= 43 && m <= 72),
     ladder,
+    lengthLadder,
+    arch8: JSON.stringify(arch8) === JSON.stringify([60, 61, 62, 63, 64, 63, 62, 61]),
+    wave8: JSON.stringify(wave8) === JSON.stringify([60, 61, 60, 59, 60, 61, 60, 59]),
   };
 })()`);
 ok("melody ascending", melody.asc);
@@ -267,6 +274,9 @@ ok("melody symmetric arch", melody.arch);
 ok("melody wave alternates", melody.wave);
 ok("melody band clamp", melody.clamp);
 ok("melody level ladder", melody.ladder);
+ok("melody length ladder 4/6/8", melody.lengthLadder);
+ok("melody L3 arch 8 notes", melody.arch8);
+ok("melody L3 wave 8 notes", melody.wave8);
 const melodyFlow = await page.evaluate(`(() => {
   App.echo.gen++;
   startMelodyFlow();
