@@ -106,6 +106,22 @@ public struct PitchTrackerView: View {
                             .foregroundColor(.textSecondary)
                             .frame(maxWidth: .infinity)
                     }
+                    if viewModel.mode == .harmony {
+                        Text(viewModel.harmonyPhase == .guide
+                             ? "드론이 울립니다 — 끝나면 그 음의 \(viewModel.harmonyPart.rawValue) 화음을 길게 유지하세요"
+                             : (viewModel.harmonyPhase == .recording
+                                ? "지금 \(viewModel.harmonyPart.rawValue) 음을 길게 — 드론은 끊겼어도 화음을 그리세요"
+                                : "측정 완료 — 결과를 확인하세요"))
+                            .font(.caption2)
+                            .foregroundColor(.brandSecondary)
+                            .frame(maxWidth: .infinity)
+                        if let tip = viewModel.lastHarmonyTip {
+                            Text(tip)
+                                .font(.caption2)
+                                .foregroundColor(.textSecondary)
+                                .multilineTextAlignment(.center)
+                        }
+                    }
                     if viewModel.mode == .interval {
                         let roundTotal = VocalLogic.intervalRounds(level: viewModel.echoLevel) { 0 }.count
                         Text("라운드 \(min(viewModel.intervalRoundIndex + 1, roundTotal))/\(roundTotal) · 목표 간격: \(viewModel.intervalTarget.rawValue) — 두 번째 음을 따라 부르세요")

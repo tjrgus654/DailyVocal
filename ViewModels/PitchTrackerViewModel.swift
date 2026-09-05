@@ -88,6 +88,18 @@ public final class PitchTrackerViewModel {
     public private(set) var lastSustainSeconds: Double = 0
     public private(set) var lastSustainTip: String?
 
+    // MARK: - Harmony check state
+
+    public private(set) var harmonyPhase: SustainPhase = .idle
+    public private(set) var harmonyPart: VocalLogic.HarmonyPart = .thirdAbove
+    public private(set) var lastHarmonyTip: String?
+    /// Cents deviation from the harmony target during the record window.
+    private var harmonyCents: [Double] = []
+    /// Active harmony target (drone base + part offset).
+    public private(set) var harmonyTargetMidi = 0
+    private static let harmonyDroneDuration = 2.0
+    private static let harmonyRecordDuration = 3.5
+
     // MARK: - Interval game state
 
     public private(set) var intervalPhase: SustainPhase = .idle
@@ -153,6 +165,7 @@ public final class PitchTrackerViewModel {
         case dynamics = "다이내믹스 아치"
         case scale = "스케일 따라부르기"
         case melody = "멜로디 따라부르기"
+        case harmony = "화음 부르기"
         case interval = "음정 게임"
         case ear = "귀훈련"
         public var id: String { rawValue }
@@ -182,7 +195,10 @@ public final class PitchTrackerViewModel {
 
     /// Target the scoring/display should follow right now.
     public var activeTargetMidi: Int {
-        [.echo, .scale, .melody].contains(mode) && !echoTargetMidis.isEmpty
+        if mode == .harmony && harmonyTargetMidi > 0 {
+            return harmonyTargetMidi
+        }
+        return [.echo, .scale, .melody].contains(mode) && !echoTargetMidis.isEmpty
             ? echoTargetMidis[min(activeEchoIndex, echoTargetMidis.count - 1)]
             : targetMidi
     }
@@ -341,6 +357,8 @@ public final class PitchTrackerViewModel {
             startScaleFlow()
         } else if mode == .melody {
             startMelodyFlow()
+        } else if mode == .harmony {
+            startHarmonyCheck()
         } else if isListenFirstMode {
             // Ear-training flow: hear the target twice first, then sing with
             // the visuals hidden (revealed on stop).
@@ -387,6 +405,11 @@ public final class PitchTrackerViewModel {
         if mode == .ear {
             earPhase = .idle
             earTrial = nil
+        }
+        if mode == .harmony {
+            harmonyPhase = .idle
+            harmonyCents = []
+            harmonyTargetMidi = 0
         }
         ignorePitchUntil = Date.distantPast
         audio.isSpectrumWanted = false
@@ -580,6 +603,66 @@ public final class PitchTrackerViewModel {
         haptics.routineCompleted()
         // Same ownership pattern as the vowel/vibrato finishes: end here so a
         // later stopTracking() cannot overwrite the dynamics score.
+        isListening = false
+        LiveActivityManager.shared.endLiveActivity()
+        audio.stopMicrophone()
+        audio.onPitchUpdate = nil
+        persistSessionSummary()
+    }
+
+    /// Harmony sing-along: a 2 s drone sounds, then the user holds the
+    /// part (e.g. a third above) over silence — the cents deviation of the
+    /// held note from the harmony target is the score basis.
+    private func startHarmonyCheck() {
+        echoGeneration += 1
+        let generation = echoGeneration
+        let part = VocalLogic.harmonyPart(level: echoLevel) { Int.random(in: 0..<1_000_000) }
+        harmonyPart = part
+        harmonyTargetMidi = VocalLogic.harmonyTarget(baseMidi: targetMidi, part: part)
+        harmonyPhase = .guide
+        harmonyCents = []
+        lastHarmonyTip = nil
+        ignorePitchUntil = .distantFuture
+        LiveActivityManager.shared.startGameActivity(gameMode: "화음 부르기", totalRounds: 1)
+        LiveActivityManager.shared.updateGameRound(1, of: 1)
+
+        echoPhaseTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            // 1) Drone: the base note sustains 2 s through the speaker.
+            self.audio.playTone(
+                frequency: VocalAudioEngine.frequency(forMidi: Double(self.targetMidi)),
+                duration: Self.harmonyDroneDuration,
+                volume: 0.5
+            )
+            try? await Task.sleep(for: .seconds(Self.harmonyDroneDuration + 0.4))
+            // 2) Sing: hold the part over silence for 3.5 s.
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.harmonyPhase = .recording
+            self.ignorePitchUntil = Date()
+            try? await Task.sleep(for: .seconds(Self.harmonyRecordDuration))
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.finishHarmonyCheck()
+        }
+    }
+
+    private func finishHarmonyCheck() {
+        harmonyPhase = .done
+        lastSessionTargetLabel = "화음 부르기"
+        if harmonyCents.isEmpty {
+            lastSessionScore = nil
+            lastSessionGrade = ""
+            lastHarmonyTip = "소리가 잡히지 않았어요 — 드론이 끝난 뒤 \(harmonyPart.rawValue) 음을 길게 유지해주세요"
+            isListening = false
+            LiveActivityManager.shared.endLiveActivity()
+            audio.stopMicrophone()
+            audio.onPitchUpdate = nil
+            return
+        }
+        let medianCents = VocalLogic.median(harmonyCents)
+        lastHarmonyTip = VocalLogic.harmonyFeedback(part: harmonyPart, cents: medianCents)
+        lastSessionScore = Int(accuracyScore.rounded())
+        lastSessionGrade = VocalLogic.sessionGrade(forScore: lastSessionScore ?? 0)
+        haptics.routineCompleted()
         isListening = false
         LiveActivityManager.shared.endLiveActivity()
         audio.stopMicrophone()
@@ -954,6 +1037,9 @@ public final class PitchTrackerViewModel {
         }
         if mode == .interval, intervalPhase == .recording {
             intervalMidis.append(VocalAudioEngine.midiNumber(forFrequency: frequency))
+        }
+        if mode == .harmony, harmonyPhase == .recording {
+            harmonyCents.append(cents)
         }
         if mode == .vowel {
             vowelMagnitudes.append(audio.currentMagnitudeSpectrum)

@@ -1441,6 +1441,53 @@ public enum VocalLogic {
         }
     }
 
+    // MARK: - Harmony sing-along (drone + part)
+
+    /// Sing a harmony part over a sustained drone note — the drill the
+    /// r/singing community asks for ("practice singing above and below a
+    /// melody") and the sheet-music-free gap Harmony Helper leaves open.
+    public enum HarmonyPart: String, CaseIterable {
+        case thirdAbove = "장3도 위"
+        case thirdBelow = "장3도 아래"
+        case fifthAbove = "완전5도 위"
+        case fifthBelow = "완전5도 아래"
+
+        public var offset: Int {
+            switch self {
+            case .thirdAbove: return 4
+            case .thirdBelow: return -4
+            case .fifthAbove: return 7
+            case .fifthBelow: return -7
+            }
+        }
+    }
+
+    /// Part ladder per level: L1 thirds, L2 fifths, L3 any direction.
+    public static func harmonyPart(level: Int, roll: () -> Int) -> HarmonyPart {
+        func pick<T>(_ pool: [T]) -> T { pool[abs(roll()) % pool.count] }
+        switch min(3, max(1, level)) {
+        case 1: return pick([.thirdAbove, .thirdBelow])
+        case 2: return pick([.fifthAbove, .fifthBelow])
+        default: return pick(Array(HarmonyPart.allCases))
+        }
+    }
+
+    /// Target midi for singing the part over `baseMidi`, clamped to the
+    /// singing band; the base stays when the target would leave the band
+    /// (the drill shifts the base instead at the caller's discretion).
+    public static func harmonyTarget(baseMidi: Int, part: HarmonyPart, band: ClosedRange<Int> = 43...72) -> Int {
+        min(band.upperBound, max(band.lowerBound, baseMidi + part.offset))
+    }
+
+    /// Coaching for the sung deviation (cents) from the harmony target.
+    public static func harmonyFeedback(part: HarmonyPart, cents: Double) -> String {
+        if abs(cents) <= 15 { return "화음이 맞았습니다 — \(part.rawValue) 성부가 정확해요" }
+        if abs(cents) <= 50 { return "거의 다 왔어요 — \(part.rawValue)에서 \(Int(abs(cents).rounded()))센트 차이" }
+        return cents > 0
+            ? "높게 나갔어요 — \(part.rawValue)보다 아래로 조정해보세요"
+            : "낮게 나갔어요 — \(part.rawValue)보다 위로 조정해보세요"
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.

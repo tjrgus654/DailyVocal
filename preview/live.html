@@ -1454,7 +1454,7 @@ function screenTracker(){
  </div>
 
  <div class="glass" style="margin:10px 20px 0;padding:8px 12px;display:flex;gap:8px;border-radius:14px;">
- ${[["single","단음"],["echo","에코"],["speak","말하기"],["vowel","모음"],["interval","음정"],["ear","귀훈련"],["vibrato","비브라토"],["dynamics","셈여림"],["scale","스케일"],["melody","멜로디"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')" role="button" tabindex="0" aria-label="모드 ${label}">${label}</span>`).join("")}
+ ${[["single","단음"],["echo","에코"],["speak","말하기"],["vowel","모음"],["interval","음정"],["ear","귀훈련"],["vibrato","비브라토"],["dynamics","셈여림"],["scale","스케일"],["melody","멜로디"],["harmony","화음"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')" role="button" tabindex="0" aria-label="모드 ${label}">${label}</span>`).join("")}
  </div>
 
  ${App.trMode==='vowel'&&VOWEL_GAME.active?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">라운드 ${Math.min(VOWEL_GAME.idx + 1, VOWEL_GAME.rounds.length)}/${VOWEL_GAME.rounds.length} · 목표 모음: ${VOWEL_GAME.target || "-"}${VOWEL_GAME.tips.length ? "<br><span style='color:var(--text-secondary);font-weight:400;'>" + VOWEL_GAME.tips[0] + "</span>" : ""}</div>`:""}
@@ -1471,6 +1471,7 @@ function screenTracker(){
  ${App.trMode==='echo'?`<div class="cap2" style="text-align:center;color:var(--text-secondary);margin:8px 0 0;">에코 난이도 ${echoLevel()}단계 · ${echoLevel()>=3?"최고 난이도입니다":"성공하면 이동 폭이 넓어져요"}</div>`:""}
  ${App.trMode==='scale'?`<div class="cap2" style="text-align:center;color:var(--text-secondary);margin:8px 0 0;">패턴: ${SCALE_PATTERNS[scalePattern(echoLevel())].name} · 시작음 ${App.target.name} — 데모 후 노트마다 따라 부르세요${echoLevel()>=3?"":" · 성공하면 다음 단계 패턴으로"}</div>`:""}
  ${App.trMode==='melody'?`<div class="cap2" style="text-align:center;color:var(--text-secondary);margin:8px 0 0;">프레이즈: ${App._melodyLabel || "멜로디"} — 데모를 듣고 노트마다 따라 불러보세요</div>`:""}
+ ${App.trMode==='harmony'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${HARMONY_CHECK.phase==='guide'?`드론이 울립니다 — 끝나면 그 음의 ${HARMONY_PARTS[HARMONY_CHECK.partKey||"thirdAbove"].name} 화음을 길게 유지하세요`:(HARMONY_CHECK.phase==='recording'?`지금 ${HARMONY_PARTS[HARMONY_CHECK.partKey||"thirdAbove"].name} 음을 길게 — 드론은 끊겼어도 화음을 그리세요`:"측정 완료 — 결과를 확인하세요")}</div>`:""}
  ${App.trMode==='vibrato'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${VIBRATO_CHECK.phase==='guide'?"기준음이 먼저 울립니다 — 같은 음을 5초간 길게 끌며 비브라토를 넣어보세요":(VIBRATO_CHECK.phase==='recording'?"지금 길게 '아~' — 목소리를 자연스럽게 흔들어보세요":(VIBRATO_CHECK.result?"측정 완료 — 결과 카드를 확인하세요":"시작하면 기준음이 울립니다 — 그 음을 길게 끌며 비브라토를 넣어보세요"))}</div>`:""}
  ${App.trMode==='dynamics'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${DYNAMICS_CHECK.phase==='guide'?"기준음이 먼저 울립니다 — 그 음을 한 호흡으로 여리게 → 크게 → 여리게":(DYNAMICS_CHECK.phase==='recording'?"지금 '아~'를 여리게 시작해 점점 크게, 다시 여리게 — 숨을 아껴가며":(DYNAMICS_CHECK.result?"측정 완료 — 아래 아치 결과를 확인하세요":"메사 디 보체: 한 음을 셈→여림으로 부풀렸다가 줄이는 왕도 훈련입니다"))}</div>`:""}
 
@@ -1594,6 +1595,7 @@ function setA4(d){
 }
 window.setA4 = setA4;
 function activeTarget(){
+ if (App.trMode === "harmony" && HARMONY_CHECK.targetMidi > 0) return HARMONY_CHECK.targetMidi;
  if (["echo", "scale", "melody"].includes(App.trMode) && App.echo.midis.length)
  return App.echo.midis[Math.min(App.echo.idx, App.echo.midis.length - 1)];
  return App.target.midi;
@@ -1804,6 +1806,73 @@ function melodyLength(level){
  level = Math.min(3, Math.max(1, level));
  return level === 1 ? 4 : level === 2 ? 6 : 8;
 }
+// ── 화음 부르기 (Swift VocalLogic.HarmonyPart 미러) ──────────────────
+// 드론(지속 기준음) 위에 3도/5도 성부를 부르는 드릴 — 악보 없는 화성 연습.
+const HARMONY_PARTS = {
+ thirdAbove: { name: "장3도 위", offset: 4 },
+ thirdBelow: { name: "장3도 아래", offset: -4 },
+ fifthAbove: { name: "완전5도 위", offset: 7 },
+ fifthBelow: { name: "완전5도 아래", offset: -7 },
+};
+function harmonyPart(level, roll){
+ roll = roll || (() => Math.floor(Math.random() * 1000));
+ level = Math.min(3, Math.max(1, level));
+ const pick = pool => pool[Math.abs(roll()) % pool.length];
+ return level === 1 ? pick(["thirdAbove", "thirdBelow"])
+      : level === 2 ? pick(["fifthAbove", "fifthBelow"])
+      : pick(Object.keys(HARMONY_PARTS));
+}
+function harmonyTarget(base, partKey){
+ return Math.min(72, Math.max(43, base + HARMONY_PARTS[partKey].offset));
+}
+function harmonyFeedback(partKey, cents){
+ if (Math.abs(cents) <= 15) return `화음이 맞았습니다 — ${HARMONY_PARTS[partKey].name} 성부가 정확해요`;
+ if (Math.abs(cents) <= 50) return `거의 다 왔어요 — ${HARMONY_PARTS[partKey].name}에서 ${Math.round(Math.abs(cents))}센트 차이`;
+ return cents > 0
+  ? `높게 나갔어요 — ${HARMONY_PARTS[partKey].name}보다 아래로 조정해보세요`
+  : `낮게 나갔어요 — ${HARMONY_PARTS[partKey].name}보다 위로 조정해보세요`;
+}
+const HARMONY_CHECK = { phase: "idle", partKey: null, cents: [], timers: [], targetMidi: 0 };
+function startHarmonyCheck(){
+ App.echo.gen++;
+ const gen = App.echo.gen;
+ HARMONY_CHECK.partKey = harmonyPart(echoLevel());
+ HARMONY_CHECK.targetMidi = harmonyTarget(App.target.midi, HARMONY_CHECK.partKey);
+ HARMONY_CHECK.phase = "guide";
+ HARMONY_CHECK.cents = [];
+ HARMONY_CHECK.timers.forEach(clearTimeout); HARMONY_CHECK.timers = [];
+ App.ignoreUntil = Infinity;
+ // 드론 2초 → 3.5초 녹음(드론 없이 성부 유지)
+ HARMONY_CHECK.timers.push(setTimeout(() => {
+  if (gen !== App.echo.gen) return;
+  Audio5.playTone(midiToFreq(App.target.midi), 2.0, 0.5);
+ }, 0));
+ HARMONY_CHECK.timers.push(setTimeout(() => {
+  if (gen !== App.echo.gen) return;
+  HARMONY_CHECK.phase = "recording"; App.ignoreUntil = 0; render();
+ }, 2400));
+ HARMONY_CHECK.timers.push(setTimeout(() => { finishHarmonyCheck(); }, 2400 + 3500));
+}
+function finishHarmonyCheck(){
+ if (!App.listening) return;
+ HARMONY_CHECK.timers.forEach(clearTimeout); HARMONY_CHECK.timers = [];
+ HARMONY_CHECK.phase = "done";
+ App.listening = false; Audio5.stopMic(); App.ignoreUntil = 0;
+ if (HARMONY_CHECK.cents.length >= 5){
+  const sorted = HARMONY_CHECK.cents.slice().sort((a, b) => a - b);
+  const m = sorted[Math.floor(sorted.length / 2)];
+  const tip = harmonyFeedback(HARMONY_CHECK.partKey, m);
+  App.lastScore = Math.round(App.hits / Math.max(1, App.voiced) * 100);
+  App.lastGrade = App.lastScore >= 90 ? "S" : App.lastScore >= 80 ? "A" : App.lastScore >= 70 ? "B" : App.lastScore >= 60 ? "C" : "D";
+  Store.data.pitchRecords.push({ t: Date.now(), target: "화음 부르기", acc: App.lastScore,
+   lo: App.lo, hi: App.hi, dur: Math.round((Date.now() - App.sessionStart) / 1000) });
+  Store.save();
+  toast(`화음 부르기 <b style="font-size:20px;">${App.lastScore}점</b><br><span style="font-size:12px;color:var(--text-secondary);">${tip}</span>`, 3800);
+ } else {
+  toast("소리가 잡히지 않았어요 — 드론이 끝난 뒤 화음 음을 길게 유지해주세요", 3400);
+ }
+ render();
+}
 function startScaleFlow(){
  const patternKey = scalePattern(echoLevel());
  startSequenceDrillFlow(scaleSequence(App.target.midi, patternKey), SCALE_PATTERNS[patternKey].name);
@@ -1897,11 +1966,17 @@ async function startTracking(){
  } else if (App.trMode === "echo") startEchoFlow();
  else if (App.trMode === "scale") startScaleFlow();
  else if (App.trMode === "melody") startMelodyFlow();
+ else if (App.trMode === "harmony") startHarmonyCheck();
 }
 function stopTracking(){
  if (VOWEL_GAME.active){ VOWEL_GAME.active = false; VOWEL_GAME.idx = 99; App.listening = false; Audio5.stopMic(); render(); return; }
  if (INTERVAL_GAME.active){ INTERVAL_GAME.active = false; INTERVAL_GAME.idx = 999; App.listening = false; Audio5.stopMic(); render(); return; }
  if (EAR_GAME.active){ EAR_GAME.active = false; EAR_GAME.trial = null; Audio5.stopMic(); render(); return; }
+ if (HARMONY_CHECK.phase === "guide" || HARMONY_CHECK.phase === "recording"){
+  HARMONY_CHECK.timers.forEach(clearTimeout); HARMONY_CHECK.timers = [];
+  HARMONY_CHECK.phase = "idle"; HARMONY_CHECK.cents = []; HARMONY_CHECK.targetMidi = 0;
+  App.listening = false; Audio5.stopMic(); App.ignoreUntil = 0; render(); return;
+ }
  if (VIBRATO_CHECK.phase === "guide" || VIBRATO_CHECK.phase === "recording"){
   VIBRATO_CHECK.timers.forEach(clearTimeout); VIBRATO_CHECK.timers = [];
   VIBRATO_CHECK.phase = "idle"; VIBRATO_CHECK.times = []; VIBRATO_CHECK.freqs = [];
@@ -1980,6 +2055,9 @@ function trackerPitchHandler(f, note, cents, voiced){
  if (App.trMode === "speak"){ (App._speakFreqs = App._speakFreqs || []).push(f); }
  if (App.trMode === "single"){
   (App._sustainTimes = App._sustainTimes || []).push(Date.now() / 1000);
+ }
+ if (App.trMode === "harmony" && HARMONY_CHECK.phase === "recording"){
+  HARMONY_CHECK.cents.push(cents);
  }
  if (App.trMode === "vibrato" && VIBRATO_CHECK.phase === "recording"){
   VIBRATO_CHECK.times.push(Date.now() / 1000); VIBRATO_CHECK.freqs.push(f);

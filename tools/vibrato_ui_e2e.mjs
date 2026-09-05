@@ -29,7 +29,7 @@ const ok = (name, cond, detail = "") => {
 
 // 1. Mode chip exists and switches.
 const chipCount = await page.locator('.chip[onclick^="setTrMode"]').count();
-ok("mode chips rendered", chipCount === 10, `count=${chipCount}`);
+ok("mode chips rendered", chipCount === 11, `count=${chipCount}`);
 await page.click('span.chip[onclick="setTrMode(\'vibrato\')"]');
 ok("vibrato mode selected", await page.evaluate("App.trMode") === "vibrato");
 await page.waitForTimeout(200);
@@ -313,6 +313,42 @@ await page.waitForTimeout(200);
 ok("tempo bar visible in scale mode", (await page.locator("text=프레이즈 템포").count()) >= 1);
 const bpmAfter = await page.evaluate(`(() => { setDrillBpm(5); return drillBpm(); })()`);
 ok("tempo stepper raises BPM", bpmAfter === 55, String(bpmAfter));
+
+// 13. Harmony sing-along: part offsets, ladder, target clamp, feedback
+// bands, and the drone->record flow gating.
+const harmony = await page.evaluate(`(() => {
+  const ladder = harmonyPart(1, () => 0) === "thirdAbove"
+    && harmonyPart(2, () => 0) === "fifthAbove"
+    && harmonyPart(9, () => 3) === "fifthBelow";
+  return {
+    offsets: HARMONY_PARTS.thirdAbove.offset === 4 && HARMONY_PARTS.fifthBelow.offset === -7,
+    ladder,
+    target: harmonyTarget(60, "thirdAbove") === 64 && harmonyTarget(60, "fifthBelow") === 53
+      && harmonyTarget(70, "fifthAbove") === 72 && harmonyTarget(45, "thirdBelow") === 43,
+    fbHit: harmonyFeedback("thirdAbove", 8).includes("맞았습니다"),
+    fbNear: harmonyFeedback("fifthAbove", -30).includes("센트 차이"),
+    fbHigh: harmonyFeedback("thirdBelow", 90).includes("아래로"),
+    fbLow: harmonyFeedback("fifthBelow", -90).includes("위로"),
+  };
+})()`);
+ok("harmony part offsets", harmony.offsets);
+ok("harmony level ladder", harmony.ladder);
+ok("harmony target + clamp", harmony.target);
+ok("harmony feedback hit band", harmony.fbHit);
+ok("harmony feedback near band", harmony.fbNear);
+ok("harmony feedback direction high", harmony.fbHigh);
+ok("harmony feedback direction low", harmony.fbLow);
+const harmonyFlow = await page.evaluate(`(() => {
+  App.echo.gen++;
+  startHarmonyCheck();
+  const okGated = App.ignoreUntil === Infinity && HARMONY_CHECK.targetMidi > 0
+    && HARMONY_CHECK.phase === "guide";
+  HARMONY_CHECK.timers.forEach(clearTimeout);
+  HARMONY_CHECK.phase = "idle"; HARMONY_CHECK.cents = []; HARMONY_CHECK.targetMidi = 0;
+  App.echo.gen++; App.ignoreUntil = 0; App.listening = false;
+  return okGated;
+})()`);
+ok("harmony flow gates + target", harmonyFlow);
 
 await browser.close();
 
