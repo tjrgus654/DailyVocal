@@ -202,6 +202,33 @@ const evidence = await page.evaluate(`(() => {
 ok("evidence picks weakest vibrato", evidence.game === "vibrato", evidence.game);
 ok("evidence cites measurement", evidence.reason.includes("3.8Hz") && evidence.reason.includes("워블"), evidence.reason);
 
+// 9d. Harmony direction bias in the evidence line.
+const harmEv = await page.evaluate(`(() => {
+  Store.data.harmonyAboveCents = 22;
+  Store.data.harmonyBelowCents = -5;
+  Store.save();
+  render();
+  return recommendationEvidence("harmony", 40, 0, 0, 0, 22, -5);
+})()`);
+ok("harmony evidence names weaker direction",
+   harmEv.includes("위") && harmEv.includes("+22센트") && harmEv.includes("내려서"), harmEv);
+const harmEv2 = await page.evaluate(`(() => {
+  Store.data.harmonyAboveCents = 8;
+  Store.data.harmonyBelowCents = -30;
+  Store.save();
+  render();
+  return recommendationEvidence("harmony", 40, 0, 0, 0, 8, -30);
+})()`);
+ok("harmony evidence flips to below when flatter",
+   harmEv2.includes("아래") && harmEv2.includes("−30센트") && harmEv2.includes("올려서"), harmEv2);
+// Reset so later phases start clean.
+await page.evaluate(`(() => {
+  Store.data.harmonyAboveCents = 0;
+  Store.data.harmonyBelowCents = 0;
+  Store.save();
+  render();
+})()`)
+
 // 9b. Recommendation deep link: tapping the card jumps to the tracker tab
 // with the recommended mode pre-selected.
 await page.locator('[onclick^="startRecommended"]').first().click();

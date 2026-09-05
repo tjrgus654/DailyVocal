@@ -44,6 +44,9 @@ public final class ProgressViewModel {
     public private(set) var lastDynamicsRangeDb: Double = 0
     /// Longest single-note hold ever recorded, in seconds. 0 = not yet measured.
     public private(set) var bestSustainSeconds: Double = 0
+    /// Signed cents bias of the last harmony check per direction.
+    public private(set) var harmonyAboveCents: Double = 0
+    public private(set) var harmonyBelowCents: Double = 0
 
     public init() {
         heatmapDays = VocalLogic.buildEmptyHeatmap(dayCount: 84)
@@ -115,6 +118,8 @@ public final class ProgressViewModel {
             lastVibratoExtentCents = profile.lastVibratoExtentCents
             lastDynamicsRangeDb = profile.lastDynamicsRangeDb
             bestSustainSeconds = profile.bestSustainSeconds
+            harmonyAboveCents = profile.harmonyAboveCents
+            harmonyBelowCents = profile.harmonyBelowCents
             streakFreezeTokens = profile.streakFreezeTokens
             hasMeasuredRange = profile.hasMeasuredRange
             baselineRangeText = "\(profile.baselineLowestNoteName) ~ \(profile.baselineHighestNoteName)"

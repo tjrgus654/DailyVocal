@@ -518,6 +518,20 @@ final class StreakSystemTests: XCTestCase {
         XCTAssertTrue(VocalLogic.recommendationEvidence(
             game: .dynamics, latestAccuracy: 40, dynamicsRangeDb: 9.0
         ).contains("정점 배치"))
+        // Harmony direction bias: the larger |bias| direction wins the line.
+        let sharpAbove = VocalLogic.recommendationEvidence(
+            game: .harmony, latestAccuracy: 40, harmonyAboveCents: 22, harmonyBelowCents: -5)
+        XCTAssertTrue(sharpAbove.contains("위") && sharpAbove.contains("+22센트") && sharpAbove.contains("내려서"))
+        let flatBelow = VocalLogic.recommendationEvidence(
+            game: .harmony, latestAccuracy: 40, harmonyAboveCents: 8, harmonyBelowCents: -30)
+        XCTAssertTrue(flatBelow.contains("아래") && flatBelow.contains("−30센트") && flatBelow.contains("올려서"))
+        let accurate = VocalLogic.recommendationEvidence(
+            game: .harmony, latestAccuracy: 40, harmonyAboveCents: -10, harmonyBelowCents: 0)
+        XCTAssertTrue(accurate.contains("정확해요"))
+        // No harmony fingerprint -> score fallback.
+        XCTAssertEqual(
+            VocalLogic.recommendationEvidence(game: .harmony, latestAccuracy: 44),
+            "최근 점수 44점 — 가장 약한 훈련부터 보완해요")
         // No fingerprint -> score fallback.
         XCTAssertEqual(
             VocalLogic.recommendationEvidence(game: .vibrato, latestAccuracy: 42),

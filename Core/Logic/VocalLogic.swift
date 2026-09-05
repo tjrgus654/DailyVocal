@@ -1316,7 +1316,8 @@ public enum VocalLogic {
     public static func recommendationEvidence(
         game: GameType, latestAccuracy: Int?,
         vibratoRateHz: Double = 0, vibratoExtentCents: Double = 0,
-        dynamicsRangeDb: Double = 0
+        dynamicsRangeDb: Double = 0,
+        harmonyAboveCents: Double = 0, harmonyBelowCents: Double = 0
     ) -> String {
         switch game {
         case .vibrato where vibratoRateHz > 0:
@@ -1336,6 +1337,18 @@ public enum VocalLogic {
             return dynamicsRangeDb < 6
                 ? "최근 셈여림 레인지 \(db)dB — 목표 6dB+까지 폭을 키워요"
                 : "최근 셈여림 레인지 \(db)dB — 정점 배치와 매끄러움을 다듬어요"
+        case .harmony where harmonyAboveCents != 0 || harmonyBelowCents != 0:
+            // Name the weaker direction (larger |bias|) with its tendency.
+            let above = abs(harmonyAboveCents) >= abs(harmonyBelowCents) && harmonyAboveCents != 0
+            let cents = above ? harmonyAboveCents : harmonyBelowCents
+            let direction = above ? "위" : "아래"
+            let magnitude = Int(abs(cents).rounded())
+            if magnitude <= 15 {
+                return "최근 \(direction) 성부는 ±\(magnitude)센트 — 정확해요. 반대 성부도 시도해봐요"
+            }
+            return cents > 0
+                ? "최근 \(direction) 성부에서 +\(magnitude)센트 높게 나가요 — 살짝 내려서 맞춰봐요"
+                : "최근 \(direction) 성부에서 −\(magnitude)센트 낮게 나가요 — 살짝 올려서 맞춰봐요"
         default:
             break
         }

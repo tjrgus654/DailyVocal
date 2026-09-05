@@ -335,7 +335,9 @@ public struct VocalProgressView: View {
             game: game, latestAccuracy: latest[game],
             vibratoRateHz: viewModel.lastVibratoRateHz,
             vibratoExtentCents: viewModel.lastVibratoExtentCents,
-            dynamicsRangeDb: viewModel.lastDynamicsRangeDb)
+            dynamicsRangeDb: viewModel.lastDynamicsRangeDb,
+            harmonyAboveCents: viewModel.harmonyAboveCents,
+            harmonyBelowCents: viewModel.harmonyBelowCents)
         return (game, reason)
     }
 

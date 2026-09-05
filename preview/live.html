@@ -279,6 +279,7 @@ const Store = {
  sessions:[], pitchRecords:[], frozenDays:[], freezeTokens:2,
  favorites:[], prefs:{femaleKey:false, transpose:0, autoplay:true},
  speechMedianHz:0, lastVibratoRateHz:0, lastVibratoExtentCents:0, lastDynamicsRangeDb:0, bestSustainSeconds:0,
+ harmonyAboveCents:0, harmonyBelowCents:0,
  };
  },
  load(){
@@ -931,7 +932,8 @@ function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame, vibratoAcc, 
  }
  return scores[0][0];
 }
-function recommendationEvidence(game, latestAcc, vibRate, vibExt, dynDb){
+function recommendationEvidence(game, latestAcc, vibRate, vibExt, dynDb, above, below){
+ above = above || 0; below = below || 0;
  if (game === "vibrato" && vibRate > 0){
   const rate = vibRate.toFixed(1);
   if (vibRate < 4.5) return `최근 측정 속도 ${rate}Hz — 느린 워블 구간입니다. 4.5~6.5Hz로 좁혀가요`;
@@ -946,6 +948,16 @@ function recommendationEvidence(game, latestAcc, vibRate, vibExt, dynDb){
   return dynDb < 6
    ? `최근 셈여림 레인지 ${db}dB — 목표 6dB+까지 폭을 키워요`
    : `최근 셈여림 레인지 ${db}dB — 정점 배치와 매끄러움을 다듬어요`;
+ }
+ if (game === "harmony" && (above !== 0 || below !== 0)){
+  const isAbove = Math.abs(above) >= Math.abs(below) && above !== 0;
+  const cents = isAbove ? above : below;
+  const dir = isAbove ? "위" : "아래";
+  const mag = Math.round(Math.abs(cents));
+  if (mag <= 15) return `최근 ${dir} 성부는 ±${mag}센트 — 정확해요. 반대 성부도 시도해봐요`;
+  return cents > 0
+   ? `최근 ${dir} 성부에서 +${mag}센트 높게 나가요 — 살짝 내려서 맞춰봐요`
+   : `최근 ${dir} 성부에서 −${mag}센트 낮게 나가요 — 살짝 올려서 맞춰봐요`;
  }
  if (latestAcc != null) return `최근 점수 ${latestAcc}점 — 가장 약한 훈련부터 보완해요`;
  return "아직 시도하지 않은 훈련 — 먼저 한 번 측정해 기준점을 만들어요";
@@ -975,7 +987,8 @@ function nextGameRecommendation(){
  const reason = recommendationEvidence(
   game, latest[game] ?? null,
   Store.data.lastVibratoRateHz || 0, Store.data.lastVibratoExtentCents || 0,
-  Store.data.lastDynamicsRangeDb || 0);
+  Store.data.lastDynamicsRangeDb || 0,
+  Store.data.harmonyAboveCents || 0, Store.data.harmonyBelowCents || 0);
  return { game, name: GAME_NAMES[game], reason };
 }
 function bestTakeSummary(){
@@ -1881,6 +1894,8 @@ function finishHarmonyCheck(){
  if (HARMONY_CHECK.cents.length >= 5){
   const sorted = HARMONY_CHECK.cents.slice().sort((a, b) => a - b);
   const m = sorted[Math.floor(sorted.length / 2)];
+  if (HARMONY_PARTS[HARMONY_CHECK.partKey].offset > 0) Store.data.harmonyAboveCents = m;
+  else Store.data.harmonyBelowCents = m;
   const tip = harmonyFeedback(HARMONY_CHECK.partKey, m);
   App.lastScore = Math.round(App.hits / Math.max(1, App.voiced) * 100);
   App.lastGrade = App.lastScore >= 90 ? "S" : App.lastScore >= 80 ? "A" : App.lastScore >= 70 ? "B" : App.lastScore >= 60 ? "C" : "D";

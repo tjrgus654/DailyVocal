@@ -689,6 +689,15 @@ public final class PitchTrackerViewModel {
         LiveActivityManager.shared.endLiveActivity()
         audio.stopMicrophone()
         audio.onPitchUpdate = nil
+        // Direction bias feeds the recommendation evidence line.
+        let descriptor = FetchDescriptor<UserProfile>()
+        if let profile = (try? modelContext?.fetch(descriptor))?.first {
+            if harmonyPart.offset > 0 {
+                profile.harmonyAboveCents = medianCents
+            } else {
+                profile.harmonyBelowCents = medianCents
+            }
+        }
         persistSessionSummary()
     }
 
