@@ -763,6 +763,7 @@ public enum VocalLogic {
         case dynamics = "셈여림"
         case scale = "스케일"
         case melody = "멜로디"
+        case harmony = "화음"
     }
 
     /// Session labels the games persist under (PitchRecord.targetNoteName /
@@ -777,6 +778,7 @@ public enum VocalLogic {
         case .dynamics: return "다이내믹스 아치"
         case .scale: return "스케일 시퀀스"
         case .melody: return "멜로디 프레이즈"
+        case .harmony: return "화음 부르기"
         }
     }
 
@@ -799,6 +801,7 @@ public enum VocalLogic {
         vowelAccuracy: Int?, intervalAccuracy: Int?, earAccuracy: Int?,
         vibratoAccuracy: Int? = nil, dynamicsAccuracy: Int? = nil,
         scaleAccuracy: Int? = nil, melodyAccuracy: Int? = nil,
+        harmonyAccuracy: Int? = nil,
         lastGame: GameType?
     ) -> GameType {
         var scores: [(GameType, Int)] = []
@@ -809,6 +812,7 @@ public enum VocalLogic {
         scores.append((.dynamics, dynamicsAccuracy ?? 50))
         scores.append((.scale, scaleAccuracy ?? 50))
         scores.append((.melody, melodyAccuracy ?? 50))
+        scores.append((.harmony, harmonyAccuracy ?? 50))
         // Sort ascending (weakest first), ties broken by declaration order.
         scores.sort { $0.1 < $1.1 }
         // If the weakest is the last game played AND the second-weakest is

@@ -693,3 +693,14 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 304 | 웹 미러: HARMONY_PARTS/흐름/센트 수집/중단 정리/캡션 + 칩 11개 | JS OK | |
 | 305 | E2E 73축(+8: 오프셋·래더·타겟 클램프·피드백 4밴드·플로우 게이팅) | 73/73 | L9 래더 기대치 roll 오기 1회 수정 |
 | 306 | verify_all 9게이트 | ALL GREEN | swift test 135/135(+4) |
+
+
+## 화음 추천 편입 — 8종 완성 (세션 23 — 2026-09-06)
+
+| # | 검증 행위 | 결과 | 증거/비고 |
+|---|---|---|---|
+| 307 | GameType 8종(harmony) + gameLabel '화음 부르기'(세션 라벨과 이미 일치 — 이번엔 정렬 무필요) + recommendNextGame 8엔트리(기본값 하위호환) | swift 40/40 | harmony 최약 케이스 + latest 화음 라벨 추가 |
+| 308 | 미측정(50) 동점 재구성: Swift 벡터 4곳 + 패리티 9b 10벡터(harmony 열) + E2E seed에 화음 73점 | 전수 통과 | 기존 8엔트리 벡터 전수 재검 |
+| 309 | 웹 미러: GAME_LABELS/NAMES·8엔트리·전달·딥링크 modeMap에 harmony(8종) | JS OK | |
+| 310 | E2E 타임스탬프 결함 2건 발견·수정: recWeakest push t:6 동률으로 lastGame=최약(dynamics)이 되어 variety가 scale 반환(t:8로) · 9c push t:7이 t:8 push보다 앞이라 최신 vibrato가 74로 덮힘(t:9로) — latestAccuracies의 '시간순 마지막 승리' 규칙 학습 | 73/73 | 진단 스크립트로 근본 원인 격리 |
+| 311 | verify_all 9게이트 + swift test 135 + E2E 73/73 | ALL GREEN | |
