@@ -19,7 +19,7 @@ public struct OnboardingView: View {
 
     public init() {}
 
-    private let pageCount = 4
+    private let pageCount = 5
 
     public var body: some View {
         ZStack {
@@ -31,8 +31,9 @@ public struct OnboardingView: View {
                 TabView(selection: $currentPage) {
                     welcomePage.tag(0)
                     analogyPage.tag(1)
-                    RangeTestPage(rangeTest: rangeTest).tag(2)
-                    preferencesPage.tag(3)
+                    modesPage.tag(2)
+                    RangeTestPage(rangeTest: rangeTest).tag(3)
+                    preferencesPage.tag(4)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .always))
 
@@ -158,6 +159,34 @@ public struct OnboardingView: View {
                 .foregroundColor(.white)
 
             Text("복잡한 성대 해부학 용어 대신,\n몸으로 바로 느껴지는 감각으로 노래합니다.")
+                .font(.body)
+                .multilineTextAlignment(.center)
+                .foregroundColor(.textSecondary)
+                .padding(.horizontal, 32)
+
+            Spacer()
+            Spacer()
+        }
+    }
+
+    /// Page 3: the nine tracker modes, so a new user knows the app is more
+    /// than a pitch meter — technique meters and games live one tab away.
+    private var modesPage: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            VStack(spacing: 14) {
+                analogyCard(emoji: "🎯", title: "음정 훈련", desc: "단음 유지 · 에코 3음 · 스케일 따라부르기 — 피치를 정확히 맞추는 기본기")
+                analogyCard(emoji: "〰️", title: "테크닉 계측", desc: "비브라토 체크(속도·진폭) · 셈여림 아치 — 내 목소리의 숫자를 처음으로 봅니다")
+                analogyCard(emoji: "🎮", title: "귀 훈련 게임", desc: "모음 · 음정 · 높낮이 판별 — 듣는 근육도 함께 기릅니다")
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 12)
+
+            Text("측정이 모이는 피치 트래커")
+                .font(.screenTitle)
+                .foregroundColor(.white)
+
+            Text("연습할수록 '오늘의 추천 훈련'이\n내 취약점을 먼저 골라줍니다.")
                 .font(.body)
                 .multilineTextAlignment(.center)
                 .foregroundColor(.textSecondary)
