@@ -558,3 +558,5 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 241 | UI E2E 46축(+딥링크 2축: 탭 전환 + 모드 사전 선택 — 렌더 후 최신 추천 클릭 보장) | 46/46 | |
 | 242 | 스트릭 패리티 node 실패 → 블록에 window.startRecommended 대입 포함으로 샌드박스 window 누락 판별·수정 | ALL PASS | 게이트가 신규 export 즉시 포착 |
 | 243 | verify_all 9게이트 | ALL GREEN | |
+| 244 | CI 실패 → 원인 판별: nextGameCard 조건분기가 Button<Card> vs Card로 서로 다른 opaque 타입 반환 — 로컬 swift-frontend -parse는 구문만 검사해 이 간극을 못 잡음(iOS SDK 타입체크가 유일한 타입 게이트) | CI가 포착 | @ViewBuilder 전환으로 수정(커밋 a4037c9) |
+| 245 | 수정 커밋 CI: iOS typecheck + 시뮬레이터 스모크 | 2/2 success | 갭 메모: 뷰 코드 opaque 타입 변경 시 CI 확인 필수 |
