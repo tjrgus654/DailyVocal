@@ -29,7 +29,7 @@ const ok = (name, cond, detail = "") => {
 
 // 1. Mode chip exists and switches.
 const chipCount = await page.locator('.chip[onclick^="setTrMode"]').count();
-ok("mode chips rendered", chipCount === 9, `count=${chipCount}`);
+ok("mode chips rendered", chipCount === 10, `count=${chipCount}`);
 await page.click('span.chip[onclick="setTrMode(\'vibrato\')"]');
 ok("vibrato mode selected", await page.evaluate("App.trMode") === "vibrato");
 await page.waitForTimeout(200);
@@ -237,6 +237,45 @@ const flowOk = await page.evaluate(`(() => {
   return gated;
 })()`);
 ok("scale flow gates + sequence", flowOk);
+
+// 11. Melody call-and-response: contour phrases, deterministic vectors,
+// and the shared drill flow.
+const melody = await page.evaluate(`(() => {
+  const r0 = () => 0;
+  const asc = melodyPhrase("ascending", 60, r0);
+  const desc = melodyPhrase("descending", 67, r0);
+  const arch = melodyPhrase("arch", 60, r0);
+  const wave = melodyPhrase("wave", 60, r0);
+  const r7 = () => 7;
+  const clamped = melodyPhrase("arch", 69, r7);
+  const ladder = melodyContour(1, () => 0) === "ascending"
+    && melodyContour(2, () => 0) === "arch"
+    && melodyContour(9, () => 1) === "descending";
+  return {
+    asc: JSON.stringify(asc) === JSON.stringify([60, 61, 62, 63]),
+    desc: JSON.stringify(desc) === JSON.stringify([67, 66, 65, 64]),
+    arch: JSON.stringify(arch) === JSON.stringify([60, 61, 62, 63, 62, 61]),
+    wave: JSON.stringify(wave) === JSON.stringify([60, 61, 60, 59, 60, 61]),
+    clamp: clamped.every(m => m >= 43 && m <= 72),
+    ladder,
+  };
+})()`);
+ok("melody ascending", melody.asc);
+ok("melody descending", melody.desc);
+ok("melody symmetric arch", melody.arch);
+ok("melody wave alternates", melody.wave);
+ok("melody band clamp", melody.clamp);
+ok("melody level ladder", melody.ladder);
+const melodyFlow = await page.evaluate(`(() => {
+  App.echo.gen++;
+  startMelodyFlow();
+  const ok = App.ignoreUntil === Infinity && App.echo.midis.length >= 4
+    && (App._melodyLabel || "").startsWith("멜로디 ");
+  App.echo.timers.forEach(clearTimeout);
+  App.echo.gen++; App.echo.midis = []; App.ignoreUntil = 0; App.listening = false;
+  return ok;
+})()`);
+ok("melody flow gates + label", melodyFlow);
 
 await browser.close();
 

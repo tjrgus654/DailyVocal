@@ -1452,7 +1452,7 @@ function screenTracker(){
  </div>
 
  <div class="glass" style="margin:10px 20px 0;padding:8px 12px;display:flex;gap:8px;border-radius:14px;">
- ${[["single","단음"],["echo","에코"],["speak","말하기"],["vowel","모음"],["interval","음정"],["ear","귀훈련"],["vibrato","비브라토"],["dynamics","셈여림"],["scale","스케일"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')" role="button" tabindex="0" aria-label="모드 ${label}">${label}</span>`).join("")}
+ ${[["single","단음"],["echo","에코"],["speak","말하기"],["vowel","모음"],["interval","음정"],["ear","귀훈련"],["vibrato","비브라토"],["dynamics","셈여림"],["scale","스케일"],["melody","멜로디"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')" role="button" tabindex="0" aria-label="모드 ${label}">${label}</span>`).join("")}
  </div>
 
  ${App.trMode==='vowel'&&VOWEL_GAME.active?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">라운드 ${Math.min(VOWEL_GAME.idx + 1, VOWEL_GAME.rounds.length)}/${VOWEL_GAME.rounds.length} · 목표 모음: ${VOWEL_GAME.target || "-"}${VOWEL_GAME.tips.length ? "<br><span style='color:var(--text-secondary);font-weight:400;'>" + VOWEL_GAME.tips[0] + "</span>" : ""}</div>`:""}
@@ -1468,6 +1468,7 @@ function screenTracker(){
  </div>`:""}
  ${App.trMode==='echo'?`<div class="cap2" style="text-align:center;color:var(--text-secondary);margin:8px 0 0;">에코 난이도 ${echoLevel()}단계 · ${echoLevel()>=3?"최고 난이도입니다":"성공하면 이동 폭이 넓어져요"}</div>`:""}
  ${App.trMode==='scale'?`<div class="cap2" style="text-align:center;color:var(--text-secondary);margin:8px 0 0;">패턴: ${SCALE_PATTERNS[scalePattern(echoLevel())].name} · 시작음 ${App.target.name} — 데모 후 노트마다 따라 부르세요${echoLevel()>=3?"":" · 성공하면 다음 단계 패턴으로"}</div>`:""}
+ ${App.trMode==='melody'?`<div class="cap2" style="text-align:center;color:var(--text-secondary);margin:8px 0 0;">프레이즈: ${App._melodyLabel || "멜로디"} — 데모를 듣고 노트마다 따라 불러보세요</div>`:""}
  ${App.trMode==='vibrato'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${VIBRATO_CHECK.phase==='guide'?"기준음이 먼저 울립니다 — 같은 음을 5초간 길게 끌며 비브라토를 넣어보세요":(VIBRATO_CHECK.phase==='recording'?"지금 길게 '아~' — 목소리를 자연스럽게 흔들어보세요":(VIBRATO_CHECK.result?"측정 완료 — 결과 카드를 확인하세요":"시작하면 기준음이 울립니다 — 그 음을 길게 끌며 비브라토를 넣어보세요"))}</div>`:""}
  ${App.trMode==='dynamics'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${DYNAMICS_CHECK.phase==='guide'?"기준음이 먼저 울립니다 — 그 음을 한 호흡으로 여리게 → 크게 → 여리게":(DYNAMICS_CHECK.phase==='recording'?"지금 '아~'를 여리게 시작해 점점 크게, 다시 여리게 — 숨을 아껴가며":(DYNAMICS_CHECK.result?"측정 완료 — 아래 아치 결과를 확인하세요":"메사 디 보체: 한 음을 셈→여림으로 부풀렸다가 줄이는 왕도 훈련입니다"))}</div>`:""}
 
@@ -1585,7 +1586,7 @@ function setA4(d){
 }
 window.setA4 = setA4;
 function activeTarget(){
- if ((App.trMode === "echo" || App.trMode === "scale") && App.echo.midis.length)
+ if (["echo", "scale", "melody"].includes(App.trMode) && App.echo.midis.length)
  return App.echo.midis[Math.min(App.echo.idx, App.echo.midis.length - 1)];
  return App.target.midi;
 }
@@ -1740,16 +1741,63 @@ function scaleSequence(base, patternKey){
  return SCALE_PATTERNS[patternKey].offsets.map(o => cl(base + o));
 }
 const SCALE_T = { note: 900, gap: 250, window: 1800 };
+// ── 멜로디 따라부르기 / 콜 앤 리스폰스 (Swift MelodyContour 미러) ──
+const MELODY_CONTOURS = {
+ ascending: { name: "상행", count: 4 },
+ descending: { name: "하행", count: 4 },
+ arch: { name: "아치", count: 6 },
+ wave: { name: "물결", count: 6 },
+};
+function melodyContour(level, roll){
+ roll = roll || (() => Math.floor(Math.random() * 1000));
+ level = Math.min(3, Math.max(1, level));
+ const pick = pool => pool[Math.abs(roll()) % pool.length];
+ return level === 1 ? pick(["ascending", "descending"])
+      : level === 2 ? pick(["arch", "wave"])
+      : pick(Object.keys(MELODY_CONTOURS));
+}
+function melodyPhrase(contourKey, base, roll){
+ roll = roll || (() => Math.floor(Math.random() * 1000));
+ const cl = m => Math.min(72, Math.max(43, m));
+ const step = () => 1 + Math.abs(roll()) % 4;
+ const count = MELODY_CONTOURS[contourKey].count;
+ const phrase = [cl(base)];
+ while (phrase.length < count){
+  const prev = phrase[phrase.length - 1];
+  let next;
+  if (contourKey === "ascending") next = prev + step();
+  else if (contourKey === "descending") next = prev - step();
+  else if (contourKey === "arch"){
+   const up = phrase.length <= count / 2;
+   next = prev + (up ? step() : -step());
+  } else {
+   const up = Math.floor(phrase.length / 2) % 2 === 0;
+   next = prev + (up ? step() : -step());
+  }
+  phrase.push(cl(next));
+ }
+ return phrase;
+}
 function startScaleFlow(){
+ const patternKey = scalePattern(echoLevel());
+ startSequenceDrillFlow(scaleSequence(App.target.midi, patternKey), SCALE_PATTERNS[patternKey].name);
+}
+function startMelodyFlow(){
+ const contourKey = melodyContour(echoLevel());
+ App._melodyLabel = "멜로디 " + MELODY_CONTOURS[contourKey].name;
+ startSequenceDrillFlow(melodyPhrase(contourKey, App.target.midi), App._melodyLabel);
+}
+// 스케일 래더·멜로디 프레이즈 공용: 데모 1회 → 노트마다 따라부르기 창
+function startSequenceDrillFlow(midis, label){
  App.echo.gen++;
  const gen = App.echo.gen;
- const patternKey = scalePattern(echoLevel());
- App.echo.midis = scaleSequence(App.target.midi, patternKey);
+ App.echo.midis = midis;
  App.echo.idx = 0;
  App.echo.timers = [];
+ App._seqDrillLabel = label;
  App.ignoreUntil = Infinity;
  let delay = 0;
- // 데모 1회 — 스케일은 예측 가능하므로 한 번이면 충분
+ // 데모 1회 — 프레이즈는 예측 가능하므로 한 번이면 충분
  App.echo.midis.forEach(m => {
   const at = delay;
   App.echo.timers.push(setTimeout(() => {
@@ -1820,6 +1868,7 @@ async function startTracking(){
   App._speakTimer = setTimeout(() => { if (App.listening) stopTracking(); }, 10000);
  } else if (App.trMode === "echo") startEchoFlow();
  else if (App.trMode === "scale") startScaleFlow();
+ else if (App.trMode === "melody") startMelodyFlow();
 }
 function stopTracking(){
  if (VOWEL_GAME.active){ VOWEL_GAME.active = false; VOWEL_GAME.idx = 99; App.listening = false; Audio5.stopMic(); render(); return; }
@@ -1862,7 +1911,7 @@ function stopTracking(){
  }
  // 성공 게이트 난이도: 80%+ 승급, 2연속 50% 미만 강급 (에코·스케일 공용)
  let levelMsg = "";
- if (App.trMode === "echo" || App.trMode === "scale"){
+ if (["echo", "scale", "melody"].includes(App.trMode)){
  (App._echoHistory = App._echoHistory || []).push(score);
  const newLevel = recommendedLevel(App._echoHistory, echoLevel());
  if (newLevel !== echoLevel()){
@@ -1874,10 +1923,13 @@ function stopTracking(){
  }
  Store.save();
  }
- const isSeq = (App.trMode === "echo" || App.trMode === "scale") && App.echo.midis.length >= 3;
+ const isSeq = ["echo", "scale", "melody"].includes(App.trMode) && App.echo.midis.length >= 3;
  // Scale runs store the game label (not the note ladder) so the growth
- // dashboard's recommendation can trace the score back to the game.
- const tgtLabel = App.trMode === "scale" ? GAME_LABELS.scale : (isSeq ? echoLabel() : App.target.name);
+ // dashboard's recommendation can trace the score back to the game;
+ // melody runs store the contour label.
+ const tgtLabel = App.trMode === "scale" ? GAME_LABELS.scale
+  : (App.trMode === "melody" && App._melodyLabel ? App._melodyLabel
+  : (isSeq ? echoLabel() : App.target.name));
  Store.data.pitchRecords.push({
  t:Date.now(), target:tgtLabel, acc:score,
  lo:App.lo, hi:App.hi, dur:Math.round((Date.now()-App.sessionStart)/1000),

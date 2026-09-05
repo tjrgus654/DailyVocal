@@ -69,10 +69,10 @@ check("one demo pass", "SCALE_T" in js and "scaleNoteDuration" in vm)
 scale_block = js[js.find("const SCALE_T"):js.find("function startScaleFlow")]
 check("timings", "note: 900" in scale_block and "gap: 250" in scale_block and "window: 1800" in scale_block
       and "scaleNoteDuration = 0.9" in vm and "scaleListenGap = 0.25" in vm and "scaleWindowDuration = 1.8" in vm)
-check("scoring shares active target", '(App.trMode === "echo" || App.trMode === "scale")' in js
-      and "mode == .echo || mode == .scale" in vm)
-check("level applies to scale", 'App.trMode === "echo" || App.trMode === "scale"' in js
-      and "guard mode == .echo || mode == .scale || mode == .interval else" in vm)
+check("scoring shares active target", '["echo", "scale", "melody"].includes(App.trMode)' in js
+      and "[.echo, .scale, .melody].contains(mode)" in vm)
+check("level applies to sequence drills", '["echo", "scale", "melody"].includes(App.trMode)' in js
+      and "[.echo, .scale, .melody, .interval].contains(mode)" in vm)
 
 import subprocess, json
 node_code = r"""

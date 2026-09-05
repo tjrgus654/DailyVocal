@@ -100,6 +100,12 @@ public struct PitchTrackerView: View {
                             .foregroundColor(.brandSecondary)
                             .frame(maxWidth: .infinity)
                     }
+                    if viewModel.mode == .melody {
+                        Text("프레이즈: \(viewModel.melodyDrillLabel.isEmpty ? "멜로디" : viewModel.melodyDrillLabel) — 데모를 듣고 노트마다 따라 불러보세요")
+                            .font(.caption2)
+                            .foregroundColor(.textSecondary)
+                            .frame(maxWidth: .infinity)
+                    }
                     if viewModel.mode == .interval {
                         let roundTotal = VocalLogic.intervalRounds(level: viewModel.echoLevel) { 0 }.count
                         Text("라운드 \(min(viewModel.intervalRoundIndex + 1, roundTotal))/\(roundTotal) · 목표 간격: \(viewModel.intervalTarget.rawValue) — 두 번째 음을 따라 부르세요")

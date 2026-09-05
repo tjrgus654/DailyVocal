@@ -1335,6 +1335,70 @@ public enum VocalLogic {
         return "아직 시도하지 않은 훈련 — 먼저 한 번 측정해 기준점을 만들어요"
     }
 
+    // MARK: - Melody sing-back (call and response)
+
+    /// Melodic contours for the call-and-response drill ("sing it back" —
+    /// the standard melodic-dictation entry point per Musical U). The engine
+    /// synthesizes the phrase; the user sings it back note by note.
+    public enum MelodyContour: String, CaseIterable {
+        case ascending = "상행"
+        case descending = "하행"
+        case arch = "아치"
+        case wave = "물결"
+
+        /// Phrase length (notes) for the contour.
+        public var noteCount: Int {
+            switch self {
+            case .ascending, .descending: return 4
+            case .arch, .wave: return 6
+            }
+        }
+    }
+
+    /// Contour ladder per level: L1 plain up/down, L2 arch/wave, L3 random
+    /// contour with the longest phrase.
+    public static func melodyContour(level: Int, roll: () -> Int) -> MelodyContour {
+        func pick<T>(_ pool: [T]) -> T { pool[abs(roll()) % pool.count] }
+        switch min(3, max(1, level)) {
+        case 1: return pick([.ascending, .descending])
+        case 2: return pick([.arch, .wave])
+        default: return pick(Array(MelodyContour.allCases))
+        }
+    }
+
+    /// A phrase realizing the contour from `baseMidi`: constrained random
+    /// steps (±1..4 semitones) that follow the contour direction, clamped
+    /// to the singing band. Deterministic under a fixed roll sequence.
+    public static func melodyPhrase(
+        contour: MelodyContour, baseMidi: Int, roll: () -> Int,
+        band: ClosedRange<Int> = 43...72
+    ) -> [Int] {
+        func clamped(_ m: Int) -> Int { min(band.upperBound, max(band.lowerBound, m)) }
+        func step() -> Int { 1 + abs(roll()) % 4 }
+
+        var phrase: [Int] = [clamped(baseMidi)]
+        var up = true
+        for _ in 1..<contour.noteCount {
+            let previous = phrase[phrase.count - 1]
+            var next: Int
+            switch contour {
+            case .ascending: next = previous + step()
+            case .descending: next = previous - step()
+            case .arch:
+                // Rise through the first half (inclusive midpoint), then
+                // fall — a symmetric arch.
+                up = phrase.count <= contour.noteCount / 2
+                next = previous + (up ? step() : -step())
+            case .wave:
+                // Alternate direction every two notes.
+                up = (phrase.count / 2) % 2 == 0
+                next = previous + (up ? step() : -step())
+            }
+            phrase.append(clamped(next))
+        }
+        return phrase
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.

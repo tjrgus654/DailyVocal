@@ -126,11 +126,11 @@ public final class PitchTrackerViewModel {
         VocalAudioEngine.frequency(forMidi: Double(targetMidi))
     }
 
-    /// Joined note names of the current echo/scale sequence, e.g. "C4-E4-G4"
-    /// (empty in single mode). Used by the completion alert and the stored
-    /// record so both always agree.
+    /// Joined note names of the current echo/scale/melody sequence, e.g.
+    /// "C4-E4-G4" (empty in single mode). Used by the completion alert and
+    /// the stored record so both always agree.
     public var echoTargetLabel: String {
-        (mode == .echo || mode == .scale) && !echoTargetMidis.isEmpty
+        [.echo, .scale, .melody].contains(mode) && !echoTargetMidis.isEmpty
             ? VocalLogic.echoLabel(midis: echoTargetMidis)
             : ""
     }
@@ -152,6 +152,7 @@ public final class PitchTrackerViewModel {
         case vibrato = "비브라토 체크"
         case dynamics = "다이내믹스 아치"
         case scale = "스케일 따라부르기"
+        case melody = "멜로디 따라부르기"
         case interval = "음정 게임"
         case ear = "귀훈련"
         public var id: String { rawValue }
@@ -181,7 +182,7 @@ public final class PitchTrackerViewModel {
 
     /// Target the scoring/display should follow right now.
     public var activeTargetMidi: Int {
-        mode == .echo && !echoTargetMidis.isEmpty
+        [.echo, .scale, .melody].contains(mode) && !echoTargetMidis.isEmpty
             ? echoTargetMidis[min(activeEchoIndex, echoTargetMidis.count - 1)]
             : targetMidi
     }
@@ -336,6 +337,8 @@ public final class PitchTrackerViewModel {
             startEchoFlow()
         } else if mode == .scale {
             startScaleFlow()
+        } else if mode == .melody {
+            startMelodyFlow()
         } else if isListenFirstMode {
             // Ear-training flow: hear the target twice first, then sing with
             // the visuals hidden (revealed on stop).
@@ -356,7 +359,9 @@ public final class PitchTrackerViewModel {
         // dashboard's recommendation can trace the score back to the game.
         lastSessionTargetLabel = mode == .scale
             ? VocalLogic.gameLabel(for: .scale)
-            : (echoTargetLabel.isEmpty ? targetNoteName : echoTargetLabel)
+            : (mode == .melody && !melodyDrillLabel.isEmpty
+               ? melodyDrillLabel
+               : (echoTargetLabel.isEmpty ? targetNoteName : echoTargetLabel))
         isListening = false
         echoPhaseTask?.cancel()
         echoPhaseTask = nil
@@ -798,20 +803,47 @@ public final class PitchTrackerViewModel {
     /// synthesis — no copyrighted backing), then one window per note with
     /// scoring following the active target, same as echo.
     private func startScaleFlow() {
+        let pattern = VocalLogic.scalePattern(level: echoLevel)
+        startSequenceDrill(
+            midis: VocalLogic.scaleSequence(baseMidi: targetMidi, pattern: pattern),
+            gameMode: pattern.rawValue
+        )
+    }
+
+    /// Melody call-and-response ("sing it back"): a contour phrase sounds
+    /// once, then one window per note. Shares the sequence-drill machinery
+    /// and the echo level ladder with the scale drill.
+    private func startMelodyFlow() {
+        let contour = VocalLogic.melodyContour(level: echoLevel) { Int.random(in: 0..<1_000_000) }
+        melodyDrillLabel = "멜로디 \(contour.rawValue)"
+        startSequenceDrill(
+            midis: VocalLogic.melodyPhrase(
+                contour: contour, baseMidi: targetMidi, roll: { Int.random(in: 0..<1_000_000) }
+            ),
+            gameMode: melodyDrillLabel
+        )
+    }
+
+    /// Label of the current melody drill (shown in the caption, persisted as
+    /// the session target).
+    public private(set) var melodyDrillLabel = ""
+
+    /// Shared one-demo-then-per-note-window flow for the sequence drills
+    /// (scale ladder, melody call-and-response).
+    private func startSequenceDrill(midis: [Int], gameMode: String) {
         echoGeneration += 1
         let generation = echoGeneration
-        let pattern = VocalLogic.scalePattern(level: echoLevel)
-        echoTargetMidis = VocalLogic.scaleSequence(baseMidi: targetMidi, pattern: pattern)
+        echoTargetMidis = midis
         activeEchoIndex = 0
         ignorePitchUntil = .distantFuture
         LiveActivityManager.shared.startGameActivity(
-            gameMode: pattern.rawValue,
+            gameMode: gameMode,
             totalRounds: echoTargetMidis.count
         )
 
         echoPhaseTask = Task { @MainActor [weak self] in
             guard let self else { return }
-            // Demo once — scales are predictable, one pass is enough.
+            // Demo once — the phrases are predictable, one pass is enough.
             for midi in self.echoTargetMidis {
                 guard !Task.isCancelled, generation == self.echoGeneration else { return }
                 self.audio.playTone(
@@ -822,7 +854,7 @@ public final class PitchTrackerViewModel {
                 try? await Task.sleep(for: .seconds(Self.scaleNoteDuration + Self.scaleListenGap))
             }
             try? await Task.sleep(for: .seconds(0.3))
-            // Sing: one window per note of the ladder.
+            // Sing: one window per note of the phrase.
             guard !Task.isCancelled, generation == self.echoGeneration else { return }
             self.ignorePitchUntil = Date()
             for index in self.echoTargetMidis.indices {
@@ -862,9 +894,9 @@ public final class PitchTrackerViewModel {
     /// Personalized difficulty: session history drives level transitions
     /// through VocalLogic.recommendedLevel (same rule the contract tests
     /// and the web prototype use), replacing the ad-hoc fail-streak.
-    /// Applies to the sequence drills: echo, scale, and interval games.
+    /// Applies to the sequence drills: echo, scale, melody, and interval games.
     private func updateEchoLevelIfNeeded(score: Int) {
-        guard mode == .echo || mode == .scale || mode == .interval else { return }
+        guard [.echo, .scale, .melody, .interval].contains(mode) else { return }
         lastEchoLevelDelta = nil
         echoHistory.append(score)
         let newLevel = VocalLogic.recommendedLevel(
