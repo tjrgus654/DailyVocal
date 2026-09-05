@@ -1358,18 +1358,15 @@ function stopTracking(){
  // 성공 게이트 난이도: 80%+ 승급, 2연속 50% 미만 강급
  let levelMsg = "";
  if (App.trMode === "echo"){
- if (score >= 80 && echoLevel() < 3){
- Store.data.prefs.echoLevel = echoLevel() + 1;
- levelMsg = `<br>에코 난이도가 ${echoLevel()}단계로 올라갔어요. 이동 폭이 넓어집니다.`;
- App._echoFailStreak = 0;
- } else if (score < 50){
- App._echoFailStreak = (App._echoFailStreak || 0) + 1;
- if (App._echoFailStreak >= 2 && echoLevel() > 1){
- Store.data.prefs.echoLevel = echoLevel() - 1;
- levelMsg = `<br>에코 난이도가 ${echoLevel()}단계로 조정됐어요. 편한 폭으로 다시 시작합니다.`;
- App._echoFailStreak = 0;
+ (App._echoHistory = App._echoHistory || []).push(score);
+ const newLevel = recommendedLevel(App._echoHistory, echoLevel());
+ if (newLevel !== echoLevel()){
+ const up = newLevel > echoLevel();
+ Store.data.prefs.echoLevel = newLevel;
+ levelMsg = up
+ ? `<br>에코 난이도가 ${newLevel}단계로 올라갔어요. 이동 폭이 넓어집니다.`
+ : `<br>에코 난이도가 ${newLevel}단계로 조정됐어요. 편한 폭으로 다시 시작합니다.`;
  }
- } else { App._echoFailStreak = 0; }
  Store.save();
  }
  const isEcho = App.trMode === "echo" && App.echo.midis.length === 3;

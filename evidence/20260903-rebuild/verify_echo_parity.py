@@ -38,8 +38,8 @@ for jkey, skey in [("note", "noteduration"), ("gap", "listengap"), ("between", N
     check(f"{jkey}", int(js_t[jkey]) == int(float(sw_t[skey]) * 1000), f"{js_t[jkey]}ms vs {sw_t[skey]}s")
 
 print("=== 4. Difficulty transitions ===")
-check("promote >=80 lvl<3", "score >= 80 && echoLevel() < 3" in js and "score >= 80" in vm and "echoLevel < 3" in vm)
-check("demote <50 after 2", "score < 50" in js and "score < 50" in vm and "_echoFailStreak >= 2" in js.replace("App.", "") and "echoFailStreak >= 2" in vm)
+check("level via recommendedLevel", "recommendedLevel(App._echoHistory" in js and "VocalLogic.recommendedLevel" in vm)
+check("no ad-hoc fail-streak", "_echoFailStreak >= 2" not in js and "echoFailStreak >= 2" not in vm)
 check("clamp 1...3", "Math.min(3, Math.max(1" in js and "min(3, max(1" in sw)
 
 print("=== 5. Scoring ===")
