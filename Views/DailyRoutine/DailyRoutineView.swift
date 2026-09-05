@@ -76,6 +76,12 @@ public struct DailyRoutineView: View {
                 set: { if !$0 { viewModel.reset() } }
             )
         ) {
+            if viewModel.mode != .rest {
+                Button("오늘의 추천 훈련 보기") {
+                    viewModel.reset()
+                    AppRouter.shared.selectedTab = 3
+                }
+            }
             Button("확인", role: .cancel) { viewModel.reset() }
         } message: {
             if viewModel.isVoiceRestRecommended {

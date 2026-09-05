@@ -591,7 +591,7 @@ struct AccuracyTrendCard: View {
                         .frame(maxWidth: .infinity)
                 }
             }
-            Text("최근 \(records.count)회 세션 온피치율 · 초록 70% 이상")
+            Text("최근 \(records.count)회 훈련 점수 — 모든 모드 포함(테크닉·게임) · 초록 70% 이상")
                 .font(.caption2)
                 .foregroundColor(.textSecondary)
         }
