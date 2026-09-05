@@ -129,6 +129,23 @@ ok("growth snapshot card", (await page.locator("text=테크닉 스냅샷").count
 ok("growth snapshot vibrato value", (await page.locator("text=5.4Hz").count()) >= 1);
 ok("growth snapshot dynamics value", (await page.locator("text=13.2dB").count()) >= 1);
 
+// 7. Sustain (MPT): single-note run measurement + growth line.
+const sus = await page.evaluate(`(() => {
+  const times = [];
+  for (let s = 0; s < 4; s += 0.04) times.push(s);
+  for (let s = 4.4; s < 16.5; s += 0.04) times.push(s);
+  return { run: sustainLongestRun(times), tip: sustainFeedback(16.4, null) };
+})()`);
+ok("sustain run ~12.1", Math.abs(sus.run - 12.06) <= 0.05, sus.run.toFixed(3));
+ok("sustain tip below norm", sus.tip.includes("남았습니다"));
+await page.evaluate(`(() => {
+  Store.data.bestSustainSeconds = 16.4;
+  Store.save();
+  render();
+})()`);
+await page.waitForTimeout(200);
+ok("growth sustain line", (await page.locator("text=16.4초 (한 호흡 최대 발성)").count()) >= 1);
+
 await browser.close();
 
 console.log(checks.join("\n"));

@@ -63,7 +63,7 @@ public struct VocalProgressView: View {
                                 .padding(.horizontal, 20)
                         }
 
-                        if viewModel.lastVibratoRateHz > 0 || viewModel.lastDynamicsRangeDb > 0 {
+                        if viewModel.lastVibratoRateHz > 0 || viewModel.lastDynamicsRangeDb > 0 || viewModel.bestSustainSeconds > 0 {
                             techniqueSnapshotCard
                                 .padding(.horizontal, 20)
                         }
@@ -351,6 +351,11 @@ public struct VocalProgressView: View {
             Text("비브라토 4.5~6.5Hz·±50~100¢ / 셈여림 6dB+ 가 목표 범위입니다")
                 .font(.caption2)
                 .foregroundColor(.textSecondary)
+            if viewModel.bestSustainSeconds > 0 {
+                Text(String(format: "최장 지속 %.1f초 (한 호흡 최대 발성) — 15초 이상이 건강 기준", viewModel.bestSustainSeconds))
+                    .font(.caption2)
+                    .foregroundColor(viewModel.bestSustainSeconds >= 15 ? .vocalSuccess : .vocalWarning)
+            }
         }
         .glassCard(cornerRadius: 16, padding: 14)
         .accessibilityElement(children: .combine)

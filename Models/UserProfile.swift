@@ -44,6 +44,8 @@ public final class UserProfile {
     public var lastVibratoExtentCents: Double = 0
     /// Last messa di voce check: dynamic range in dB.
     public var lastDynamicsRangeDb: Double = 0
+    /// Longest continuously voiced single-note hold, in seconds (MPT-style).
+    public var bestSustainSeconds: Double = 0
 
     // Progress
     public var currentWeek: Int           // 1...4

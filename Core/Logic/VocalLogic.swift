@@ -1138,6 +1138,51 @@ public enum VocalLogic {
         return min(100, score)
     }
 
+    // MARK: - Sustain duration (maximum phonation time)
+
+    public enum SustainStats {
+        /// A voiced gap shorter than this is bridged: the YIN detector can
+        /// drop isolated frames on a perfectly steady note.
+        public static let gapTolerance: Double = 0.25
+        /// Korean adult norms (JKSLP aerodynamic study): men 20.8±6.4 s,
+        /// women 17.2±4.1 s. Below 15 s is the clinical caution line.
+        public static let cautionSeconds: Double = 15.0
+        public static let maleNormSeconds: Double = 20.8
+        public static let femaleNormSeconds: Double = 17.2
+
+        /// Longest continuously voiced run (seconds) from per-frame
+        /// timestamps. Frames arrive only when voiced.
+        public static func longestRun(times: [Double], gapTolerance: Double = gapTolerance) -> Double {
+            guard let first = times.first else { return 0 }
+            var longest = 0.0
+            var runStart = first
+            var previous = first
+            for t in times.dropFirst() {
+                if t - previous > gapTolerance {
+                    longest = Swift.max(longest, previous - runStart)
+                    runStart = t
+                }
+                previous = t
+            }
+            longest = Swift.max(longest, previous - runStart)
+            return Swift.max(0, longest)
+        }
+
+        /// Coaching for the longest run. isFemale nil = unknown.
+        public static func feedback(seconds: Double, isFemale: Bool?) -> String {
+            if seconds <= 0 { return "발성이 잡히지 않았어요 — 다음엔 한 호흡을 다 쓰까지 길게 유지해보세요" }
+            let norm = isFemale == true ? femaleNormSeconds : maleNormSeconds
+            let text = String(format: "%.1f", seconds)
+            if seconds < cautionSeconds {
+                return "최장 지속 \(text)초 — 15초 미만은 음성 피로·호흡 지원 점검이 필요한 신호입니다. 물 자주 마시기와 복식호흡 루틴을 권합니다"
+            }
+            if seconds < norm {
+                return "최장 지속 \(text)초 — 한국인 평균(\(Int(norm))초)까지 \(String(format: "%.1f", norm - seconds))초 남았습니다"
+            }
+            return "최장 지속 \(text)초 — 평균 이상입니다. 여유 있게 내쉬는 습관이 그대로 유지되고 있어요"
+        }
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.

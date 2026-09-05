@@ -143,6 +143,9 @@ public struct PitchTrackerView: View {
     private var alertMessageText: String {
         let label = viewModel.lastSessionTargetLabel
         var text = "등급 \(viewModel.lastSessionGrade) · 목표음 \(label.isEmpty ? viewModel.targetNoteName : label) 온피치 \(Int(viewModel.accuracyScore.rounded()))%"
+        if let sustain = viewModel.lastSustainTip, viewModel.mode == .single {
+            text += "\n\(sustain)"
+        }
         if let delta = viewModel.lastEchoLevelDelta {
             text += delta > 0
                 ? "\n에코 난이도가 \(viewModel.echoLevel)단계로 올라갔어요. 이동 폭이 넓어져요."

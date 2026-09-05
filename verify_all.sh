@@ -61,7 +61,11 @@ step 8 "다이내믹스 파리티 (웹 ↔ Swift, 상수+공식+16실행축)"
 python evidence/20260903-rebuild/verify_dynamics_parity.py > /tmp/va_dyn.log 2>&1
 record $? "dynamics parity ($(tail -1 /tmp/va_dyn.log))"
 
+step 9 "최장지속(MPT) 파리티 (웹 ↔ Swift, 상수+9실행축)"
+python evidence/20260903-rebuild/verify_sustain_parity.py > /tmp/va_sus.log 2>&1
+record $? "sustain parity ($(tail -1 /tmp/va_sus.log))"
+
 echo ""
 echo "=============================================="
-echo "RESULT: $PASS 통과 / $FAIL 실패 (8 게이트)"
+echo "RESULT: $PASS 통과 / $FAIL 실패 (9 게이트)"
 [ "$FAIL" -eq 0 ] && echo "ALL GREEN" || { echo "FAILURES PRESENT"; exit 1; }

@@ -278,7 +278,7 @@ const Store = {
  baseline:{lo:0, hi:0}, range:{lo:0, hi:0},
  sessions:[], pitchRecords:[], frozenDays:[], freezeTokens:2,
  favorites:[], prefs:{femaleKey:false, transpose:0, autoplay:true},
- speechMedianHz:0, lastVibratoRateHz:0, lastVibratoExtentCents:0, lastDynamicsRangeDb:0,
+ speechMedianHz:0, lastVibratoRateHz:0, lastVibratoExtentCents:0, lastDynamicsRangeDb:0, bestSustainSeconds:0,
  };
  },
  load(){
@@ -608,6 +608,31 @@ function dynamicsScore(m){
  if (m.peakPosition >= 0.25 && m.peakPosition <= 0.75) s += 10;
  if (m.smoothness >= 0.6) s += 5;
  return Math.min(100, s);
+}
+// ── 최장 지속 / MPT (Swift VocalLogic.SustainStats 미러) ──────────────
+// 한국인 정상 성인: 남 20.8±6.4초·여 17.2±4.1초(JKSLP), 15초 미만 임상 주의선.
+const SUSTAIN = { GAP: 0.25, CAUTION: 15.0, MALE_NORM: 20.8, FEMALE_NORM: 17.2 };
+function sustainLongestRun(times, gap){
+ gap = gap ?? SUSTAIN.GAP;
+ if (!times.length) return 0;
+ let longest = 0, runStart = times[0], prev = times[0];
+ for (let i = 1; i < times.length; i++){
+  const t = times[i];
+  if (t - prev > gap){ longest = Math.max(longest, prev - runStart); runStart = t; }
+  prev = t;
+ }
+ longest = Math.max(longest, prev - runStart);
+ return Math.max(0, longest);
+}
+function sustainFeedback(seconds, isFemale){
+ if (seconds <= 0) return "발성이 잡히지 않았어요 — 다음엔 한 호흡을 다 쓰까지 길게 유지해보세요";
+ const norm = isFemale === true ? SUSTAIN.FEMALE_NORM : SUSTAIN.MALE_NORM;
+ const text = seconds.toFixed(1);
+ if (seconds < SUSTAIN.CAUTION)
+  return `최장 지속 ${text}초 — 15초 미만은 음성 피로·호흡 지원 점검이 필요한 신호입니다. 물 자주 마시기와 복식호흡 루틴을 권합니다`;
+ if (seconds < norm)
+  return `최장 지속 ${text}초 — 한국인 평균(${Math.round(norm)}초)까지 ${(norm - seconds).toFixed(1)}초 남았습니다`;
+ return `최장 지속 ${text}초 — 평균 이상입니다. 여유 있게 내쉬는 습관이 그대로 유지되고 있어요`;
 }
 function peakFrequency(mags, sampleRate, loHz, hiHz){
  const binHz = sampleRate / mags.length;
@@ -1651,6 +1676,7 @@ async function startTracking(){
  App.echo.timers.forEach(clearTimeout); App.echo.timers = [];
  App.echo.gen++; App.echo.idx = 0; App.ignoreUntil = 0;
  clearTimeout(App._speakTimer); App._speakFreqs = [];
+ App._sustainTimes = [];
  App.listening = true; render();
  const ok = await Audio5.startMic();
  if (!ok){
@@ -1712,6 +1738,16 @@ function stopTracking(){
  const score = Math.round(App.hits / App.voiced * 100);
  App.lastScore = score;
  App.lastGrade = score>=90?"S":score>=80?"A":score>=70?"B":score>=60?"C":"D";
+ // 최장 지속(MPT): 단음 모드에서만 측정·기록
+ let sustainMsg = "";
+ if (App.trMode === "single"){
+  const secs = sustainLongestRun(App._sustainTimes || []);
+  if (secs > 0){
+   Store.data.bestSustainSeconds = Math.max(Store.data.bestSustainSeconds || 0, secs);
+   Store.save();
+   sustainMsg = "<br><span style='font-size:12px;color:var(--text-secondary);'>" + sustainFeedback(secs, Store.data.prefs.femaleKey) + "</span>";
+  }
+ }
  // 성공 게이트 난이도: 80%+ 승급, 2연속 50% 미만 강급
  let levelMsg = "";
  if (App.trMode === "echo"){
@@ -1735,7 +1771,7 @@ function stopTracking(){
  if (App.lo > 0 && (Store.data.range.lo === 0 || App.lo < Store.data.range.lo)) Store.data.range.lo = App.lo;
  if (App.hi > Store.data.range.hi) Store.data.range.hi = App.hi;
  Store.save();
- toast(`이번 세션 <b style="font-size:20px;">${score}점</b><br>등급 ${App.lastGrade} · ${isEcho ? "시퀀스 "+tgtLabel : "목표음 "+tgtLabel} 온피치 ${score}%${levelMsg}`, 3600);
+ toast(`이번 세션 <b style="font-size:20px;">${score}점</b><br>등급 ${App.lastGrade} · ${isEcho ? "시퀀스 "+tgtLabel : "목표음 "+tgtLabel} 온피치 ${score}%${levelMsg}${sustainMsg}`, 3600);
  }
  render();
 }
@@ -1748,6 +1784,9 @@ function trackerPitchHandler(f, note, cents, voiced){
  if (!voiced) return;
  App.voiced++;
  if (App.trMode === "speak"){ (App._speakFreqs = App._speakFreqs || []).push(f); }
+ if (App.trMode === "single"){
+  (App._sustainTimes = App._sustainTimes || []).push(Date.now() / 1000);
+ }
  if (App.trMode === "vibrato" && VIBRATO_CHECK.phase === "recording"){
   VIBRATO_CHECK.times.push(Date.now() / 1000); VIBRATO_CHECK.freqs.push(f);
  }
@@ -2107,6 +2146,13 @@ function screenProgress(){
  ${Store.data.lastDynamicsRangeDb > 0 ? `<div style="flex:1;text-align:${Store.data.lastVibratoRateHz > 0 ? "right" : "left"};"><div class="cap2" style="color:var(--text-secondary);">셈여림 레인지</div><div style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;">${Store.data.lastDynamicsRangeDb.toFixed(1)}dB</div></div>` : ""}
  </div>
  <div class="cap2" style="color:var(--text-secondary);margin-top:6px;">비브라토 4.5~6.5Hz·±50~100¢ / 셈여림 6dB+ 가 목표 범위입니다</div>
+ ${(Store.data.bestSustainSeconds || 0) > 0 ? `<div class="cap2" style="color:${Store.data.bestSustainSeconds >= SUSTAIN.CAUTION ? 'var(--vocal-success)' : 'var(--vocal-warning)'};margin-top:2px;">최장 지속 ${Store.data.bestSustainSeconds.toFixed(1)}초 (한 호흡 최대 발성) — 15초 이상이 건강 기준</div>` : ""}
+ </div>` : ""}
+ ${(Store.data.bestSustainSeconds || 0) > 0 && !(Store.data.lastVibratoRateHz > 0 || Store.data.lastDynamicsRangeDb > 0) ? `<div class="glass" style="margin:14px 20px 0;padding:16px;">
+ <div style="display:flex;align-items:center;">
+ <span class="caption" style="font-size:13px;font-weight:800;">테크닉 스냅샷 (최근 측정)</span><div style="flex:1"></div>
+ <span class="cap2" style="color:var(--text-secondary);">피치 트래커에서 측정</span></div>
+ <div class="cap2" style="color:${Store.data.bestSustainSeconds >= SUSTAIN.CAUTION ? 'var(--vocal-success)' : 'var(--vocal-warning)'};margin-top:8px;">최장 지속 ${Store.data.bestSustainSeconds.toFixed(1)}초 (한 호흡 최대 발성) — 15초 이상이 건강 기준</div>
  </div>` : ""}
 
  ${(() => {

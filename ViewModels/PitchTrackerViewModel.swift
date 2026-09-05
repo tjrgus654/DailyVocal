@@ -78,6 +78,13 @@ public final class PitchTrackerViewModel {
     private static let dynamicsGuideDuration = 1.6
     private static let dynamicsRecordDuration = 7.0
 
+    /// Single-note mode: timestamps of voiced frames, feeding the maximum
+    /// phonation time (longest continuous hold) measurement.
+    private var singleVoicedTimes: [Double] = []
+    /// Longest hold of the just-finished single-note session (seconds).
+    public private(set) var lastSustainSeconds: Double = 0
+    public private(set) var lastSustainTip: String?
+
     public var targetNoteName = "E4" {
         didSet { syncTargetFrequency() }
     }
@@ -254,6 +261,9 @@ public final class PitchTrackerViewModel {
         lastSessionGrade = ""
         lastSessionTargetLabel = ""
         lastEchoLevelDelta = nil
+        lastSustainSeconds = 0
+        lastSustainTip = nil
+        singleVoicedTimes = []
         echoHistory = []
         noteBinCounts = Array(repeating: 0, count: 12)
         voicedFrequencies.removeAll()
@@ -570,6 +580,15 @@ public final class PitchTrackerViewModel {
         lastSessionScore = Int(accuracyScore.rounded())
         lastSessionGrade = VocalLogic.sessionGrade(forScore: lastSessionScore ?? 0)
         updateEchoLevelIfNeeded(score: lastSessionScore ?? 0)
+        if mode == .single {
+            // Maximum phonation time: the breathing-support readout.
+            let profiles = (try? modelContext?.fetch(FetchDescriptor<UserProfile>())) ?? nil
+            lastSustainSeconds = VocalLogic.SustainStats.longestRun(times: singleVoicedTimes)
+            lastSustainTip = VocalLogic.SustainStats.feedback(
+                seconds: lastSustainSeconds,
+                isFemale: profiles?.first?.prefersHigherKeyGuide == true ? true : nil
+            )
+        }
         haptics.routineCompleted()
     }
 
@@ -623,6 +642,9 @@ public final class PitchTrackerViewModel {
         if mode == .dynamics {
             // Engine updates the smoothed RMS before this callback fires.
             dynamicsAmps.append(audio.amplitude)
+        }
+        if mode == .single {
+            singleVoicedTimes.append(Date().timeIntervalSince1970)
         }
         if mode == .vowel {
             vowelMagnitudes.append(audio.currentMagnitudeSpectrum)
@@ -720,6 +742,9 @@ public final class PitchTrackerViewModel {
         // Extend the stored vocal range when this session went beyond it.
         let descriptor = FetchDescriptor<UserProfile>()
         if let profile = (try? context.fetch(descriptor))?.first {
+            if mode == .single, lastSustainSeconds > profile.bestSustainSeconds {
+                profile.bestSustainSeconds = lastSustainSeconds
+            }
             if profile.lowestFrequency == 0 || sessionLowestFrequency < profile.lowestFrequency {
                 profile.lowestFrequency = sessionLowestFrequency
                 profile.lowestNoteName = low.note
