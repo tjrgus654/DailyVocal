@@ -1518,6 +1518,9 @@ public enum VocalLogic {
     public struct FolkSong: Equatable, Sendable {
         public let title: String
         public let origin: String
+        /// First line of the traditional (public-domain) lyric — the phrase
+        /// everyone knows, shown so the singer can feel the words.
+        public let firstLyric: String
         /// Our own simplified transcription of the traditional melody line.
         /// The traditional melodies themselves are public domain (no known
         /// author, created collectively); specific arrangements by others
@@ -1532,6 +1535,7 @@ public enum VocalLogic {
         FolkSong(
             title: "아리랑",
             origin: "경기 민요(중요무형문화재 제129호) — 전통 원형",
+            firstLyric: "아리랑 아리랑 아라리요",
             notes: [
                 SongNote(7, 1), SongNote(5, 1), SongNote(3, 2),
                 SongNote(5, 1), SongNote(7, 1), SongNote(7, 1), SongNote(10, 1), SongNote(7, 1), SongNote(5, 2),
@@ -1542,6 +1546,7 @@ public enum VocalLogic {
         FolkSong(
             title: "강강술래",
             origin: "서남해안 민요(무형문화재) — 전통 원형",
+            firstLyric: "강강술래 강강술래",
             notes: [
                 SongNote(0, 1), SongNote(0, 1), SongNote(3, 1), SongNote(5, 1),
                 SongNote(3, 2), SongNote(0, 3),
@@ -1552,6 +1557,7 @@ public enum VocalLogic {
         FolkSong(
             title: "한오백년",
             origin: "전라 민요(육자백이 계열) — 전통 원형",
+            firstLyric: "한 오백년 한 오백년",
             notes: [
                 SongNote(0, 1), SongNote(3, 1), SongNote(5, 2), SongNote(7, 1),
                 SongNote(10, 1), SongNote(7, 1), SongNote(5, 1), SongNote(3, 1),
@@ -1561,6 +1567,7 @@ public enum VocalLogic {
         FolkSong(
             title: "정선아리랑",
             origin: "강원 정선 지역 민요(정선아라리) — 전통 원형",
+            firstLyric: "정선아라리 정선아라리",
             notes: [
                 SongNote(5, 1), SongNote(5, 1), SongNote(7, 1), SongNote(5, 1),
                 SongNote(3, 1), SongNote(5, 2),
@@ -1571,6 +1578,7 @@ public enum VocalLogic {
         FolkSong(
             title: "둥당기타령",
             origin: "경기 민요(선소리 판소리 계열) — 전통 원형",
+            firstLyric: "둥당기 둥당기 둥당기타령",
             notes: [
                 SongNote(0, 1), SongNote(3, 1), SongNote(5, 1), SongNote(7, 1),
                 SongNote(7, 1), SongNote(5, 2),

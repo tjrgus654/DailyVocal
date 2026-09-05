@@ -107,7 +107,7 @@ public struct PitchTrackerView: View {
                             .frame(maxWidth: .infinity)
                     }
                     if viewModel.mode == .song {
-                        Text("곡: \(viewModel.currentSong.title) — 데모를 듣고 박자대로 따라 부르세요 · \(viewModel.currentSong.origin)")
+                        Text("곡: \(viewModel.currentSong.title) '\(viewModel.currentSong.firstLyric)' — 데모를 듣고 박자대로 따라 부르세요 · \(viewModel.currentSong.origin)")
                             .font(.caption2)
                             .foregroundColor(.brandSecondary)
                             .frame(maxWidth: .infinity)
@@ -225,6 +225,20 @@ public struct PitchTrackerView: View {
         var text = "등급 \(viewModel.lastSessionGrade) · 목표음 \(label.isEmpty ? viewModel.targetNoteName : label) 온피치 \(Int(viewModel.accuracyScore.rounded()))%"
         if let sustain = viewModel.lastSustainTip, viewModel.mode == .single {
             text += "\n\(sustain)"
+        }
+        // Technique fingerprints of the just-finished check — the numbers
+        // behind the grade.
+        switch viewModel.mode {
+        case .vibrato where viewModel.vibratoResult != nil:
+            let r = viewModel.vibratoResult!
+            text += "\n비브라토 속도 \(String(format: "%.1f", r.rateHz))Hz · 진폭 ±\(Int(r.extentCents.rounded()))센트 · 규칙성 \(Int((r.regularity * 100).rounded()))%"
+        case .dynamics where viewModel.dynamicsResult != nil:
+            let r = viewModel.dynamicsResult!
+            text += "\n셈여림 레인지 \(String(format: "%.1f", r.rangeDb))dB · 정점 \(Int((r.peakPosition * 100).rounded()))%"
+        case .harmony where viewModel.lastHarmonyTip != nil:
+            text += "\n\(viewModel.lastHarmonyTip!)"
+        default:
+            break
         }
         if let delta = viewModel.lastEchoLevelDelta {
             text += delta > 0

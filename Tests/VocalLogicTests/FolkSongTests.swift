@@ -10,6 +10,7 @@ final class FolkSongTests: XCTestCase {
         // Every song documents its traditional origin (the PD basis).
         for song in VocalLogic.folkSongs {
             XCTAssertTrue(song.origin.contains("전통"), "\(song.title)")
+            XCTAssertFalse(song.firstLyric.isEmpty, "\(song.title) needs its opening line")
             XCTAssertGreaterThanOrEqual(song.notes.count, 8, "\(song.title) needs a real phrase")
         }
     }
