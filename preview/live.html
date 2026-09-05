@@ -904,6 +904,7 @@ function recommendedLevel(recentAccuracies, currentLevel, maxLevel){
 const GAME_LABELS = {
  vowel: "모음 게임", interval: "음정 게임", ear: "귀훈련",
  vibrato: "비브라토 체크", dynamics: "다이내믹스 아치", scale: "스케일 시퀀스",
+ melody: "멜로디 프레이즈",
 };
 function latestAccuracies(records){
  const latest = {};
@@ -913,7 +914,7 @@ function latestAccuracies(records){
  }
  return latest;
 }
-function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame, vibratoAcc, dynamicsAcc, scaleAcc){
+function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame, vibratoAcc, dynamicsAcc, scaleAcc, melodyAcc){
  const scores = [
   ["vowel", vowelAcc ?? 50],
   ["interval", intervalAcc ?? 50],
@@ -921,6 +922,7 @@ function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame, vibratoAcc, 
   ["vibrato", vibratoAcc ?? 50],
   ["dynamics", dynamicsAcc ?? 50],
   ["scale", scaleAcc ?? 50],
+  ["melody", melodyAcc ?? 50],
  ].sort((a,b) => a[1] - b[1]);
  if (lastGame && scores[0][0] === lastGame && scores.length > 1 && scores[1][1] - scores[0][1] <= 15){
   return scores[1][0];
@@ -946,10 +948,10 @@ function recommendationEvidence(game, latestAcc, vibRate, vibExt, dynDb){
  if (latestAcc != null) return `최근 점수 ${latestAcc}점 — 가장 약한 훈련부터 보완해요`;
  return "아직 시도하지 않은 훈련 — 먼저 한 번 측정해 기준점을 만들어요";
 }
-const GAME_NAMES = { vowel: "모음", interval: "음정", ear: "귀훈련", vibrato: "비브라토", dynamics: "셈여림", scale: "스케일" };
+const GAME_NAMES = { vowel: "모음", interval: "음정", ear: "귀훈련", vibrato: "비브라토", dynamics: "셈여림", scale: "스케일", melody: "멜로디" };
 function startRecommended(game){
  // 딥링크: 성장 기록의 추천 카드 → 트래커 탭 + 해당 모드 (웹은 6종 전부)
- const modeMap = { vowel: "vowel", interval: "interval", ear: "ear", vibrato: "vibrato", dynamics: "dynamics", scale: "scale" };
+ const modeMap = { vowel: "vowel", interval: "interval", ear: "ear", vibrato: "vibrato", dynamics: "dynamics", scale: "scale", melody: "melody" };
  const mode = modeMap[game] || "single";
  if (App.trMode !== mode && App.listening) stopTracking();
  go("tracker");
@@ -967,7 +969,7 @@ function nextGameRecommendation(){
   .map(([g]) => g)[0] || null;
  const game = recommendNextGame(
   latest.vowel ?? null, latest.interval ?? null, latest.ear ?? null,
-  lastGame, latest.vibrato ?? null, latest.dynamics ?? null, latest.scale ?? null);
+  lastGame, latest.vibrato ?? null, latest.dynamics ?? null, latest.scale ?? null, latest.melody ?? null);
  const reason = recommendationEvidence(
   game, latest[game] ?? null,
   Store.data.lastVibratoRateHz || 0, Store.data.lastVibratoExtentCents || 0,
@@ -1928,7 +1930,7 @@ function stopTracking(){
  // dashboard's recommendation can trace the score back to the game;
  // melody runs store the contour label.
  const tgtLabel = App.trMode === "scale" ? GAME_LABELS.scale
-  : (App.trMode === "melody" && App._melodyLabel ? App._melodyLabel
+  : (App.trMode === "melody" ? GAME_LABELS.melody
   : (isSeq ? echoLabel() : App.target.name));
  Store.data.pitchRecords.push({
  t:Date.now(), target:tgtLabel, acc:score,

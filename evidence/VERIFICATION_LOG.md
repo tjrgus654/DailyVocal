@@ -626,3 +626,15 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 276 | 웹 미러: MELODY_CONTOURS/멜로디 흐름 + 칩 10개 + 스코어링·레벨·라벨 조건 확장 | JS OK | startSequenceDrillFlow 공용화 |
 | 277 | E2E 55축(+멜로디 7축: 상·하행·아치·물결 벡터·클램프·래더·플로우 게이팅) | 55/55 | |
 | 278 | 에코 패리티 2축 갱신(조건이 배열 includes 형태로) + verify_all 9게이트 | ALL GREEN | swift test 123/123(+8) |
+
+
+## 멜로디 추천 편입 — 7종 완성 (세션 18 — 2026-09-06)
+
+| # | 검증 행위 | 결과 | 증거/비고 |
+|---|---|---|---|
+| 279 | GameType 7종(melody) + gameLabel '멜로디 프레이즈' + 멜로디 세션 저장 라벨을 컨투어명에서 게임 라벨로 정렬(앱+웹) — latestAccuracies 역추적 성립 | 파스 통과 | 캡션은 컨투어 라벨 유지 |
+| 280 | recommendNextGame 7엔트리(melodyAccuracy 기본값 하위호환) + 테스트: melody 최약 케이스·latest 멜로디 라벨 추가, 기존 5벡터 동점(미측정 50) 재구성 | swift 40/40 | Swift 인자 순서 컴파일 오류 1회 즉시 수정 |
+| 281 | 웹 미러: GAME_LABELS/NAMES·7엔트리·전달·저장 라벨·딥링크 modeMap에 melody | JS OK | 웹 딥링크 7종 |
+| 282 | 패리티 9b: 9벡터(+melody 최약 1) + latest melody 축 + '7-entry score table' 축 | ALL PASS | 기존 벡터 3건 melody 열 부여로 동점 제거 |
+| 283 | E2E 55/55: 추천 벡터에 멜로디 76점 추가(미측정 동점 방지) — 첫 추천 vibrato·최약 dynamics·근거 문구·딥링크 전부 유지 확인 | 55/55 | |
+| 284 | verify_all 9게이트 | ALL GREEN | |

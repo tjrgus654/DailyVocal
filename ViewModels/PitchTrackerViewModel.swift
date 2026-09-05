@@ -359,8 +359,8 @@ public final class PitchTrackerViewModel {
         // dashboard's recommendation can trace the score back to the game.
         lastSessionTargetLabel = mode == .scale
             ? VocalLogic.gameLabel(for: .scale)
-            : (mode == .melody && !melodyDrillLabel.isEmpty
-               ? melodyDrillLabel
+            : (mode == .melody
+               ? VocalLogic.gameLabel(for: .melody)
                : (echoTargetLabel.isEmpty ? targetNoteName : echoTargetLabel))
         isListening = false
         echoPhaseTask?.cancel()

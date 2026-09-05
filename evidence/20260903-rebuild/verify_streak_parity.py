@@ -94,7 +94,7 @@ check("5 game types", '"비브라토 체크"' in js and 'return "비브라토 �
 check("dynamics label", '"다이내믹스 아치"' in js and 'return "다이내믹스 아치"' in logic)
 check("game type cases", "case vibrato" in logic and "case dynamics" in logic)
 check("latestAccuracies", "function latestAccuracies" in js and "func latestAccuracies" in logic)
-check("6-entry score table", '["scale", scaleAcc ?? 50]' in js and '(.scale, scaleAccuracy ?? 50)' in logic)
+check("7-entry score table", '["melody", melodyAcc ?? 50]' in js and '(.melody, melodyAccuracy ?? 50)' in logic)
 check("scale game label", 'scale: "스케일 시퀀스"' in js and 'return "스케일 시퀀스"' in logic)
 
 print("=== 9b. recommendNextGame execution parity (JS on Swift test vectors) ===")
@@ -111,22 +111,24 @@ vm.createContext(sandbox);
 vm.runInContext(block, sandbox);
 const out = vm.runInContext(`(function(){
   const cases = [
-    // [vowel, interval, ear, lastGame, vibrato, dynamics, scale, expected]
-    [40, 80, 60, null, null, null, null, "vowel"],
-    [90, 40, 65, "vowel", null, null, null, "interval"],
-    [90, 85, 60, "interval", 55, 58, null, "scale"],
-    [80, 90, 85, null, 40, null, null, "vibrato"],
-    [80, 90, 85, null, 70, 35, null, "dynamics"],
-    [80, 90, 85, "vibrato", 40, 50, 55, "dynamics"],
-    [90, 75, 65, "ear", 72, 68, 70, "dynamics"],
-    [80, 90, 85, null, 75, 70, 40, "scale"],
+    // [vowel, interval, ear, lastGame, vibrato, dynamics, scale, melody, expected]
+    [40, 80, 60, null, null, null, null, null, "vowel"],
+    [90, 40, 65, "vowel", null, null, null, null, "interval"],
+    [90, 85, 60, "interval", 55, 58, null, 62, "scale"],
+    [80, 90, 85, null, 40, null, null, null, "vibrato"],
+    [80, 90, 85, null, 70, 35, null, null, "dynamics"],
+    [80, 90, 85, "vibrato", 40, 50, 55, 60, "dynamics"],
+    [90, 75, 65, "ear", 72, 68, 70, 78, "dynamics"],
+    [80, 90, 85, null, 75, 70, 40, null, "scale"],
+    [80, 90, 85, null, 75, 70, 65, 33, "melody"],
   ];
-  const results = cases.map(([v, i, e, last, vb, dy, sc]) =>
-    recommendNextGame(v, i, e, last, vb, dy, sc));
+  const results = cases.map(([v, i, e, last, vb, dy, sc, me]) =>
+    recommendNextGame(v, i, e, last, vb, dy, sc, me));
   const latest = latestAccuracies([
     {label: "모음 게임", accuracy: 60}, {label: "E4", accuracy: 90},
     {label: "비브라토 체크", accuracy: 40}, {label: "모음 게임", accuracy: 75},
     {label: "다이내믹스 아치", accuracy: 55}, {label: "스케일 시퀀스", accuracy: 68},
+    {label: "멜로디 프레이즈", accuracy: 71},
   ]);
   return { cases, results, latest };
 })()`, sandbox);
@@ -140,13 +142,14 @@ else:
     import json
     r = json.loads(proc.stdout)
     for idx, (case, got) in enumerate(zip(r["cases"], r["results"])):
-        expected = case[7]
+        expected = case[8]
         check(f"vector {idx} -> {expected}", got == expected, f"got {got}")
     check("latest: vowel most-recent", r["latest"].get("vowel") == 75)
     check("latest: vibrato", r["latest"].get("vibrato") == 40)
     check("latest: dynamics", r["latest"].get("dynamics") == 55)
     check("latest: interval nil", r["latest"].get("interval") is None)
     check("latest: scale 68", r["latest"].get("scale") == 68)
+    check("latest: melody 71", r["latest"].get("melody") == 71)
 
 check("best-take compare", "bestTakeSummary" in js and "compareTakes" in logic)
 check("gap pools", '[0,4,5,7,-4,-5,-7]' in js and '[0, 4, 5, 7, -4, -5, -7]' in logic)
