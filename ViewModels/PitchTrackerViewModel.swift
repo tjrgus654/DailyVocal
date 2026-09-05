@@ -52,6 +52,23 @@ public final class PitchTrackerViewModel {
     public private(set) var vowelScores: [Int] = []
     public private(set) var lastVowelTips: [String] = []
 
+    // MARK: - Vibrato check state
+
+    public enum VibratoPhase: Equatable {
+        case idle
+        /// Waiting for the guide tone to finish before the record window opens.
+        case guide
+        case recording
+        case done
+    }
+    public private(set) var vibratoPhase: VibratoPhase = .idle
+    public private(set) var vibratoResult: VocalLogic.VibratoMeasurement?
+    public private(set) var vibratoTips: [String] = []
+    private var vibratoTrace: [(time: TimeInterval, frequency: Double)] = []
+    /// Guide tone + tail, then the sustained-note record window.
+    private static let vibratoGuideDuration = 1.6
+    private static let vibratoRecordDuration = 5.5
+
     public var targetNoteName = "E4" {
         didSet { syncTargetFrequency() }
     }
@@ -83,6 +100,7 @@ public final class PitchTrackerViewModel {
         case echo = "에코 3음"
         case speak = "말하기 10초"
         case vowel = "모음 게임"
+        case vibrato = "비브라토 체크"
         public var id: String { rawValue }
     }
     public var mode: TrackerMode = .single {
@@ -239,6 +257,8 @@ public final class PitchTrackerViewModel {
 
         if mode == .vowel {
             startVowelGame()
+        } else if mode == .vibrato {
+            startVibratoCheck()
         } else if mode == .speak {
             echoPhaseTask = Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .seconds(10))
@@ -272,6 +292,10 @@ public final class PitchTrackerViewModel {
         // render ghost target lines from the previous sequence.
         echoTargetMidis = []
         activeEchoIndex = 0
+        if mode == .vibrato {
+            vibratoPhase = .idle
+            vibratoTrace = []
+        }
         ignorePitchUntil = Date.distantPast
         audio.isSpectrumWanted = false
         LiveActivityManager.shared.endLiveActivity()
@@ -368,6 +392,57 @@ public final class PitchTrackerViewModel {
         // overwrite the score with a single-note accuracy ratio.
         isListening = false
         audio.isSpectrumWanted = false
+        LiveActivityManager.shared.endLiveActivity()
+        audio.stopMicrophone()
+        audio.onPitchUpdate = nil
+        persistSessionSummary()
+    }
+
+    // MARK: - Vibrato check flow
+
+    /// Guide tone once, then a 5.5 s sustained-note window, then autocorrelation
+    /// analysis of the pitch trace (rate / extent / regularity) with coaching.
+    private func startVibratoCheck() {
+        echoGeneration += 1
+        let generation = echoGeneration
+        vibratoPhase = .guide
+        vibratoResult = nil
+        vibratoTips = []
+        vibratoTrace = []
+        // Hold scoring off while the guide tone sounds through the speaker.
+        ignorePitchUntil = .distantFuture
+        LiveActivityManager.shared.startGameActivity(gameMode: "비브라토", totalRounds: 1)
+        LiveActivityManager.shared.updateGameRound(1, of: 1)
+
+        echoPhaseTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.playTargetTone()
+            try? await Task.sleep(for: .seconds(Self.vibratoGuideDuration))
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.vibratoPhase = .recording
+            self.ignorePitchUntil = Date()
+            try? await Task.sleep(for: .seconds(Self.vibratoRecordDuration))
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.finishVibratoCheck()
+        }
+    }
+
+    private func finishVibratoCheck() {
+        vibratoPhase = .done
+        lastSessionTargetLabel = "비브라토 체크"
+        let times = vibratoTrace.map { $0.time }
+        let freqs = vibratoTrace.map { $0.frequency }
+        let result = VocalLogic.VibratoAnalysis.analyze(times: times, frequencies: freqs)
+        vibratoResult = result
+        vibratoTips = VocalLogic.vibratoFeedback(for: result)
+        let score = VocalLogic.vibratoScore(result)
+        accuracyScore = Double(score)
+        lastSessionScore = voicedFrameCount >= 10 ? score : nil
+        lastSessionGrade = VocalLogic.sessionGrade(forScore: score)
+        haptics.routineCompleted()
+        // Same ownership pattern as the vowel game: end the session here so
+        // a later stopTracking() cannot overwrite the vibrato score.
+        isListening = false
         LiveActivityManager.shared.endLiveActivity()
         audio.stopMicrophone()
         audio.onPitchUpdate = nil
@@ -480,6 +555,9 @@ public final class PitchTrackerViewModel {
 
         voicedFrameCount += 1
         voicedFrequencies.append(frequency)
+        if mode == .vibrato {
+            vibratoTrace.append((Date().timeIntervalSince1970, frequency))
+        }
         if mode == .vowel {
             vowelMagnitudes.append(audio.currentMagnitudeSpectrum)
         }

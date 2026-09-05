@@ -393,6 +393,144 @@ function vowelGameRounds(level){
  if (level === 2) return ["아","에","오","우"];
  return ["에","이","우","오","아","에"];
 }
+// ── 비브라토 체크 (Swift VocalLogic.VibratoAnalysis 미러) ──────────────
+// 문헌 기준: 훈련된 가수 4.5–6.5Hz, 진폭 ±50–150센트 (Nix 2016; JASA 2022).
+// 분석: voiced 프레임 → 센트(로그) 변환 → 선형 추세 제거 → 3.5–8.5Hz 지연
+// 대역 정규화 자기상관 → 사이클별 반 진폭(중앙값). 배주기 일관성(harmonic)
+// 검사로 느린 워블의 위상 지연 오탐을 차단한다.
+const VIB = { MIN_RATE: 3.5, MAX_RATE: 8.5, MIN_EXTENT: 15, MIN_REG: 0.45, MIN_FRAMES: 45 };
+const VIBRATO_CHECK = { phase: "idle", times: [], freqs: [], result: null, tips: [], timers: [] };
+function vibNone(frames){ return { rateHz: 0, extentCents: 0, regularity: 0, voicedFrames: frames || 0 }; }
+function vibratoHasVib(m){
+ return m.rateHz >= VIB.MIN_RATE && m.rateHz <= VIB.MAX_RATE
+  && m.extentCents >= VIB.MIN_EXTENT && m.regularity >= VIB.MIN_REG;
+}
+function medianArr(a){
+ const s = [...a].sort((x, y) => x - y), n = s.length;
+ return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2;
+}
+function vibNormCorr(x, lag){
+ if (lag < 1 || x.length - lag < 8) return 0;
+ let cross = 0, ea = 0, eb = 0;
+ for (let i = 0; i < x.length - lag; i++){
+  cross += x[i] * x[i + lag]; ea += x[i] * x[i]; eb += x[i + lag] * x[i + lag];
+ }
+ const d = Math.sqrt(ea * eb);
+ return d > 1e-9 ? cross / d : 0;
+}
+function vibCycleExtent(cents){
+ const ex = [];
+ for (let i = 1; i < cents.length - 1; i++){
+  const rf = cents[i] > cents[i - 1] && cents[i] >= cents[i + 1];
+  const fr = cents[i] < cents[i - 1] && cents[i] <= cents[i + 1];
+  if (rf || fr) ex.push(cents[i]);
+ }
+ const sw = [];
+ for (let i = 1; i < ex.length; i++){
+  const s = Math.abs(ex[i] - ex[i - 1]) / 2;
+  if (s >= 5) sw.push(s);
+ }
+ return sw.length ? medianArr(sw) : 0;
+}
+function vibAnalyzeFrames(freqs, frameRate){
+ const voiced = freqs.filter(f => f > 0 && isFinite(f));
+ if (voiced.length < VIB.MIN_FRAMES || frameRate <= 0) return vibNone();
+ let logSum = 0;
+ for (const f of voiced) logSum += Math.log2(f);
+ const meanHz = Math.pow(2, logSum / voiced.length);
+ let cents = voiced.map(f => 1200 * Math.log2(f / meanHz));
+ const n = cents.length;
+ const mx = (n - 1) / 2;
+ let my = 0; for (const c of cents) my += c; my /= n;
+ let num = 0, den = 0;
+ for (let i = 0; i < n; i++){ num += (i - mx) * (cents[i] - my); den += (i - mx) * (i - mx); }
+ if (den > 0){
+  const slope = num / den;
+  cents = cents.map((c, i) => c - (my + slope * (i - mx)));
+ }
+ let energy = 0; for (const c of cents) energy += c * c;
+ if (energy <= 1e-6) return vibNone(voiced.length);
+ const minLag = Math.max(2, Math.ceil(frameRate / VIB.MAX_RATE));
+ const maxLag = Math.min(Math.floor(cents.length / 2) - 1, Math.floor(frameRate / VIB.MIN_RATE));
+ if (maxLag <= minLag + 1) return vibNone(voiced.length);
+ let bestLag = 0, bestVal = -1;
+ const lagVals = {};
+ for (let lag = minLag; lag <= maxLag; lag++){
+  const v = vibNormCorr(cents, lag);
+  lagVals[lag] = v;
+  if (v > bestVal){ bestVal = v; bestLag = lag; }
+ }
+ if (bestLag <= 0 || bestVal <= 0) return { rateHz: 0, extentCents: vibCycleExtent(cents), regularity: 0, voicedFrames: voiced.length };
+ const v0 = lagVals[bestLag - 1] ?? 0, v1 = lagVals[bestLag] ?? 0, v2 = lagVals[bestLag + 1] ?? 0;
+ const dp = 2 * (2 * v1 - v2 - v0);
+ let shift = Math.abs(dp) > 1e-9 ? (v2 - v0) / dp : 0;
+ shift = Math.min(0.5, Math.max(-0.5, shift));
+ const rateHz = frameRate / (bestLag + shift);
+ const extentCents = vibCycleExtent(cents);
+ // 배주기 일관성: 진짜 주기는 2× 지연에서도 상관이 양수다. 없으면 3Hz 워블이
+ // 대역 안 위상 지연 피크로 ~3.6Hz로 오탐된다.
+ const harmonic = cents.length - 2 * bestLag >= 8 ? Math.max(0, vibNormCorr(cents, 2 * bestLag)) : 1.0;
+ const regularity = Math.min(1, Math.max(0, Math.min(bestVal, harmonic)));
+ return { rateHz, extentCents, regularity, voicedFrames: voiced.length };
+}
+function vibratoAnalyze(times, freqs){
+ // 무성 프레임 탈락 → 불균일 간격: 중앙 dt 그리드로 선형 보간 리샘플 후 분석.
+ const pts = [];
+ for (let i = 0; i < times.length; i++){
+  if (freqs[i] > 0 && isFinite(freqs[i]) && isFinite(times[i])) pts.push([times[i], freqs[i]]);
+ }
+ if (pts.length < VIB.MIN_FRAMES) return vibNone();
+ pts.sort((a, b) => a[0] - b[0]);
+ const dts = [];
+ for (let i = 1; i < pts.length; i++){
+  const d = pts[i][0] - pts[i - 1][0];
+  if (d > 0.001 && d < 1.0) dts.push(d);
+ }
+ if (dts.length < 10) return vibNone();
+ const step = medianArr(dts);
+ const rs = [];
+ let j = 0, t = pts[0][0];
+ const last = pts[pts.length - 1][0];
+ while (t <= last && rs.length < 10000){
+  while (j + 2 < pts.length && pts[j + 1][0] < t) j++;
+  const t0 = pts[j][0], t1 = pts[j + 1][0];
+  if (t1 > t0){
+   const fr = (t - t0) / (t1 - t0);
+   rs.push(pts[j][1] + (pts[j + 1][1] - pts[j][1]) * fr);
+  }
+  t += step;
+ }
+ return vibAnalyzeFrames(rs, 1.0 / step);
+}
+function vibratoFeedback(m){
+ if (!(m.voicedFrames >= VIB.MIN_FRAMES))
+  return ["소리가 짧았어요 — 다음엔 한 음을 4초 이상 길게 유지해주세요"];
+ if (!vibratoHasVib(m)){
+  if (m.extentCents < VIB.MIN_EXTENT)
+   return ["거의 직진 톤입니다 — 음을 위아래로 의식적으로 흔들어 진폭을 만들어보세요"];
+  if (m.rateHz <= 0 || m.regularity < VIB.MIN_REG)
+   return ["규칙적인 진동이 감지되지 않았어요 — '아~'를 길게 끌며 목소리를 자연스럽게 흔들어보세요"];
+  return [`진동의 폭은 있지만 속도가 비브라토 범위(${VIB.MIN_RATE}~${VIB.MAX_RATE}Hz)를 벗어났어요`];
+ }
+ const tips = [];
+ const rateText = m.rateHz.toFixed(1);
+ const extentText = Math.round(m.extentCents);
+ if (m.rateHz < 4.5) tips.push(`속도 ${rateText}Hz — 느린 워블입니다. 맥박을 올리듯 조금 더 빠르게 흔들어보세요`);
+ else if (m.rateHz > 6.5) tips.push(`속도 ${rateText}Hz — 빠른 떨림입니다. 여유를 갖고 속도를 늦춰보세요`);
+ else tips.push(`속도 ${rateText}Hz — 이상적인 비브라토 범위(4.5~6.5Hz)입니다`);
+ if (m.extentCents < 50) tips.push(`진폭 ±${extentText}센트 — 목표(±50~100센트)보다 얕습니다. 폭을 넓혀보세요`);
+ else if (m.extentCents > 150) tips.push(`진폭 ±${extentText}센트 — 과합니다. 절제할수록 자연스럽습니다`);
+ else tips.push(`진폭 ±${extentText}센트 — 자연스러운 깊이입니다`);
+ return tips;
+}
+function vibratoScore(m){
+ if (!vibratoHasVib(m)) return 0;
+ let s = 50;
+ if (m.rateHz >= 4.5 && m.rateHz <= 6.5) s += 25; else s += 10;
+ if (m.extentCents >= 50 && m.extentCents <= 150) s += 15; else s += 7;
+ if (m.regularity >= 0.7) s += 10;
+ return Math.min(100, s);
+}
 function peakFrequency(mags, sampleRate, loHz, hiHz){
  const binHz = sampleRate / mags.length;
  let best = -1, bi = -1;
@@ -1149,7 +1287,7 @@ function screenTracker(){
  </div>
 
  <div class="glass" style="margin:10px 20px 0;padding:8px 12px;display:flex;gap:8px;border-radius:14px;">
- ${[["single","단음"],["echo","에코"],["speak","말하기"],["vowel","모음"],["interval","음정"],["ear","귀훈련"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')" role="button" tabindex="0" aria-label="모드 ${label}">${label}</span>`).join("")}
+ ${[["single","단음"],["echo","에코"],["speak","말하기"],["vowel","모음"],["interval","음정"],["ear","귀훈련"],["vibrato","비브라토"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')" role="button" tabindex="0" aria-label="모드 ${label}">${label}</span>`).join("")}
  </div>
 
  ${App.trMode==='vowel'&&VOWEL_GAME.active?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">라운드 ${Math.min(VOWEL_GAME.idx + 1, VOWEL_GAME.rounds.length)}/${VOWEL_GAME.rounds.length} · 목표 모음: ${VOWEL_GAME.target || "-"}${VOWEL_GAME.tips.length ? "<br><span style='color:var(--text-secondary);font-weight:400;'>" + VOWEL_GAME.tips[0] + "</span>" : ""}</div>`:""}
@@ -1164,6 +1302,7 @@ function screenTracker(){
  </div>` : `<div class="cap2" style="color:var(--text-secondary);margin:10px 0;">🎧 듣고 있어요...</div>`}
  </div>`:""}
  ${App.trMode==='echo'?`<div class="cap2" style="text-align:center;color:var(--text-secondary);margin:8px 0 0;">에코 난이도 ${echoLevel()}단계 · ${echoLevel()>=3?"최고 난이도입니다":"성공하면 이동 폭이 넓어져요"}</div>`:""}
+ ${App.trMode==='vibrato'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${VIBRATO_CHECK.phase==='guide'?"기준음이 먼저 울립니다 — 같은 음을 5초간 길게 끌며 비브라토를 넣어보세요":(VIBRATO_CHECK.phase==='recording'?"지금 길게 '아~' — 목소리를 자연스럽게 흔들어보세요":(VIBRATO_CHECK.result?"측정 완료 — 결과 카드를 확인하세요":"시작하면 기준음이 울립니다 — 그 음을 길게 끌며 비브라토를 넣어보세요"))}</div>`:""}
 
  <div class="glass" style="margin:10px 20px 0;padding:8px 14px;display:flex;align-items:center;gap:10px;border-radius:14px;">
  <span class="cap2" style="color:var(--text-secondary);">기준 피치 A4</span><div style="flex:1"></div>
@@ -1211,6 +1350,22 @@ function screenTracker(){
  <span style="font-size:8px;font-weight:700;color:var(--text-secondary);">${names[i]}</span></div>`;
  }).join("")}
  </div>
+ </div>` : ""}
+
+ ${App.trMode==='vibrato'&&VIBRATO_CHECK.result?`
+ <div class="glass" style="margin:14px 20px 4px;padding:14px;border-radius:18px;">
+ <div style="display:flex;align-items:center;">
+ <div style="font-size:12px;font-weight:800;">비브라토 분석</div><div style="flex:1"></div>
+ <span style="font-size:11px;font-weight:800;color:${vibratoHasVib(VIBRATO_CHECK.result)?'var(--vocal-success)':'var(--vocal-warning)'};background:${vibratoHasVib(VIBRATO_CHECK.result)?'rgba(16,185,129,.16)':'rgba(245,158,11,.16)'};padding:3px 8px;border-radius:999px;">${vibratoHasVib(VIBRATO_CHECK.result)?"비브라토 감지 ✓":"감지 안 됨"}</span>
+ </div>
+ <div style="display:flex;align-items:center;margin-top:10px;">
+ ${[
+  ["속도", VIBRATO_CHECK.result.rateHz>0 ? VIBRATO_CHECK.result.rateHz.toFixed(1)+" Hz" : "—", "이상적 4.5~6.5"],
+  ["진폭", VIBRATO_CHECK.result.extentCents>0 ? "±"+Math.round(VIBRATO_CHECK.result.extentCents)+"¢" : "—", "목표 ±50~100¢"],
+  ["규칙성", Math.round(VIBRATO_CHECK.result.regularity*100)+"%", "주기 일관성"],
+ ].map(([t,v,r])=>`<div style="flex:1;text-align:center;"><div class="cap2" style="color:var(--text-secondary);">${t}</div><div style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;margin:2px 0;">${v}</div><div style="font-size:9px;color:var(--text-secondary);opacity:.8;">${r}</div></div>`).join("")}
+ </div>
+ ${VIBRATO_CHECK.tips.map(tip=>`<div style="display:flex;gap:6px;margin-top:6px;"><span style="color:var(--brand-secondary);">•</span><span class="cap2" style="color:var(--text-secondary);">${tip}</span></div>`).join("")}
  </div>` : ""}
  </div>
 
@@ -1297,6 +1452,47 @@ function startEchoFlow(){
 function echoLabel(){
  return App.echo.midis.map(m => freqToNoteCents(midiToFreq(m)).note).join("-");
 }
+// 비브라토 체크 흐름: 기준음 1회 → 5.5초 유지 녹음 → 자기상관 분석 + 코칭
+async function startVibratoCheck(){
+ VIBRATO_CHECK.phase = "guide";
+ VIBRATO_CHECK.result = null; VIBRATO_CHECK.tips = [];
+ VIBRATO_CHECK.times = []; VIBRATO_CHECK.freqs = [];
+ VIBRATO_CHECK.timers.forEach(clearTimeout); VIBRATO_CHECK.timers = [];
+ App.ignoreUntil = Infinity; // 기준음이 스피커로 새는 동안 채점 차단
+ playTarget();
+ VIBRATO_CHECK.timers.push(setTimeout(() => {
+  VIBRATO_CHECK.phase = "recording"; App.ignoreUntil = 0; render();
+ }, 1600));
+ VIBRATO_CHECK.timers.push(setTimeout(() => { finishVibratoCheck(); }, 1600 + 5500));
+}
+function finishVibratoCheck(){
+ if (!App.listening) return;
+ VIBRATO_CHECK.timers.forEach(clearTimeout); VIBRATO_CHECK.timers = [];
+ VIBRATO_CHECK.phase = "done";
+ const m = vibratoAnalyze(VIBRATO_CHECK.times, VIBRATO_CHECK.freqs);
+ VIBRATO_CHECK.result = m;
+ VIBRATO_CHECK.tips = vibratoFeedback(m);
+ const score = vibratoScore(m);
+ App.listening = false; Audio5.stopMic(); App.ignoreUntil = 0;
+ if (App.voiced >= 10){
+  App.lastScore = score;
+  App.lastGrade = score >= 90 ? "S" : score >= 80 ? "A" : score >= 70 ? "B" : score >= 60 ? "C" : "D";
+  Store.data.pitchRecords.push({
+   t: Date.now(), target: "비브라토 체크", acc: score,
+   lo: App.lo, hi: App.hi, dur: Math.round((Date.now() - App.sessionStart) / 1000),
+  });
+  if (App.lo > 0 && (Store.data.range.lo === 0 || App.lo < Store.data.range.lo)) Store.data.range.lo = App.lo;
+  if (App.hi > Store.data.range.hi) Store.data.range.hi = App.hi;
+  Store.save();
+  const head = vibratoHasVib(m)
+   ? `비브라토 감지 ✓ <b style="font-size:20px;">${score}점</b>`
+   : `감지 안 됨 — <b style="font-size:20px;">${score}점</b>`;
+  toast(`${head}<br>속도 ${m.rateHz > 0 ? m.rateHz.toFixed(1) + "Hz" : "—"} · 진폭 ±${Math.round(m.extentCents)}¢ · 규칙성 ${Math.round(m.regularity * 100)}%<br><span style="font-size:12px;color:var(--text-secondary);">${VIBRATO_CHECK.tips[0] || ""}</span>`, 4200);
+ } else {
+  toast("소리가 너무 짧았어요 — 한 은을 4초 이상 길게 유지해주세요", 3400);
+ }
+ render();
+}
 function playTarget(){
  haptic();
  App.ignoreUntil = Date.now() + 1600;
@@ -1332,6 +1528,10 @@ async function startTracking(){
   await startEarGame();
   return;
  }
+ if (App.trMode === "vibrato"){
+  await startVibratoCheck();
+  return;
+ }
  if (App.trMode === "speak"){
   App._speakTimer = setTimeout(() => { if (App.listening) stopTracking(); }, 10000);
  } else if (App.trMode === "echo") startEchoFlow();
@@ -1340,6 +1540,11 @@ function stopTracking(){
  if (VOWEL_GAME.active){ VOWEL_GAME.active = false; VOWEL_GAME.idx = 99; App.listening = false; Audio5.stopMic(); render(); return; }
  if (INTERVAL_GAME.active){ INTERVAL_GAME.active = false; INTERVAL_GAME.idx = 999; App.listening = false; Audio5.stopMic(); render(); return; }
  if (EAR_GAME.active){ EAR_GAME.active = false; EAR_GAME.trial = null; Audio5.stopMic(); render(); return; }
+ if (VIBRATO_CHECK.phase === "guide" || VIBRATO_CHECK.phase === "recording"){
+  VIBRATO_CHECK.timers.forEach(clearTimeout); VIBRATO_CHECK.timers = [];
+  VIBRATO_CHECK.phase = "idle"; VIBRATO_CHECK.times = []; VIBRATO_CHECK.freqs = [];
+  App.listening = false; Audio5.stopMic(); App.ignoreUntil = 0; render(); return;
+ }
  if (!App.listening) return; // 자동정지·수동정지 경합 시 이중 기록 방지
  App.listening = false; Audio5.stopMic();
  App.echo.timers.forEach(clearTimeout); App.echo.timers = [];
@@ -1391,6 +1596,9 @@ function trackerPitchHandler(f, note, cents, voiced){
  if (!voiced) return;
  App.voiced++;
  if (App.trMode === "speak"){ (App._speakFreqs = App._speakFreqs || []).push(f); }
+ if (App.trMode === "vibrato" && VIBRATO_CHECK.phase === "recording"){
+  VIBRATO_CHECK.times.push(Date.now() / 1000); VIBRATO_CHECK.freqs.push(f);
+ }
  App.centsSum += Math.abs(cents);
  if (App.lo === 0 || f < App.lo) App.lo = f;
  if (f > App.hi) App.hi = f;

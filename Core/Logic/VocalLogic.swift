@@ -771,6 +771,237 @@ public enum VocalLogic {
         return scores[0].0
     }
 
+    // MARK: - Vibrato analysis (rate / extent / regularity)
+
+    /// Vibrato measurement of a sustained note. Literature anchors: trained
+    /// singers oscillate at 4.5–6.5 Hz with an extent of roughly ±50–150
+    /// cents (Nix 2016, Journal of Voice; JASA 2022).
+    public struct VibratoMeasurement: Equatable, Sendable {
+        /// Oscillation rate in cycles per second. 0 when no periodic modulation.
+        public let rateHz: Double
+        /// Half the peak-to-peak pitch swing, in cents from the mean.
+        public let extentCents: Double
+        /// Normalized autocorrelation peak (0...1) — how periodic the swing is.
+        public let regularity: Double
+        /// Number of voiced frames the measurement is based on.
+        public let voicedFrames: Int
+
+        public var hasVibrato: Bool {
+            rateHz >= 3.5 && rateHz <= 8.5
+                && extentCents >= 15.0
+                && regularity >= 0.45
+        }
+
+        public static let none = VibratoMeasurement(rateHz: 0, extentCents: 0, regularity: 0, voicedFrames: 0)
+    }
+
+    public enum VibratoAnalysis {
+        public static let minRateHz = 3.5
+        public static let maxRateHz = 8.5
+        public static let minExtentCents = 15.0
+        public static let minRegularity = 0.45
+        /// Minimum voiced frames (≈1.5 s at 30 fps) to attempt a measurement.
+        public static let minFrames = 45
+
+        /// Analyzes a sustained-note pitch trace with per-frame timestamps
+        /// (seconds). Unvoiced frames drop out of a real trace, so the frames
+        /// are unevenly spaced; this overload resamples them onto a uniform
+        /// grid (step = median inter-frame gap) before the core analysis.
+        public static func analyze(times: [Double], frequencies: [Double]) -> VibratoMeasurement {
+            var pts: [(t: Double, f: Double)] = []
+            for (t, f) in zip(times, frequencies) where f > 0 && f.isFinite && t.isFinite {
+                pts.append((t, f))
+            }
+            guard pts.count >= minFrames else { return .none }
+            pts.sort { $0.t < $1.t }
+            let dts = (1..<pts.count).map { pts[$0].t - pts[$0 - 1].t }
+                .filter { $0 > 0.001 && $0 < 1.0 }
+            guard dts.count >= 10 else { return .none }
+            let step = median(dts)
+            guard step > 0 else { return .none }
+
+            // Linear-interpolation resample onto the uniform grid.
+            var resampled: [Double] = []
+            var j = 0
+            var t = pts[0].t
+            let last = pts[pts.count - 1].t
+            while t <= last, resampled.count < 10_000 {
+                while j + 2 < pts.count, pts[j + 1].t < t { j += 1 }
+                let t0 = pts[j].t, t1 = pts[j + 1].t
+                if t1 > t0 {
+                    let frac = (t - t0) / (t1 - t0)
+                    resampled.append(pts[j].f + (pts[j + 1].f - pts[j].f) * frac)
+                }
+                t += step
+            }
+            return analyze(frequencies: resampled, frameRate: 1.0 / step)
+        }
+
+        /// Normalized autocorrelation of `x` at `lag` (0 when undefined).
+        static func normalizedCorrelation(_ x: [Double], lag: Int) -> Double {
+            guard lag >= 1, x.count - lag >= 8 else { return 0 }
+            var cross = 0.0, energyA = 0.0, energyB = 0.0
+            for i in 0..<(x.count - lag) {
+                cross += x[i] * x[i + lag]
+                energyA += x[i] * x[i]
+                energyB += x[i + lag] * x[i + lag]
+            }
+            let denom = (energyA * energyB).squareRoot()
+            return denom > 1e-9 ? cross / denom : 0
+        }
+
+        /// Analyzes a sustained-note pitch trace sampled at `frameRate`
+        /// frames/s. Pipeline: voiced frames → cents (log domain) → linear
+        /// detrend → normalized autocorrelation over the 3.5–8.5 Hz lag band
+        /// → per-cycle half peak-to-peak extent (median).
+        public static func analyze(frequencies: [Double], frameRate: Double) -> VibratoMeasurement {
+            let voiced = frequencies.filter { $0 > 0 && $0.isFinite }
+            guard voiced.count >= minFrames, frameRate > 0 else { return .none }
+
+            // 1) Log domain: cents relative to the geometric mean frequency.
+            let logSum = voiced.reduce(0) { $0 + log2($1) }
+            let meanHz = pow(2, logSum / Double(voiced.count))
+            var cents = voiced.map { 1200 * log2($0 / meanHz) }
+
+            // 2) Remove the linear drift (a held note slowly sags or rises —
+            // that is not vibrato even though it swings the pitch).
+            let n = Double(cents.count)
+            let xs = (0..<cents.count).map(Double.init)
+            let meanX = (n - 1) / 2
+            let meanY = cents.reduce(0, +) / n
+            var num = 0.0, den = 0.0
+            for i in 0..<cents.count {
+                num += (xs[i] - meanX) * (cents[i] - meanY)
+                den += (xs[i] - meanX) * (xs[i] - meanX)
+            }
+            let slope = den > 0 ? num / den : 0
+            if den > 0 {
+                for i in 0..<cents.count {
+                    cents[i] -= meanY + slope * (xs[i] - meanX)
+                }
+            }
+            let energy = cents.reduce(0) { $0 + $1 * $1 }
+            guard energy > 1e-6 else {
+                // Perfectly flat tone (or all-identical frames): straight tone.
+                return VibratoMeasurement(rateHz: 0, extentCents: 0, regularity: 0, voicedFrames: voiced.count)
+            }
+
+            // 3) Normalized autocorrelation over the vibrato lag band.
+            let minLag = max(2, Int((frameRate / maxRateHz).rounded(.up)))
+            let maxLag = min(cents.count / 2 - 1, Int((frameRate / minRateHz).rounded(.down)))
+            guard maxLag > minLag + 1 else { return .none }
+
+            var bestLag = 0
+            var bestValue = -1.0
+            var lagValues: [Int: Double] = [:]
+            for lag in minLag...maxLag {
+                let value = normalizedCorrelation(cents, lag: lag)
+                lagValues[lag] = value
+                if value > bestValue {
+                    bestValue = value
+                    bestLag = lag
+                }
+            }
+            guard bestLag > 0, bestValue > 0 else {
+                return VibratoMeasurement(rateHz: 0, extentCents: cycleExtentCents(cents), regularity: 0, voicedFrames: voiced.count)
+            }
+
+            // Parabolic refinement around the best lag for sub-frame rate
+            // precision (a 30 fps frame grid is otherwise ±0.4 Hz coarse).
+            let v0 = lagValues[bestLag - 1] ?? 0
+            let v1 = lagValues[bestLag] ?? 0
+            let v2 = lagValues[bestLag + 1] ?? 0
+            let denom = 2 * (2 * v1 - v2 - v0)
+            let shift = abs(denom) > 1e-9 ? (v2 - v0) / denom : 0
+            let refinedLag = Double(bestLag) + Swift.min(0.5, Swift.max(-0.5, shift))
+            let rateHz = frameRate / refinedLag
+
+            // Extent: median half peak-to-peak of the alternating extrema.
+            let extent = cycleExtentCents(cents)
+
+            // Harmonic consistency: a true period also correlates at 2× the
+            // lag. Without this, a slow wobble's partial-phase overlap inside
+            // the band reads as a false peak (a 3 Hz wobble scored ~3.6 Hz)
+            // while its double-lag correlation is actually negative.
+            let harmonic = cents.count - 2 * bestLag >= 8
+                ? Swift.max(0, normalizedCorrelation(cents, lag: 2 * bestLag))
+                : 1.0
+            let regularity = Swift.min(bestValue, harmonic)
+
+            return VibratoMeasurement(
+                rateHz: rateHz,
+                extentCents: extent,
+                regularity: Swift.min(1, Swift.max(0, regularity)),
+                voicedFrames: voiced.count
+            )
+        }
+
+        /// Median half peak-to-peak swing over alternating local extrema.
+        /// Each adjacent (peak, valley) pair contributes |peak - valley| / 2;
+        /// micro-jitters under 5 cents are ignored as detector noise.
+        static func cycleExtentCents(_ cents: [Double]) -> Double {
+            var extrema: [Double] = []
+            for i in 1..<(cents.count - 1) {
+                let risingThenFalling = cents[i] > cents[i - 1] && cents[i] >= cents[i + 1]
+                let fallingThenRising = cents[i] < cents[i - 1] && cents[i] <= cents[i + 1]
+                if risingThenFalling || fallingThenRising {
+                    extrema.append(cents[i])
+                }
+            }
+            var swings: [Double] = []
+            for i in 1..<extrema.count {
+                let swing = abs(extrema[i] - extrema[i - 1]) / 2
+                if swing >= 5 { swings.append(swing) }
+            }
+            return swings.isEmpty ? 0 : median(swings)
+        }
+    }
+
+    /// Coaching text for a vibrato measurement — WHAT to change, the layer a
+    /// recorded video cannot personalize.
+    public static func vibratoFeedback(for m: VibratoMeasurement) -> [String] {
+        guard m.voicedFrames >= VibratoAnalysis.minFrames else {
+            return ["소리가 짧았어요 — 다음엔 한 음을 4초 이상 길게 유지해주세요"]
+        }
+        guard m.hasVibrato else {
+            if m.extentCents < VibratoAnalysis.minExtentCents {
+                return ["거의 직진 톤입니다 — 음을 위아래로 의식적으로 흔들어 진폭을 만들어보세요"]
+            }
+            if m.rateHz <= 0 || m.regularity < VibratoAnalysis.minRegularity {
+                return ["규칙적인 진동이 감지되지 않았어요 — '아~'를 길게 끌며 목소리를 자연스럽게 흔들어보세요"]
+            }
+            return ["진동의 폭은 있지만 속도가 비브라토 범위(\(VibratoAnalysis.minRateHz)~\(VibratoAnalysis.maxRateHz)Hz)를 벗어났어요"]
+        }
+        var tips: [String] = []
+        let rateText = String(format: "%.1f", m.rateHz)
+        let extentText = Int(m.extentCents.rounded())
+        if m.rateHz < 4.5 {
+            tips.append("속도 \(rateText)Hz — 느린 워블입니다. 맥박을 올리듯 조금 더 빠르게 흔들어보세요")
+        } else if m.rateHz > 6.5 {
+            tips.append("속도 \(rateText)Hz — 빠른 떨림입니다. 여유를 갖고 속도를 늦춰보세요")
+        } else {
+            tips.append("속도 \(rateText)Hz — 이상적인 비브라토 범위(4.5~6.5Hz)입니다")
+        }
+        if m.extentCents < 50 {
+            tips.append("진폭 ±\(extentText)센트 — 목표(±50~100센트)보다 얕습니다. 폭을 넓혀보세요")
+        } else if m.extentCents > 150 {
+            tips.append("진폭 ±\(extentText)센트 — 과합니다. 절제할수록 자연스럽습니다")
+        } else {
+            tips.append("진폭 ±\(extentText)센트 — 자연스러운 깊이입니다")
+        }
+        return tips
+    }
+
+    /// 0...100 vibrato score: in-band rate, target extent, and periodicity.
+    public static func vibratoScore(_ m: VibratoMeasurement) -> Int {
+        guard m.hasVibrato else { return 0 }
+        var score = 50
+        if (4.5...6.5).contains(m.rateHz) { score += 25 } else { score += 10 }
+        if (50...150).contains(m.extentCents) { score += 15 } else { score += 7 }
+        if m.regularity >= 0.7 { score += 10 }
+        return min(100, score)
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.

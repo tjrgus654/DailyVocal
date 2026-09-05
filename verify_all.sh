@@ -53,7 +53,11 @@ const fs=require('fs'), vm=require('vm');
 console.log('JS OK');" > /tmp/va_js.log 2>&1
 record $? "live.html JS ($(tail -1 /tmp/va_js.log))"
 
+step 7 "비브라토 파리티 (웹 ↔ Swift, 상수+공식+15실행축)"
+python evidence/20260903-rebuild/verify_vibrato_parity.py > /tmp/va_vib.log 2>&1
+record $? "vibrato parity ($(tail -1 /tmp/va_vib.log))"
+
 echo ""
 echo "=============================================="
-echo "RESULT: $PASS 통과 / $FAIL 실패 (6 게이트)"
+echo "RESULT: $PASS 통과 / $FAIL 실패 (7 게이트)"
 [ "$FAIL" -eq 0 ] && echo "ALL GREEN" || { echo "FAILURES PRESENT"; exit 1; }

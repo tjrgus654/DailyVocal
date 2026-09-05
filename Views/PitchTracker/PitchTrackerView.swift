@@ -46,6 +46,12 @@ public struct PitchTrackerView: View {
                             .padding(.horizontal, 20)
                     }
 
+                    if viewModel.mode == .vibrato,
+                       viewModel.vibratoPhase == .done,
+                       let result = viewModel.vibratoResult {
+                        VibratoResultCard(result: result, tips: viewModel.vibratoTips)
+                    }
+
                     modePicker
                         .padding(.horizontal, 20)
 
@@ -68,6 +74,18 @@ public struct PitchTrackerView: View {
                                 .foregroundColor(.textSecondary)
                                 .multilineTextAlignment(.center)
                         }
+                    }
+                    if viewModel.mode == .vibrato {
+                        Text(viewModel.vibratoPhase == .guide
+                             ? "기준음이 먼저 울립니다 — 같은 음을 5초간 길게 끌며 비브라토를 넣어보세요"
+                             : (viewModel.vibratoPhase == .recording
+                                ? "지금 길게 '아~' — 목소리를 자연스럽게 흔들어보세요"
+                                : (viewModel.vibratoResult != nil
+                                   ? "측정 완료 — 결과 카드를 확인하세요"
+                                   : "시작하면 기준음이 울립니다 — 그 음을 길게 끌며 비브라토를 넣어보세요")))
+                            .font(.caption2)
+                            .foregroundColor(.brandSecondary)
+                            .frame(maxWidth: .infinity)
                     }
 
                     targetNoteSelectorBar
@@ -419,6 +437,92 @@ private struct NoteHistogramCard: View {
             }
         }
         .glassCard(cornerRadius: 16, padding: 14)
+    }
+}
+
+/// Vibrato measurement readout: oscillation rate, extent, periodicity, and
+/// the coaching lines derived from them (literature band: 4.5–6.5 Hz,
+/// ±50–150 cents — Nix 2016; JASA 2022).
+private struct VibratoResultCard: View {
+    let result: VocalLogic.VibratoMeasurement
+    let tips: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("비브라토 분석")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                Spacer()
+                Text(result.hasVibrato ? "비브라토 감지 ✓" : "감지 안 됨")
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(result.hasVibrato ? .vocalSuccess : .vocalWarning)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(
+                        (result.hasVibrato ? Color.vocalSuccess : Color.vocalWarning).opacity(0.18)
+                    )
+                    .clipShape(Capsule())
+            }
+
+            HStack(spacing: 0) {
+                metric(
+                    title: "속도",
+                    value: result.rateHz > 0 ? String(format: "%.1f Hz", result.rateHz) : "—",
+                    reference: "이상적 4.5~6.5"
+                )
+                metricDivider
+                metric(
+                    title: "진폭",
+                    value: result.extentCents > 0 ? "±\(Int(result.extentCents.rounded()))¢" : "—",
+                    reference: "목표 ±50~100¢"
+                )
+                metricDivider
+                metric(
+                    title: "규칙성",
+                    value: "\(Int((result.regularity * 100).rounded()))%",
+                    reference: "주기 일관성"
+                )
+            }
+
+            ForEach(tips, id: \.self) { tip in
+                HStack(alignment: .top, spacing: 6) {
+                    Text("•")
+                        .foregroundColor(.brandSecondary)
+                    Text(tip)
+                        .font(.caption2)
+                        .foregroundColor(.textSecondary)
+                }
+            }
+        }
+        .glassCard(cornerRadius: 16, padding: 14)
+        .padding(.horizontal, 20)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var metricDivider: some View {
+        Divider()
+            .frame(height: 34)
+            .background(Color.borderGlass)
+            .padding(.horizontal, 10)
+    }
+
+    private func metric(title: String, value: String, reference: String) -> some View {
+        VStack(spacing: 3) {
+            Text(title)
+                .font(.caption2)
+                .foregroundColor(.textSecondary)
+            Text(value)
+                .font(.subheadline)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+                .monospacedDigit()
+            Text(reference)
+                .font(.system(size: 9))
+                .foregroundColor(.textSecondary.opacity(0.8))
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
