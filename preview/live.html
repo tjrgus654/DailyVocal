@@ -1474,6 +1474,12 @@ function screenTracker(){
  ${App.trMode==='vibrato'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${VIBRATO_CHECK.phase==='guide'?"기준음이 먼저 울립니다 — 같은 음을 5초간 길게 끌며 비브라토를 넣어보세요":(VIBRATO_CHECK.phase==='recording'?"지금 길게 '아~' — 목소리를 자연스럽게 흔들어보세요":(VIBRATO_CHECK.result?"측정 완료 — 결과 카드를 확인하세요":"시작하면 기준음이 울립니다 — 그 음을 길게 끌며 비브라토를 넣어보세요"))}</div>`:""}
  ${App.trMode==='dynamics'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${DYNAMICS_CHECK.phase==='guide'?"기준음이 먼저 울립니다 — 그 음을 한 호흡으로 여리게 → 크게 → 여리게":(DYNAMICS_CHECK.phase==='recording'?"지금 '아~'를 여리게 시작해 점점 크게, 다시 여리게 — 숨을 아껴가며":(DYNAMICS_CHECK.result?"측정 완료 — 아래 아치 결과를 확인하세요":"메사 디 보체: 한 음을 셈→여림으로 부풀렸다가 줄이는 왕도 훈련입니다"))}</div>`:""}
 
+ ${(App.trMode==='scale'||App.trMode==='melody')?`<div class="glass" style="margin:10px 20px 0;padding:8px 14px;display:flex;align-items:center;gap:10px;border-radius:14px;">
+ <span class="cap2" style="color:var(--text-secondary);">프레이즈 템포</span><div style="flex:1"></div>
+ <span class="btn-ghost" style="width:44px;height:44px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;" onclick="setDrillBpm(-5)" role="button" tabindex="0" aria-label="프레이즈 템포 5 BPM 내리기">−</span>
+ <span style="font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;min-width:64px;text-align:center;">${drillBpm()} BPM</span>
+ <span class="btn-ghost" style="width:44px;height:44px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;" onclick="setDrillBpm(5)" role="button" tabindex="0" aria-label="프레이즈 템포 5 BPM 올리기">+</span>
+ </div>`:""}
  <div class="glass" style="margin:10px 20px 0;padding:8px 14px;display:flex;align-items:center;gap:10px;border-radius:14px;">
  <span class="cap2" style="color:var(--text-secondary);">기준 피치 A4</span><div style="flex:1"></div>
  <span class="btn-ghost" style="width:44px;height:44px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;" onclick="setA4(-0.5)" role="button" tabindex="0" aria-label="기준 피치 0.5 헤르츠 내리기">−</span>
@@ -1742,7 +1748,21 @@ function scaleSequence(base, patternKey){
  const cl = m => Math.min(72, Math.max(43, m));
  return SCALE_PATTERNS[patternKey].offsets.map(o => cl(base + o));
 }
-const SCALE_T = { note: 900, gap: 250, window: 1800 };
+// 시퀀스 드릴 템포(웹 미러): 한 비트가 note(85%)+gap(15%), 창은 1.5비트.
+function drillTimings(bpm){
+ bpm = Math.min(80, Math.max(40, bpm || 50));
+ const beat = 60000 / bpm;
+ return { note: Math.round(beat * 0.85), gap: Math.round(beat * 0.15), window: Math.round(beat * 1.5) };
+}
+function drillBpm(){
+ if (!Store.data.prefs.bpm) Store.data.prefs.bpm = 50;
+ return Math.min(80, Math.max(40, Store.data.prefs.bpm));
+}
+function setDrillBpm(d){
+ Store.data.prefs.bpm = Math.min(80, Math.max(40, (Store.data.prefs.bpm || 50) + d));
+ Store.save(); haptic(); render();
+}
+window.setDrillBpm = setDrillBpm;
 // ── 멜로디 따라부르기 / 콜 앤 리스폰스 (Swift MelodyContour 미러) ──
 const MELODY_CONTOURS = {
  ascending: { name: "상행", count: 4 },
@@ -1798,6 +1818,7 @@ function startMelodyFlow(){
 function startSequenceDrillFlow(midis, label){
  App.echo.gen++;
  const gen = App.echo.gen;
+ const T = drillTimings(drillBpm());
  App.echo.midis = midis;
  App.echo.idx = 0;
  App.echo.timers = [];
@@ -1808,9 +1829,9 @@ function startSequenceDrillFlow(midis, label){
  App.echo.midis.forEach(m => {
   const at = delay;
   App.echo.timers.push(setTimeout(() => {
-   if (gen === App.echo.gen) Audio5.playTone(midiToFreq(m), SCALE_T.note/1000, 0.5);
+   if (gen === App.echo.gen) Audio5.playTone(midiToFreq(m), T.note/1000, 0.5);
   }, at));
-  delay += SCALE_T.note + SCALE_T.gap;
+  delay += T.note + T.gap;
  });
  delay += 300;
  App.echo.timers.push(setTimeout(() => {
@@ -1823,7 +1844,7 @@ function startSequenceDrillFlow(midis, label){
    if (gen !== App.echo.gen) return;
    App.echo.idx = i; render();
   }, at));
-  delay += SCALE_T.window;
+  delay += T.window;
  });
  App.echo.timers.push(setTimeout(() => { if (gen === App.echo.gen) stopTracking(); }, delay));
 }

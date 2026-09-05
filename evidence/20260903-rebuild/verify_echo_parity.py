@@ -69,10 +69,10 @@ check("dictation length ladder", "function melodyLength" in js and "func melodyL
 check("noteCount param", "melodyPhrase(contourKey, base, roll, noteCount)" in js
       and "noteCount: Int? = nil" in sw)
 check("band clamp", "Math.min(72, Math.max(43, m))" in js and "min(band.upperBound, max(band.lowerBound" in sw)
-check("one demo pass", "SCALE_T" in js and "scaleNoteDuration" in vm)
-scale_block = js[js.find("const SCALE_T"):js.find("function startScaleFlow")]
-check("timings", "note: 900" in scale_block and "gap: 250" in scale_block and "window: 1800" in scale_block
-      and "scaleNoteDuration = 0.9" in vm and "scaleListenGap = 0.25" in vm and "scaleWindowDuration = 1.8" in vm)
+check("one demo pass", "function drillTimings" in js and "DrillTempo.timings" in vm)
+check("BPM timings (0.85/0.15/1.5 of a beat)", "beat * 0.85" in js and "beat * 0.15" in js and "beat * 1.5" in js
+      and "beat * 0.85" in sw and "beat * 0.15" in sw and "beat * 1.5" in sw)
+check("BPM clamp 40-80", "Math.min(80, Math.max(40" in js and "min(maxBpm, max(minBpm" in sw)
 check("scoring shares active target", '["echo", "scale", "melody"].includes(App.trMode)' in js
       and "[.echo, .scale, .melody].contains(mode)" in vm)
 check("level applies to sequence drills", '["echo", "scale", "melody"].includes(App.trMode)' in js
@@ -86,7 +86,7 @@ const js = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const start = js.indexOf('const SCALE_PATTERNS');
 const end = js.indexOf('function startScaleFlow');
 const block = js.slice(start, end);
-const sandbox = { Math, console, Object };
+const sandbox = { Math, console, Object, window: {} };
 vm.createContext(sandbox);
 vm.runInContext(block, sandbox);
 const out = vm.runInContext(`(function(){

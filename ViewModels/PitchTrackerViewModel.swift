@@ -219,11 +219,13 @@ public final class PitchTrackerViewModel {
     private static let echoNoteDuration = 1.0
     private static let echoListenGap = 0.5
     private static let echoWindowDuration = 2.6
-    /// Scale sing-through timings: one demo pass (scales are predictable),
-    /// then a shorter window per note.
-    private static let scaleNoteDuration = 0.9
-    private static let scaleListenGap = 0.25
-    private static let scaleWindowDuration = 1.8
+    /// Sequence-drill tempo (BPM): one beat splits into note (85%) + gap
+    /// (15%); the sing window is 1.5 beats (VocalLogic.DrillTempo).
+    public var sequenceBpm = VocalLogic.DrillTempo.clamped(
+        UserDefaults.standard.object(forKey: "sequenceBpm") as? Int ?? VocalLogic.DrillTempo.defaultBpm
+    ) {
+        didSet { UserDefaults.standard.set(sequenceBpm, forKey: "sequenceBpm") }
+    }
 
     public init() {
         syncTargetFrequency()
@@ -832,10 +834,11 @@ public final class PitchTrackerViewModel {
     public private(set) var melodyDrillLabel = ""
 
     /// Shared one-demo-then-per-note-window flow for the sequence drills
-    /// (scale ladder, melody call-and-response).
+    /// (scale ladder, melody call-and-response). Timings follow the drill BPM.
     private func startSequenceDrill(midis: [Int], gameMode: String) {
         echoGeneration += 1
         let generation = echoGeneration
+        let tempo = VocalLogic.DrillTempo.timings(bpm: sequenceBpm)
         echoTargetMidis = midis
         activeEchoIndex = 0
         ignorePitchUntil = .distantFuture
@@ -851,10 +854,10 @@ public final class PitchTrackerViewModel {
                 guard !Task.isCancelled, generation == self.echoGeneration else { return }
                 self.audio.playTone(
                     frequency: VocalAudioEngine.frequency(forMidi: Double(midi)),
-                    duration: Self.scaleNoteDuration,
+                    duration: tempo.note,
                     volume: 0.5
                 )
-                try? await Task.sleep(for: .seconds(Self.scaleNoteDuration + Self.scaleListenGap))
+                try? await Task.sleep(for: .seconds(tempo.note + tempo.gap))
             }
             try? await Task.sleep(for: .seconds(0.3))
             // Sing: one window per note of the phrase.
@@ -864,7 +867,7 @@ public final class PitchTrackerViewModel {
                 guard !Task.isCancelled, generation == self.echoGeneration else { return }
                 self.activeEchoIndex = index
                 LiveActivityManager.shared.updateGameRound(index + 1, of: self.echoTargetMidis.count)
-                try? await Task.sleep(for: .seconds(Self.scaleWindowDuration))
+                try? await Task.sleep(for: .seconds(tempo.window))
             }
             guard generation == self.echoGeneration else { return }
             self.stopTracking()

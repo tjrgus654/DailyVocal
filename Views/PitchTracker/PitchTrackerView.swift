@@ -155,6 +155,11 @@ public struct PitchTrackerView: View {
                     tuningReferenceBar
                         .padding(.horizontal, 20)
 
+                    if viewModel.mode == .scale || viewModel.mode == .melody {
+                        tempoBar
+                            .padding(.horizontal, 20)
+                    }
+
                     Spacer(minLength: 4)
 
                 measureControlButton
@@ -246,6 +251,45 @@ public struct PitchTrackerView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("기준 피치 0.5 헤르츠 올리기")
+        }
+        .glassCard(cornerRadius: 14, padding: 10)
+    }
+
+    /// Sequence-drill tempo (BPM) — slow start, speed up as accuracy holds.
+    private var tempoBar: some View {
+        HStack(spacing: 10) {
+            Text("프레이즈 템포")
+                .font(.caption2)
+                .foregroundColor(.textSecondary)
+            Spacer()
+            Button {
+                viewModel.sequenceBpm = VocalLogic.DrillTempo.clamped(viewModel.sequenceBpm - 5)
+                hapticTick()
+            } label: {
+                Image(systemName: "minus.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(.white.opacity(0.7))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("프레이즈 템포 5 BPM 내리기")
+            Text("\(viewModel.sequenceBpm) BPM")
+                .font(.caption.weight(.bold).monospacedDigit())
+                .foregroundColor(.white)
+                .frame(minWidth: 72)
+            Button {
+                viewModel.sequenceBpm = VocalLogic.DrillTempo.clamped(viewModel.sequenceBpm + 5)
+                hapticTick()
+            } label: {
+                Image(systemName: "plus.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(.white.opacity(0.7))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("프레이즈 템포 5 BPM 올리기")
         }
         .glassCard(cornerRadius: 14, padding: 10)
     }

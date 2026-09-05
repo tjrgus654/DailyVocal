@@ -1418,6 +1418,29 @@ public enum VocalLogic {
         return phrase
     }
 
+    // MARK: - Drill tempo (BPM)
+
+    /// Sequence drills (scale ladder, melody call-and-response) run at an
+    /// adjustable tempo. Coach consensus: start slow (~60 BPM) and speed up
+    /// only as accuracy holds; SwiftScales-class apps make "any tempo" a
+    /// core knob. The timing triple derives from one beat so note/gap/window
+    /// stay musically coherent at every BPM.
+    public enum DrillTempo {
+        public static let minBpm = 40
+        public static let maxBpm = 80
+        public static let defaultBpm = 50
+
+        public static func clamped(_ bpm: Int) -> Int {
+            min(maxBpm, max(minBpm, bpm))
+        }
+
+        /// (note duration, listen gap, sing window) in seconds for a drill BPM.
+        public static func timings(bpm: Int) -> (note: Double, gap: Double, window: Double) {
+            let beat = 60.0 / Double(clamped(bpm))
+            return (beat * 0.85, beat * 0.15, beat * 1.5)
+        }
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.

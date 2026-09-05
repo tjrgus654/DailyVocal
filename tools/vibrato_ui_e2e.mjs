@@ -288,6 +288,32 @@ const melodyFlow = await page.evaluate(`(() => {
 })()`);
 ok("melody flow gates + label", melodyFlow);
 
+// 12. Drill tempo (BPM): timings derive from one beat, clamp 40-80,
+// and the tempo bar renders only in scale/melody modes.
+const tempo = await page.evaluate(`(() => {
+  const t50 = drillTimings(50), t40 = drillTimings(40), t80 = drillTimings(80), t10 = drillTimings(10);
+  return {
+    t50: t50.note === 1020 && t50.gap === 180 && t50.window === 1800,
+    monotonic: t80.note < t40.note && t80.window < t40.window,
+    clamp: t10.note === t40.note && drillTimings(500).note === t80.note,
+    beat: Math.abs((t50.note + t50.gap) - 1200) <= 1,
+  };
+})()`);
+ok("tempo timings at 50 BPM", tempo.t50);
+ok("tempo monotonic 40<80", tempo.monotonic);
+ok("tempo clamp 40-80", tempo.clamp);
+ok("tempo note+gap = one beat", tempo.beat);
+// The bar only renders in the sequence-drill modes — check hidden from
+// single mode first, then visible after switching to scale.
+await page.click('span.chip[onclick="setTrMode(\'single\')"]');
+await page.waitForTimeout(200);
+ok("tempo bar hidden in single mode", (await page.locator("text=프레이즈 템포").count()) === 0);
+await page.click('span.chip[onclick="setTrMode(\'scale\')"]');
+await page.waitForTimeout(200);
+ok("tempo bar visible in scale mode", (await page.locator("text=프레이즈 템포").count()) >= 1);
+const bpmAfter = await page.evaluate(`(() => { setDrillBpm(5); return drillBpm(); })()`);
+ok("tempo stepper raises BPM", bpmAfter === 55, String(bpmAfter));
+
 await browser.close();
 
 console.log(checks.join("\n"));

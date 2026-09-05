@@ -653,3 +653,19 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 288 | 에코 패리티에 dictation-ladder 축 2종(함수 존재·래더 값·noteCount 파라미터) | ALL PASS | |
 | 289 | E2E 58축(+3: 길이 래더 4/6/8·L3 아치 8음·L3 웨이브 8음) | 58/58 | |
 | 290 | verify_all 9게이트 | ALL GREEN | swift test 126/126(+3) |
+
+
+## 스크린샷 문안 + 시퀀스 드릴 템포(BPM) (세션 20 — 2026-09-06)
+
+리서치: "임의 템포"가 SwiftScales류 스케일 앱 핵심 기능 · 보컬 코치 합의는
+느린 템포(~60 BPM) 시작 후 정확도 따라 가속.
+
+| # | 검증 행위 | 결과 | 증거/비고 |
+|---|---|---|---|
+| 291 | 스크린샷 캡처 가이드+문안 8종 작성(6.7"·5.5" 축약판 포함): 온보딩 3p·루틴·실시간 궤적·비브라토 결과·셈여림 아치·멜로디·추천 카드·스냅샷 — 진입 경로(런치 인자 딥링크 재사용)와 AI티 없는 한 문장 캡션 | docs | APP_STORE_CHECKLIST §6 |
+| 292 | DrillTempo(40-80 BPM, 기본 50): 한 비트가 note 85% + gap 15%, 창 1.5비트 — 기본값 타이밍이 기존 고정값(0.9/0.25/1.8)과 사실상 동일해 행동 보존 | swift 5/5 | Tests/DrillTempoTests (note+gap=1비트 불변식 포함) |
+| 293 | VM sequenceBpm(UserDefaults 연동) + startSequenceDrill 타이밍 BPM 도출 + 트래커 템포 바(±5 스텤퍼, 스케일·멜로디 모드에서만) | 파스 통화과 | 접근성 라벨 포함 |
+| 294 | 웹 미러: drillTimings/drillBpm/setDrillBpm + 템포 바 + SCALE_T 상수 제거 | JS OK | |
+| 295 | 에코 패리티: 타이밍 축을 BPM 도출(0.85/0.15/1.5 비트)로 갱신 + 노드 샌드박스 window 누락(setDrillBpm export) 판별·수정 | ALL PASS | |
+| 296 | E2E 65축(+7: 타이밍·단조·클램프·비트 불변식·바 표시 조건·스테퍼) — 모드 잔존으로 hidden 체크 순서 수정 | 65/65 | |
+| 297 | verify_all 9게이트 | ALL GREEN | swift test 131/131(+5) |
