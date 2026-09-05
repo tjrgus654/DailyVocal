@@ -314,8 +314,12 @@ public final class PitchTrackerViewModel {
     public func stopTracking() {
         guard isListening else { return }
         // Capture before the guides are cleared below — the alert and the
-        // persisted record read this after the sequence is gone.
-        lastSessionTargetLabel = echoTargetLabel.isEmpty ? targetNoteName : echoTargetLabel
+        // persisted record read this after the sequence is gone. Scale runs
+        // store the game label (not the note ladder) so the growth
+        // dashboard's recommendation can trace the score back to the game.
+        lastSessionTargetLabel = mode == .scale
+            ? VocalLogic.gameLabel(for: .scale)
+            : (echoTargetLabel.isEmpty ? targetNoteName : echoTargetLabel)
         isListening = false
         echoPhaseTask?.cancel()
         echoPhaseTask = nil

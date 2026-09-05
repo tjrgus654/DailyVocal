@@ -530,3 +530,19 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 229 | 에코 패리티 9번 섹션 신설(패턴·매핑·클램프·타이밍·공용 채점 + 실행 5벡터) → 13축 | ALL PASS | 라벨 축(===3)을 isSeq(>=3)로 갱신 |
 | 230 | UI E2E 43축(+스케일 8축: 칩·캡션·패턴 3종·클램프·플로우 게이팅) | 43/43 | tools/vibrato_ui_e2e.mjs |
 | 231 | verify_all 9게이트 + swift test 113 | ALL GREEN | swift 108→113 (+5) |
+
+
+## 추천 GameType 스케일 편입 (세션 12 — 2026-09-06)
+
+기능: '오늘의 추천 훈련' 대상 6종 완성(모음·음정·귀훈련·비브라토·셈여림·스케일).
+설계 결정: 스케일 세션의 저장 라벨을 노트 래더(예: C4-D4-…)가 아닌 게임 라벨
+'스케일 시퀀스'로 통일 — latestAccuracies 역추적이 래벨 매칭으로 성립.
+
+| # | 검증 행위 | 결과 | 증거/비고 |
+|---|---|---|---|
+| 232 | GameType 6종 + gameLabel('스케일 시퀀스') + recommendNextGame에 scaleAccuracy(기본값 하위호환) + VM/뷰 저장 라벨·전달 갱신 | swift 38/38 | StreakSystemTests: 스케일 케이스 2건 추가 |
+| 233 | 동점(미측정=50) 벡터 재구성 — 시나리오 next2를 '미측정 scale이 전부 이긴다'로, next3는 scale 70 부여로 variety 유지 | 통과 | 정렬 계산 착오 1회 교정(66→70) |
+| 234 | 웹 미러: GAME_LABELS/NAMES에 scale + 파라미터 7개 + 스케일 세션 저장 라벨 게임 라벨로 | JS OK | |
+| 235 | 스트릭 패리티 9b 갱신: 8벡터(+스케일 2) + latest 축 5축 + '6-entry score table'·스케일 라벨 정적 축 | ALL PASS | 기존 벡터 3건 동점 제거 재구성 |
+| 236 | UI E2E 44축(+추천 1축: 전 측정 시 최약 measured 승급) — 스케일 미측정 최약→vibrato, 전 측정 후 dynamics 62점 추천 | 44/44 | |
+| 237 | verify_all 9게이트 + swift test 113 | ALL GREEN | |

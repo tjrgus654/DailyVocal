@@ -152,18 +152,26 @@ await page.evaluate(`(() => {
     { t: 1, target: "모음 게임", acc: 78, lo: 0, hi: 0, dur: 60 },
     { t: 2, target: "음정 게임", acc: 82, lo: 0, hi: 0, dur: 30 },
     { t: 3, target: "귀훈련", acc: 85, lo: 0, hi: 0, dur: 30 },
-    { t: 4, target: "다이내믹스 아치", acc: 62, lo: 0, hi: 0, dur: 40 },
+    { t: 4, target: "스케일 시퀀스", acc: 72, lo: 0, hi: 0, dur: 35 },
+    { t: 5, target: "다이내믹스 아치", acc: 62, lo: 0, hi: 0, dur: 40 },
   ];
   Store.save();
   render();
 })()`);
 await page.waitForTimeout(200);
 ok("recommendation card title", (await page.locator("text=오늘의 추천 훈련").count()) >= 1);
-// vowel 78 / interval 82 / ear 85 / dynamics 62 measured; vibrato unmeasured
-// (50) is the unique weakest -> vibrato, with the "시도하지 않은" reason.
+// vowel 78 / interval 82 / ear 85 / scale 72 / dynamics 62 measured; vibrato
+// unmeasured (50) is the unique weakest -> vibrato, with the "시도하지 않은" reason.
 const recGame = await page.evaluate("nextGameRecommendation().game");
 ok("recommendation game is vibrato", recGame === "vibrato", recGame);
 ok("recommendation reason is unmeasured", (await page.evaluate("nextGameRecommendation().reason")).includes("시도하지 않은"));
+// With vibrato measured too, the weakest measured skill (dynamics 62) wins.
+const recWeakest = await page.evaluate(`(() => {
+  Store.data.pitchRecords.push({ t: 6, target: "비브라토 체크", acc: 74, lo: 0, hi: 0, dur: 45 });
+  Store.save();
+  return nextGameRecommendation();
+})()`);
+ok("recommendation weakest measured", recWeakest.game === "dynamics" && recWeakest.reason.includes("62점"), recWeakest.game);
 
 // 9. Scale sing-through: chips, caption, sequence synthesis, scoring wiring.
 await page.evaluate('go("tracker")');

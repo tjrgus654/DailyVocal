@@ -431,19 +431,24 @@ final class StreakSystemTests: XCTestCase {
         XCTAssertEqual(
             VocalLogic.recommendNextGame(
                 vowelAccuracy: 80, intervalAccuracy: 90, earAccuracy: 85,
-                vibratoAccuracy: 40, dynamicsAccuracy: nil, lastGame: nil),
+                vibratoAccuracy: 40, dynamicsAccuracy: nil, scaleAccuracy: nil, lastGame: nil),
             .vibrato, "weakest technique mode should win over strong games")
         XCTAssertEqual(
             VocalLogic.recommendNextGame(
                 vowelAccuracy: 80, intervalAccuracy: 90, earAccuracy: 85,
-                vibratoAccuracy: 70, dynamicsAccuracy: 35, lastGame: nil),
+                vibratoAccuracy: 70, dynamicsAccuracy: 35, scaleAccuracy: nil, lastGame: nil),
             .dynamics)
-        // Variety: vibrato is weakest but was the last game and dynamics is
-        // within 15 points -> prefer the second-weakest.
         XCTAssertEqual(
             VocalLogic.recommendNextGame(
                 vowelAccuracy: 80, intervalAccuracy: 90, earAccuracy: 85,
-                vibratoAccuracy: 40, dynamicsAccuracy: 50, lastGame: .vibrato),
+                vibratoAccuracy: 75, dynamicsAccuracy: 70, scaleAccuracy: 40, lastGame: nil),
+            .scale, "scale is a first-class recommendation input")
+        // Variety: vibrato is weakest but was the last game and dynamics is
+        // within 15 points -> prefer the second-weakest (scale kept above).
+        XCTAssertEqual(
+            VocalLogic.recommendNextGame(
+                vowelAccuracy: 80, intervalAccuracy: 90, earAccuracy: 85,
+                vibratoAccuracy: 40, dynamicsAccuracy: 50, scaleAccuracy: 55, lastGame: .vibrato),
             .dynamics)
         // Legacy 3-argument call sites keep compiling and behaving.
         XCTAssertEqual(
@@ -454,12 +459,13 @@ final class StreakSystemTests: XCTestCase {
     func testLatestAccuraciesFromRecords() {
         let records: [(label: String, accuracy: Int)] = [
             ("모음 게임", 60), ("E4", 90), ("비브라토 체크", 40),
-            ("모음 게임", 75), ("다이내믹스 아치", 55),
+            ("모음 게임", 75), ("다이내믹스 아치", 55), ("스케일 시퀀스", 68),
         ]
         let latest = VocalLogic.latestAccuracies(records: records)
         XCTAssertEqual(latest[.vowel], 75, "most recent 모음 게임 wins over the earlier one")
         XCTAssertEqual(latest[.vibrato], 40)
         XCTAssertEqual(latest[.dynamics], 55)
+        XCTAssertEqual(latest[.scale], 68)
         XCTAssertNil(latest[.interval])
         XCTAssertNil(latest[.ear], "plain note labels must not be mistaken for games")
     }
@@ -504,17 +510,18 @@ final class StreakSystemTests: XCTestCase {
             vowelAccuracy: 90, intervalAccuracy: 40, earAccuracy: 65, lastGame: .vowel)
         XCTAssertEqual(next, .interval, "measured 40 beats unmeasured default 50")
 
-        // Once interval recovers, the never-played technique modes (50)
-        // outrank the measured weakest (ear 60).
+        // Once interval recovers, the never-played scale (50) outranks every
+        // measured skill — including the measured techniques (55/58).
         let next2 = VocalLogic.recommendNextGame(
-            vowelAccuracy: 90, intervalAccuracy: 85, earAccuracy: 60, lastGame: .interval)
-        XCTAssertEqual(next2, .vibrato, "unmeasured (50) beats measured weakest (60)")
+            vowelAccuracy: 90, intervalAccuracy: 85, earAccuracy: 60,
+            vibratoAccuracy: 55, dynamicsAccuracy: 58, lastGame: .interval)
+        XCTAssertEqual(next2, .scale, "unmeasured (50) beats all measured")
 
-        // After both technique modes have been measured, variety applies
-        // among real scores again.
+        // After every game has been measured, variety applies among real
+        // scores again.
         let next3 = VocalLogic.recommendNextGame(
             vowelAccuracy: 90, intervalAccuracy: 75, earAccuracy: 65,
-            vibratoAccuracy: 72, dynamicsAccuracy: 68, lastGame: .ear)
+            vibratoAccuracy: 72, dynamicsAccuracy: 68, scaleAccuracy: 70, lastGame: .ear)
         XCTAssertEqual(next3, .dynamics, "close gap + same as last -> variety wins")
 
         // Regression: interval crashes (2 consecutive < 50%).

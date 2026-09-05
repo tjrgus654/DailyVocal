@@ -903,7 +903,7 @@ function recommendedLevel(recentAccuracies, currentLevel, maxLevel){
 }
 const GAME_LABELS = {
  vowel: "모음 게임", interval: "음정 게임", ear: "귀훈련",
- vibrato: "비브라토 체크", dynamics: "다이내믹스 아치",
+ vibrato: "비브라토 체크", dynamics: "다이내믹스 아치", scale: "스케일 시퀀스",
 };
 function latestAccuracies(records){
  const latest = {};
@@ -913,20 +913,21 @@ function latestAccuracies(records){
  }
  return latest;
 }
-function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame, vibratoAcc, dynamicsAcc){
+function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame, vibratoAcc, dynamicsAcc, scaleAcc){
  const scores = [
   ["vowel", vowelAcc ?? 50],
   ["interval", intervalAcc ?? 50],
   ["ear", earAcc ?? 50],
   ["vibrato", vibratoAcc ?? 50],
   ["dynamics", dynamicsAcc ?? 50],
+  ["scale", scaleAcc ?? 50],
  ].sort((a,b) => a[1] - b[1]);
  if (lastGame && scores[0][0] === lastGame && scores.length > 1 && scores[1][1] - scores[0][1] <= 15){
   return scores[1][0];
  }
  return scores[0][0];
 }
-const GAME_NAMES = { vowel: "모음", interval: "음정", ear: "귀훈련", vibrato: "비브라토", dynamics: "셈여림" };
+const GAME_NAMES = { vowel: "모음", interval: "음정", ear: "귀훈련", vibrato: "비브라토", dynamics: "셈여림", scale: "스케일" };
 function nextGameRecommendation(){
  const recs = Store.data.pitchRecords;
  if (!recs.length) return null;
@@ -937,7 +938,7 @@ function nextGameRecommendation(){
   .map(([g]) => g)[0] || null;
  const game = recommendNextGame(
   latest.vowel ?? null, latest.interval ?? null, latest.ear ?? null,
-  lastGame, latest.vibrato ?? null, latest.dynamics ?? null);
+  lastGame, latest.vibrato ?? null, latest.dynamics ?? null, latest.scale ?? null);
  const reason = latest[game] != null
   ? `최근 점수 ${latest[game]}점 — 가장 약한 훈련부터 보완해요`
   : "아직 시도하지 않은 훈련 — 먼저 한 번 측정해 기준점을 만들어요";
@@ -1844,7 +1845,9 @@ function stopTracking(){
  Store.save();
  }
  const isSeq = (App.trMode === "echo" || App.trMode === "scale") && App.echo.midis.length >= 3;
- const tgtLabel = isSeq ? echoLabel() : App.target.name;
+ // Scale runs store the game label (not the note ladder) so the growth
+ // dashboard's recommendation can trace the score back to the game.
+ const tgtLabel = App.trMode === "scale" ? GAME_LABELS.scale : (isSeq ? echoLabel() : App.target.name);
  Store.data.pitchRecords.push({
  t:Date.now(), target:tgtLabel, acc:score,
  lo:App.lo, hi:App.hi, dur:Math.round((Date.now()-App.sessionStart)/1000),

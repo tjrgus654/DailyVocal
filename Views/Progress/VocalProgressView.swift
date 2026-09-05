@@ -325,6 +325,7 @@ public struct VocalProgressView: View {
             earAccuracy: latest[.ear],
             vibratoAccuracy: latest[.vibrato],
             dynamicsAccuracy: latest[.dynamics],
+            scaleAccuracy: latest[.scale],
             lastGame: lastGame)
         let reason: String
         if let accuracy = latest[game] {
