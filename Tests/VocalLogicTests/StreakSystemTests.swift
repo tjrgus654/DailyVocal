@@ -469,6 +469,42 @@ final class StreakSystemTests: XCTestCase {
             .vowel)
     }
 
+    func testRecommendationEvidence() {
+        // Vibrato rate bands.
+        XCTAssertTrue(VocalLogic.recommendationEvidence(
+            game: .vibrato, latestAccuracy: 40, vibratoRateHz: 3.8, vibratoExtentCents: 80
+        ).contains("3.8Hz") && VocalLogic.recommendationEvidence(
+            game: .vibrato, latestAccuracy: 40, vibratoRateHz: 3.8, vibratoExtentCents: 80
+        ).contains("워블"))
+        XCTAssertTrue(VocalLogic.recommendationEvidence(
+            game: .vibrato, latestAccuracy: 40, vibratoRateHz: 7.2, vibratoExtentCents: 80
+        ).contains("떨림"))
+        // In-band rate but shallow extent.
+        let depth = VocalLogic.recommendationEvidence(
+            game: .vibrato, latestAccuracy: 40, vibratoRateHz: 5.5, vibratoExtentCents: 30)
+        XCTAssertTrue(depth.contains("5.5Hz") && depth.contains("깊이를 키워요"))
+        // In-band and deep.
+        XCTAssertTrue(VocalLogic.recommendationEvidence(
+            game: .vibrato, latestAccuracy: 40, vibratoRateHz: 5.5, vibratoExtentCents: 70
+        ).contains("유지해요"))
+        // Dynamics bands.
+        XCTAssertTrue(VocalLogic.recommendationEvidence(
+            game: .dynamics, latestAccuracy: 40, dynamicsRangeDb: 4.2
+        ).contains("4.2dB") && VocalLogic.recommendationEvidence(
+            game: .dynamics, latestAccuracy: 40, dynamicsRangeDb: 4.2
+        ).contains("폭을 키워요"))
+        XCTAssertTrue(VocalLogic.recommendationEvidence(
+            game: .dynamics, latestAccuracy: 40, dynamicsRangeDb: 9.0
+        ).contains("정점 배치"))
+        // No fingerprint -> score fallback.
+        XCTAssertEqual(
+            VocalLogic.recommendationEvidence(game: .vibrato, latestAccuracy: 42),
+            "최근 점수 42점 — 가장 약한 훈련부터 보완해요")
+        // Nothing at all -> unmeasured line.
+        XCTAssertTrue(VocalLogic.recommendationEvidence(game: .scale, latestAccuracy: nil)
+            .contains("시도하지 않은"))
+    }
+
     func testLatestAccuraciesFromRecords() {
         let records: [(label: String, accuracy: Int)] = [
             ("모음 게임", 60), ("E4", 90), ("비브라토 체크", 40),

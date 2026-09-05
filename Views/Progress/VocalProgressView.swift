@@ -327,12 +327,13 @@ public struct VocalProgressView: View {
             dynamicsAccuracy: latest[.dynamics],
             scaleAccuracy: latest[.scale],
             lastGame: lastGame)
-        let reason: String
-        if let accuracy = latest[game] {
-            reason = "최근 점수 \(accuracy)점 — 가장 약한 훈련부터 보완해요"
-        } else {
-            reason = "아직 시도하지 않은 훈련 — 먼저 한 번 측정해 기준점을 만들어요"
-        }
+        // Measurement-based reason: technique fingerprints when present,
+        // score line otherwise (VocalLogic rule, mirrored on the web).
+        let reason = VocalLogic.recommendationEvidence(
+            game: game, latestAccuracy: latest[game],
+            vibratoRateHz: viewModel.lastVibratoRateHz,
+            vibratoExtentCents: viewModel.lastVibratoExtentCents,
+            dynamicsRangeDb: viewModel.lastDynamicsRangeDb)
         return (game, reason)
     }
 

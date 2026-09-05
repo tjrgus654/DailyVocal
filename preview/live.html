@@ -927,6 +927,25 @@ function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame, vibratoAcc, 
  }
  return scores[0][0];
 }
+function recommendationEvidence(game, latestAcc, vibRate, vibExt, dynDb){
+ if (game === "vibrato" && vibRate > 0){
+  const rate = vibRate.toFixed(1);
+  if (vibRate < 4.5) return `최근 측정 속도 ${rate}Hz — 느린 워블 구간입니다. 4.5~6.5Hz로 좁혀가요`;
+  if (vibRate > 6.5) return `최근 측정 속도 ${rate}Hz — 빠른 떨림 구간입니다. 여유를 되찾아요`;
+  const ext = Math.round(vibExt);
+  return vibExt < 50
+   ? `최근 측정 속도 ${rate}Hz · 진폭 ±${ext}센트 — 속도는 좋고 깊이를 키워요`
+   : `최근 측정 속도 ${rate}Hz · 진폭 ±${ext}센트 — 이상적 범주, 유지해요`;
+ }
+ if (game === "dynamics" && dynDb > 0){
+  const db = dynDb.toFixed(1);
+  return dynDb < 6
+   ? `최근 셈여림 레인지 ${db}dB — 목표 6dB+까지 폭을 키워요`
+   : `최근 셈여림 레인지 ${db}dB — 정점 배치와 매끄러움을 다듬어요`;
+ }
+ if (latestAcc != null) return `최근 점수 ${latestAcc}점 — 가장 약한 훈련부터 보완해요`;
+ return "아직 시도하지 않은 훈련 — 먼저 한 번 측정해 기준점을 만들어요";
+}
 const GAME_NAMES = { vowel: "모음", interval: "음정", ear: "귀훈련", vibrato: "비브라토", dynamics: "셈여림", scale: "스케일" };
 function startRecommended(game){
  // 딥링크: 성장 기록의 추천 카드 → 트래커 탭 + 해당 모드 (웹은 6종 전부)
@@ -949,9 +968,10 @@ function nextGameRecommendation(){
  const game = recommendNextGame(
   latest.vowel ?? null, latest.interval ?? null, latest.ear ?? null,
   lastGame, latest.vibrato ?? null, latest.dynamics ?? null, latest.scale ?? null);
- const reason = latest[game] != null
-  ? `최근 점수 ${latest[game]}점 — 가장 약한 훈련부터 보완해요`
-  : "아직 시도하지 않은 훈련 — 먼저 한 번 측정해 기준점을 만들어요";
+ const reason = recommendationEvidence(
+  game, latest[game] ?? null,
+  Store.data.lastVibratoRateHz || 0, Store.data.lastVibratoExtentCents || 0,
+  Store.data.lastDynamicsRangeDb || 0);
  return { game, name: GAME_NAMES[game], reason };
 }
 function bestTakeSummary(){

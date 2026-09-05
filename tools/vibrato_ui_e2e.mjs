@@ -148,6 +148,8 @@ ok("growth sustain line", (await page.locator("text=16.4초 (한 호흡 최대 �
 
 // 8. Next-game recommendation card (records-driven, technique-aware).
 await page.evaluate(`(() => {
+  // Isolate from earlier runs: localStorage keeps fingerprints/records
+  // across navigations, which would skew the recommendation vectors.
   Store.data.pitchRecords = [
     { t: 1, target: "모음 게임", acc: 78, lo: 0, hi: 0, dur: 60 },
     { t: 2, target: "음정 게임", acc: 82, lo: 0, hi: 0, dur: 30 },
@@ -155,9 +157,14 @@ await page.evaluate(`(() => {
     { t: 4, target: "스케일 시퀀스", acc: 72, lo: 0, hi: 0, dur: 35 },
     { t: 5, target: "다이내믹스 아치", acc: 62, lo: 0, hi: 0, dur: 40 },
   ];
+  Store.data.lastVibratoRateHz = 0;
+  Store.data.lastVibratoExtentCents = 0;
+  Store.data.lastDynamicsRangeDb = 0;
   Store.save();
   render();
 })()`);
+await page.waitForTimeout(200);
+await page.evaluate('go("progress")');
 await page.waitForTimeout(200);
 ok("recommendation card title", (await page.locator("text=오늘의 추천 훈련").count()) >= 1);
 // vowel 78 / interval 82 / ear 85 / scale 72 / dynamics 62 measured; vibrato
@@ -174,12 +181,26 @@ const recWeakest = await page.evaluate(`(() => {
 })()`);
 ok("recommendation weakest measured", recWeakest.game === "dynamics" && recWeakest.reason.includes("62점"), recWeakest.game);
 
+// 9c. Measurement-based evidence: a weak vibrato score + a 3.8Hz stored
+// fingerprint turns the reason into the wobble line.
+const evidence = await page.evaluate(`(() => {
+  Store.data.pitchRecords.push({ t: 7, target: "비브라토 체크", acc: 30, lo: 0, hi: 0, dur: 45 });
+  Store.data.lastVibratoRateHz = 3.8;
+  Store.data.lastVibratoExtentCents = 80;
+  Store.save();
+  render();
+  return nextGameRecommendation();
+})()`);
+ok("evidence picks weakest vibrato", evidence.game === "vibrato", evidence.game);
+ok("evidence cites measurement", evidence.reason.includes("3.8Hz") && evidence.reason.includes("워블"), evidence.reason);
+
 // 9b. Recommendation deep link: tapping the card jumps to the tracker tab
 // with the recommended mode pre-selected.
 await page.locator('[onclick^="startRecommended"]').first().click();
 await page.waitForTimeout(200);
 ok("deep link switches to tracker tab", (await page.evaluate("App.tab")) === "tracker");
-ok("deep link selects recommended mode", (await page.evaluate("App.trMode")) === "dynamics");
+ok("deep link selects recommended mode", (await page.evaluate("App.trMode")) === "vibrato",
+   await page.evaluate("App.trMode"));
 
 // 9. Scale sing-through: chips, caption, sequence synthesis, scoring wiring.
 await page.evaluate('go("tracker")');

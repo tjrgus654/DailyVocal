@@ -1300,6 +1300,41 @@ public enum VocalLogic {
         }
     }
 
+    /// Measurement-based justification for the recommendation card — the
+    /// coaching layer a score cannot give. Falls back to the score line
+    /// when the game has no stored technique fingerprint yet.
+    public static func recommendationEvidence(
+        game: GameType, latestAccuracy: Int?,
+        vibratoRateHz: Double = 0, vibratoExtentCents: Double = 0,
+        dynamicsRangeDb: Double = 0
+    ) -> String {
+        switch game {
+        case .vibrato where vibratoRateHz > 0:
+            let rate = String(format: "%.1f", vibratoRateHz)
+            if vibratoRateHz < 4.5 {
+                return "최근 측정 속도 \(rate)Hz — 느린 워블 구간입니다. 4.5~6.5Hz로 좁혀가요"
+            }
+            if vibratoRateHz > 6.5 {
+                return "최근 측정 속도 \(rate)Hz — 빠른 떨림 구간입니다. 여유를 되찾아요"
+            }
+            let extent = Int(vibratoExtentCents.rounded())
+            return vibratoExtentCents < 50
+                ? "최근 측정 속도 \(rate)Hz · 진폭 ±\(extent)센트 — 속도는 좋고 깊이를 키워요"
+                : "최근 측정 속도 \(rate)Hz · 진폭 ±\(extent)센트 — 이상적 범주, 유지해요"
+        case .dynamics where dynamicsRangeDb > 0:
+            let db = String(format: "%.1f", dynamicsRangeDb)
+            return dynamicsRangeDb < 6
+                ? "최근 셈여림 레인지 \(db)dB — 목표 6dB+까지 폭을 키워요"
+                : "최근 셈여림 레인지 \(db)dB — 정점 배치와 매끄러움을 다듬어요"
+        default:
+            break
+        }
+        if let accuracy = latestAccuracy {
+            return "최근 점수 \(accuracy)점 — 가장 약한 훈련부터 보완해요"
+        }
+        return "아직 시도하지 않은 훈련 — 먼저 한 번 측정해 기준점을 만들어요"
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.
