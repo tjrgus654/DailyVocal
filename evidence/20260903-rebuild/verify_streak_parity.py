@@ -6,6 +6,7 @@ ViewModels/DailyRoutineViewModel.swift and asserts semantic agreement.
 Run: python evidence/20260903-rebuild/verify_streak_parity.py
 """
 import re
+import subprocess
 import sys
 
 failures = []
@@ -88,6 +89,61 @@ check("80% promote rule", "avg >= 80" in js and ">= 80" in logic)
 check("2x50% demote", "every(x => x < 50)" in js and "allSatisfy({ $0 < 50 })" in logic)
 check("recommendNextGame", "function recommendNextGame" in js and "func recommendNextGame" in logic)
 check("variety bias 15", "<= 15" in js and "<= 15" in logic)
+# Technique modes are first-class recommendation inputs since 2026-09-06.
+check("5 game types", '"비브라토 체크"' in js and 'return "비브라토 체크"' in logic)
+check("dynamics label", '"다이내믹스 아치"' in js and 'return "다이내믹스 아치"' in logic)
+check("game type cases", "case vibrato" in logic and "case dynamics" in logic)
+check("latestAccuracies", "function latestAccuracies" in js and "func latestAccuracies" in logic)
+check("5-entry score table", '["dynamics", dynamicsAcc ?? 50]' in js and '(.dynamics, dynamicsAccuracy ?? 50)' in logic)
+
+print("=== 9b. recommendNextGame execution parity (JS on Swift test vectors) ===")
+node_code = r"""
+const fs = require('fs'), vm = require('vm');
+const html = fs.readFileSync('preview/live.html', 'utf8');
+const js = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+const start = js.indexOf('const GAME_LABELS');
+const endMarker = js.indexOf('nextGameRecommendation(){');
+const endReason = js.indexOf('return { game, name: GAME_NAMES[game], reason };', endMarker);
+const block = js.slice(start, js.indexOf('\n}', endReason) + 2);
+const sandbox = { Math, Date, isFinite, console, Object };
+vm.createContext(sandbox);
+vm.runInContext(block, sandbox);
+const out = vm.runInContext(`(function(){
+  const cases = [
+    // [vowel, interval, ear, lastGame, vibrato, dynamics, expected]
+    [40, 80, 60, null, null, null, "vowel"],
+    [90, 40, 65, "vowel", null, null, "interval"],
+    [90, 85, 60, "interval", null, null, "vibrato"],
+    [80, 90, 85, null, 40, null, "vibrato"],
+    [80, 90, 85, null, 70, 35, "dynamics"],
+    [80, 90, 85, "vibrato", 40, 50, "dynamics"],
+    [90, 75, 65, "ear", 72, 68, "dynamics"],
+  ];
+  const results = cases.map(([v, i, e, last, vb, dy]) =>
+    recommendNextGame(v, i, e, last, vb, dy));
+  const latest = latestAccuracies([
+    {label: "모음 게임", accuracy: 60}, {label: "E4", accuracy: 90},
+    {label: "비브라토 체크", accuracy: 40}, {label: "모음 게임", accuracy: 75},
+    {label: "다이내믹스 아치", accuracy: 55},
+  ]);
+  return { cases, results, latest };
+})()`, sandbox);
+console.log(JSON.stringify(out));
+"""
+proc = subprocess.run(["node", "--input-type=commonjs", "-e", node_code],
+                      capture_output=True, text=True)
+if proc.returncode != 0 or not proc.stdout.strip():
+    check("node execution", False, (proc.stderr or proc.stdout)[-300:])
+else:
+    import json
+    r = json.loads(proc.stdout)
+    for idx, (case, got) in enumerate(zip(r["cases"], r["results"])):
+        expected = case[6]
+        check(f"vector {idx} -> {expected}", got == expected, f"got {got}")
+    check("latest: vowel most-recent", r["latest"].get("vowel") == 75)
+    check("latest: vibrato", r["latest"].get("vibrato") == 40)
+    check("latest: dynamics", r["latest"].get("dynamics") == 55)
+    check("latest: interval nil", r["latest"].get("interval") is None)
 
 check("best-take compare", "bestTakeSummary" in js and "compareTakes" in logic)
 check("gap pools", '[0,4,5,7,-4,-5,-7]' in js and '[0, 4, 5, 7, -4, -5, -7]' in logic)

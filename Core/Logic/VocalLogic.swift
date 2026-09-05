@@ -750,17 +750,50 @@ public enum VocalLogic {
         case vowel = "모음"
         case interval = "음정"
         case ear = "귀훈련"
+        case vibrato = "비브라토"
+        case dynamics = "셈여림"
+    }
+
+    /// Session labels the games persist under (PitchRecord.targetNoteName /
+    /// web pitchRecords.target) — the bridge from stored records to the
+    /// recommendation input.
+    public static func gameLabel(for game: GameType) -> String {
+        switch game {
+        case .vowel: return "모음 게임"
+        case .interval: return "음정 게임"
+        case .ear: return "귀훈련"
+        case .vibrato: return "비브라토 체크"
+        case .dynamics: return "다이내믹스 아치"
+        }
+    }
+
+    /// Latest accuracy per game from stored session records (most recent
+    /// wins; nil when a game has never been played).
+    public static func latestAccuracies(
+        records: [(label: String, accuracy: Int)]
+    ) -> [GameType: Int] {
+        var latest: [GameType: Int] = [:]
+        for game in GameType.allCases {
+            let label = gameLabel(for: game)
+            if let match = records.last(where: { $0.label == label }) {
+                latest[game] = match.accuracy
+            }
+        }
+        return latest
     }
 
     public static func recommendNextGame(
         vowelAccuracy: Int?, intervalAccuracy: Int?, earAccuracy: Int?,
+        vibratoAccuracy: Int? = nil, dynamicsAccuracy: Int? = nil,
         lastGame: GameType?
     ) -> GameType {
         var scores: [(GameType, Int)] = []
         scores.append((.vowel, vowelAccuracy ?? 50))
         scores.append((.interval, intervalAccuracy ?? 50))
         scores.append((.ear, earAccuracy ?? 50))
-        // Sort ascending (weakest first).
+        scores.append((.vibrato, vibratoAccuracy ?? 50))
+        scores.append((.dynamics, dynamicsAccuracy ?? 50))
+        // Sort ascending (weakest first), ties broken by declaration order.
         scores.sort { $0.1 < $1.1 }
         // If the weakest is the last game played AND the second-weakest is
         // close (within 15 points), prefer variety.

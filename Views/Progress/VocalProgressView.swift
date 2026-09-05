@@ -50,6 +50,11 @@ public struct VocalProgressView: View {
                         HeatmapCalendarView(days: viewModel.heatmapDays)
                             .padding(.horizontal, 20)
 
+                        if let rec = nextGameRecommendation {
+                            nextGameCard(rec)
+                                .padding(.horizontal, 20)
+                        }
+
                         VocalRangeChart(
                             hasMeasuredRange: viewModel.hasMeasuredRange,
                             baselineRangeText: viewModel.baselineRangeText,
@@ -297,6 +302,65 @@ public struct VocalProgressView: View {
             RoundedRectangle(cornerRadius: 18)
                 .stroke(Color.vocalWarning.opacity(0.4), lineWidth: 1)
         )
+    }
+
+    // MARK: - Next-game recommendation
+
+    /// Weakest-skill recommendation from the stored session records — the
+    /// VocalLogic rule the web prototype has shown all along, now wired to
+    /// the app's growth dashboard (was defined-but-unused ghost logic).
+    private var nextGameRecommendation: (game: VocalLogic.GameType, reason: String)? {
+        guard !pitchRecords.isEmpty else { return nil }
+        let chronological = pitchRecords.reversed()
+        let latest = VocalLogic.latestAccuracies(
+            records: chronological.map { ($0.targetNoteName, Int($0.accuracyPercentage.rounded())) })
+        let lastGame = chronological.last.flatMap { last in
+            VocalLogic.GameType.allCases.first {
+                VocalLogic.gameLabel(for: $0) == last.targetNoteName
+            }
+        }
+        let game = VocalLogic.recommendNextGame(
+            vowelAccuracy: latest[.vowel],
+            intervalAccuracy: latest[.interval],
+            earAccuracy: latest[.ear],
+            vibratoAccuracy: latest[.vibrato],
+            dynamicsAccuracy: latest[.dynamics],
+            lastGame: lastGame)
+        let reason: String
+        if let accuracy = latest[game] {
+            reason = "최근 점수 \(accuracy)점 — 가장 약한 훈련부터 보완해요"
+        } else {
+            reason = "아직 시도하지 않은 훈련 — 먼저 한 번 측정해 기준점을 만들어요"
+        }
+        return (game, reason)
+    }
+
+    private func nextGameCard(_ rec: (game: VocalLogic.GameType, reason: String)) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "sparkles")
+                    .foregroundColor(.brandAccent)
+                Text("오늘의 추천 훈련")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                Spacer()
+                Text("취약점 우선 · 다양성 균형")
+                    .font(.caption2)
+                    .foregroundColor(.textSecondary)
+            }
+            Text(rec.game.rawValue)
+                .font(.title3.weight(.heavy))
+                .foregroundColor(.brandSecondary)
+            Text(rec.reason)
+                .font(.caption2)
+                .foregroundColor(.textSecondary)
+            Text("피치 트래커의 모드에서 바로 시작할 수 있어요")
+                .font(.caption2)
+                .foregroundColor(.textSecondary.opacity(0.8))
+        }
+        .glassCard(cornerRadius: 16, padding: 14)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Summary grid

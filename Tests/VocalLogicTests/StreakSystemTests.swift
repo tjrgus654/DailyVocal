@@ -426,6 +426,44 @@ final class StreakSystemTests: XCTestCase {
         XCTAssertEqual(VocalLogic.recommendNextGame(vowelAccuracy: 30, intervalAccuracy: 70, earAccuracy: 80, lastGame: .vowel), .vowel)
     }
 
+    func testRecommendNextGameTechniqueModes() {
+        // Technique modes count as skills; unmeasured defaults to 50.
+        XCTAssertEqual(
+            VocalLogic.recommendNextGame(
+                vowelAccuracy: 80, intervalAccuracy: 90, earAccuracy: 85,
+                vibratoAccuracy: 40, dynamicsAccuracy: nil, lastGame: nil),
+            .vibrato, "weakest technique mode should win over strong games")
+        XCTAssertEqual(
+            VocalLogic.recommendNextGame(
+                vowelAccuracy: 80, intervalAccuracy: 90, earAccuracy: 85,
+                vibratoAccuracy: 70, dynamicsAccuracy: 35, lastGame: nil),
+            .dynamics)
+        // Variety: vibrato is weakest but was the last game and dynamics is
+        // within 15 points -> prefer the second-weakest.
+        XCTAssertEqual(
+            VocalLogic.recommendNextGame(
+                vowelAccuracy: 80, intervalAccuracy: 90, earAccuracy: 85,
+                vibratoAccuracy: 40, dynamicsAccuracy: 50, lastGame: .vibrato),
+            .dynamics)
+        // Legacy 3-argument call sites keep compiling and behaving.
+        XCTAssertEqual(
+            VocalLogic.recommendNextGame(vowelAccuracy: 40, intervalAccuracy: 80, earAccuracy: 60, lastGame: nil),
+            .vowel)
+    }
+
+    func testLatestAccuraciesFromRecords() {
+        let records: [(label: String, accuracy: Int)] = [
+            ("모음 게임", 60), ("E4", 90), ("비브라토 체크", 40),
+            ("모음 게임", 75), ("다이내믹스 아치", 55),
+        ]
+        let latest = VocalLogic.latestAccuracies(records: records)
+        XCTAssertEqual(latest[.vowel], 75, "most recent 모음 게임 wins over the earlier one")
+        XCTAssertEqual(latest[.vibrato], 40)
+        XCTAssertEqual(latest[.dynamics], 55)
+        XCTAssertNil(latest[.interval])
+        XCTAssertNil(latest[.ear], "plain note labels must not be mistaken for games")
+    }
+
     // MARK: - Game integration scenario
 
     /// Full progression: a beginner plays all three games across multiple
@@ -460,20 +498,24 @@ final class StreakSystemTests: XCTestCase {
         vowelHistory.append(95)
         XCTAssertEqual(VocalLogic.recommendedLevel(recentAccuracies: vowelHistory, currentLevel: vowelLevel), 3)
 
-        // Game recommendation: interval is weakest, ear is second.
+        // Game recommendation: interval 40 is below even the unmeasured
+        // default (50) — the measured weakest still wins outright.
         let next = VocalLogic.recommendNextGame(
             vowelAccuracy: 90, intervalAccuracy: 40, earAccuracy: 65, lastGame: .vowel)
-        XCTAssertEqual(next, .interval, "weakest skill should be recommended")
+        XCTAssertEqual(next, .interval, "measured 40 beats unmeasured default 50")
 
-        // After interval improves, ear becomes weakest.
+        // Once interval recovers, the never-played technique modes (50)
+        // outrank the measured weakest (ear 60).
         let next2 = VocalLogic.recommendNextGame(
             vowelAccuracy: 90, intervalAccuracy: 85, earAccuracy: 60, lastGame: .interval)
-        XCTAssertEqual(next2, .ear)
+        XCTAssertEqual(next2, .vibrato, "unmeasured (50) beats measured weakest (60)")
 
-        // Variety: ear is weakest but was the last game, interval close.
+        // After both technique modes have been measured, variety applies
+        // among real scores again.
         let next3 = VocalLogic.recommendNextGame(
-            vowelAccuracy: 90, intervalAccuracy: 70, earAccuracy: 65, lastGame: .ear)
-        XCTAssertEqual(next3, .interval, "close gap + same as last -> variety wins")
+            vowelAccuracy: 90, intervalAccuracy: 75, earAccuracy: 65,
+            vibratoAccuracy: 72, dynamicsAccuracy: 68, lastGame: .ear)
+        XCTAssertEqual(next3, .dynamics, "close gap + same as last -> variety wins")
 
         // Regression: interval crashes (2 consecutive < 50%).
         intervalHistory = [45, 40]

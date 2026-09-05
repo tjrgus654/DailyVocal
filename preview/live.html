@@ -901,16 +901,47 @@ function recommendedLevel(recentAccuracies, currentLevel, maxLevel){
  }
  return currentLevel;
 }
-function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame){
+const GAME_LABELS = {
+ vowel: "모음 게임", interval: "음정 게임", ear: "귀훈련",
+ vibrato: "비브라토 체크", dynamics: "다이내믹스 아치",
+};
+function latestAccuracies(records){
+ const latest = {};
+ for (const [game, label] of Object.entries(GAME_LABELS)){
+  const match = records.filter(r => r.label === label).pop();
+  if (match) latest[game] = match.accuracy;
+ }
+ return latest;
+}
+function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame, vibratoAcc, dynamicsAcc){
  const scores = [
   ["vowel", vowelAcc ?? 50],
   ["interval", intervalAcc ?? 50],
   ["ear", earAcc ?? 50],
+  ["vibrato", vibratoAcc ?? 50],
+  ["dynamics", dynamicsAcc ?? 50],
  ].sort((a,b) => a[1] - b[1]);
  if (lastGame && scores[0][0] === lastGame && scores.length > 1 && scores[1][1] - scores[0][1] <= 15){
   return scores[1][0];
  }
  return scores[0][0];
+}
+const GAME_NAMES = { vowel: "모음", interval: "음정", ear: "귀훈련", vibrato: "비브라토", dynamics: "셈여림" };
+function nextGameRecommendation(){
+ const recs = Store.data.pitchRecords;
+ if (!recs.length) return null;
+ const chronological = recs.slice().sort((a, b) => a.t - b.t);
+ const latest = latestAccuracies(chronological.map(r => ({ label: r.target, accuracy: Math.round(r.acc) })));
+ const lastGame = Object.entries(GAME_LABELS)
+  .filter(([g, label]) => label === chronological[chronological.length - 1].target)
+  .map(([g]) => g)[0] || null;
+ const game = recommendNextGame(
+  latest.vowel ?? null, latest.interval ?? null, latest.ear ?? null,
+  lastGame, latest.vibrato ?? null, latest.dynamics ?? null);
+ const reason = latest[game] != null
+  ? `최근 점수 ${latest[game]}점 — 가장 약한 훈련부터 보완해요`
+  : "아직 시도하지 않은 훈련 — 먼저 한 번 측정해 기준점을 만들어요";
+ return { game, name: GAME_NAMES[game], reason };
 }
 function bestTakeSummary(){
  const recs = Store.data.pitchRecords;
@@ -2068,6 +2099,19 @@ function screenProgress(){
  <div class="screen-title">성장 &amp; 통계</div>
  </div><div style="flex:1"></div>
  </div>
+
+ ${(() => {
+  const rec = nextGameRecommendation();
+  if (!rec) return "";
+  return `<div class="glass" style="margin:10px 20px 0;padding:14px 16px;border-radius:18px;">
+  <div style="display:flex;align-items:center;">
+  <span style="font-size:12px;font-weight:800;">✨ 오늘의 추천 훈련</span><div style="flex:1"></div>
+  <span class="cap2" style="color:var(--text-secondary);">취약점 우선 · 다양성 균형</span></div>
+  <div style="font-size:21px;font-weight:900;color:var(--brand-secondary);margin-top:4px;">${rec.name}</div>
+  <div class="cap2" style="color:var(--text-secondary);margin-top:2px;">${rec.reason}</div>
+  <div class="cap2" style="color:var(--text-secondary);opacity:.8;margin-top:2px;">피치 트래커의 모드에서 바로 시작할 수 있어요</div>
+  </div>`;
+ })()}
 
  <div class="glass" style="margin:10px 20px 0;padding:16px;border:1px solid rgba(245,158,11,.35);">
  <div style="display:flex;align-items:flex-start;">
