@@ -741,3 +741,4 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 323 | 민요 추천 편입: GameType 9종 + gameLabel '민요 따라부르기' + 저장 라벨 곡명→게임 라벨 통일(latestAccuracies 역추적 성립, 캡션은 곡명+출처 유지) | swift 45/45 | 벡터 7곳 songAccuracy 부여(미측정 50 동점 제거) — 스크립트 중간 실패로 부분 적용 상태를 grep 확인 후 전수 재적용 |
 | 324 | 웹 미러: 9엔트리·곡 라벨·modeMap·곡 2곡 + 패리티 9b 11벡터(+song 최약)·latest song 축·'9-entry' 축 | ALL PASS | E2E seed 타임스탬프 3곳 밀림 선제 보정(이전 라운드 학습 적용) |
 | 325 | E2E 85/85 + verify_all 9게이트 | ALL GREEN | swift test 146/146(+1 song 최약 케이스) |
+| 326 | CI 실패 → 원인: GameType 9종 확장 시 trackerMode 딥링크 매핑의 switch 비철저(.song 누락) — 로컬 파스는 못 잡는 갭, CI가 포착. 매핑 추가로 수정 | 2/2 success | 커밋 b56d786+f — 열거형 확장 시 전 switch 검토편입 체크리스트화 |
