@@ -157,7 +157,8 @@ await page.evaluate(`(() => {
     { t: 4, target: "스케일 시퀀스", acc: 72, lo: 0, hi: 0, dur: 35 },
     { t: 5, target: "멜로디 프레이즈", acc: 76, lo: 0, hi: 0, dur: 30 },
     { t: 6, target: "화음 부르기", acc: 73, lo: 0, hi: 0, dur: 30 },
-    { t: 7, target: "다이내믹스 아치", acc: 62, lo: 0, hi: 0, dur: 40 },
+    { t: 7, target: "민요 따라부르기", acc: 74, lo: 0, hi: 0, dur: 45 },
+    { t: 8, target: "다이내믹스 아치", acc: 62, lo: 0, hi: 0, dur: 40 },
   ];
   Store.data.lastVibratoRateHz = 0;
   Store.data.lastVibratoExtentCents = 0;
@@ -179,7 +180,7 @@ const recWeakest = await page.evaluate(`(() => {
   // t must exceed the seed's max (7): with a tie at t:6 the chronological
   // last stays dynamics, lastGame == weakest, and the variety rule (gap
   // 72-62 <= 15) correctly returns the runner-up scale instead.
-  Store.data.pitchRecords.push({ t: 8, target: "비브라토 체크", acc: 74, lo: 0, hi: 0, dur: 45 });
+  Store.data.pitchRecords.push({ t: 9, target: "비브라토 체크", acc: 74, lo: 0, hi: 0, dur: 45 });
   Store.save();
   render();
   return nextGameRecommendation();
@@ -191,7 +192,7 @@ ok("recommendation weakest measured", recWeakest.game === "dynamics" && recWeake
 const evidence = await page.evaluate(`(() => {
   // t:9 keeps this the LATEST vibrato record (the recWeakest push used
   // t:8; latestAccuracies takes the last match in chronological order).
-  Store.data.pitchRecords.push({ t: 9, target: "비브라토 체크", acc: 30, lo: 0, hi: 0, dur: 45 });
+  Store.data.pitchRecords.push({ t: 10, target: "비브라토 체크", acc: 30, lo: 0, hi: 0, dur: 45 });
   Store.data.lastVibratoRateHz = 3.8;
   Store.data.lastVibratoExtentCents = 80;
   Store.save();
@@ -383,7 +384,7 @@ const folk = await page.evaluate(`(() => {
   const at60 = songNoteDurations(FOLK_SONGS[1], 60);
   const at80 = songNoteDurations(FOLK_SONGS[1], 80);
   return {
-    three: FOLK_SONGS.length === 3 && FOLK_SONGS.map(s => s.title).join(",") === "아리랑,강강술래,한오백년",
+    three: FOLK_SONGS.length === 5 && FOLK_SONGS.map(s => s.title).join(",") === "아리랑,강강술래,한오백년,정선아리랑,둥당기타령",
     origins: FOLK_SONGS.every(s => s.origin.includes("전통")),
     seq: seq[0] === 55 + 7 && seq[seq.length - 1] === 55 + 3,
     clamp: clamped.every(m => m >= 43 && m <= 72) && Math.max(...clamped) === 72,
@@ -391,7 +392,7 @@ const folk = await page.evaluate(`(() => {
     ends: FOLK_SONGS.every(s => s.notes[s.notes.length - 1][1] >= 3),
   };
 })()`);
-ok("folk library ships 3 songs", folk.three);
+ok("folk library ships 5 songs", folk.three);
 ok("folk origins cite tradition", folk.origins);
 ok("folk arirang sequence", folk.seq);
 ok("folk band clamp", folk.clamp);

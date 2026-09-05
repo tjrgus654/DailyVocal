@@ -904,7 +904,7 @@ function recommendedLevel(recentAccuracies, currentLevel, maxLevel){
 const GAME_LABELS = {
  vowel: "모음 게임", interval: "음정 게임", ear: "귀훈련",
  vibrato: "비브라토 체크", dynamics: "다이내믹스 아치", scale: "스케일 시퀀스",
- melody: "멜로디 프레이즈", harmony: "화음 부르기",
+ melody: "멜로디 프레이즈", harmony: "화음 부르기", song: "민요 따라부르기",
 };
 function latestAccuracies(records){
  const latest = {};
@@ -914,7 +914,7 @@ function latestAccuracies(records){
  }
  return latest;
 }
-function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame, vibratoAcc, dynamicsAcc, scaleAcc, melodyAcc, harmonyAcc){
+function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame, vibratoAcc, dynamicsAcc, scaleAcc, melodyAcc, harmonyAcc, songAcc){
  const scores = [
   ["vowel", vowelAcc ?? 50],
   ["interval", intervalAcc ?? 50],
@@ -924,6 +924,7 @@ function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame, vibratoAcc, 
   ["scale", scaleAcc ?? 50],
   ["melody", melodyAcc ?? 50],
   ["harmony", harmonyAcc ?? 50],
+  ["song", songAcc ?? 50],
  ].sort((a,b) => a[1] - b[1]);
  if (lastGame && scores[0][0] === lastGame && scores.length > 1 && scores[1][1] - scores[0][1] <= 15){
   return scores[1][0];
@@ -949,10 +950,10 @@ function recommendationEvidence(game, latestAcc, vibRate, vibExt, dynDb){
  if (latestAcc != null) return `최근 점수 ${latestAcc}점 — 가장 약한 훈련부터 보완해요`;
  return "아직 시도하지 않은 훈련 — 먼저 한 번 측정해 기준점을 만들어요";
 }
-const GAME_NAMES = { vowel: "모음", interval: "음정", ear: "귀훈련", vibrato: "비브라토", dynamics: "셈여림", scale: "스케일", melody: "멜로디", harmony: "화음" };
+const GAME_NAMES = { vowel: "모음", interval: "음정", ear: "귀훈련", vibrato: "비브라토", dynamics: "셈여림", scale: "스케일", melody: "멜로디", harmony: "화음", song: "민요" };
 function startRecommended(game){
  // 딥링크: 성장 기록의 추천 카드 → 트래커 탭 + 해당 모드 (웹은 6종 전부)
- const modeMap = { vowel: "vowel", interval: "interval", ear: "ear", vibrato: "vibrato", dynamics: "dynamics", scale: "scale", melody: "melody", harmony: "harmony" };
+ const modeMap = { vowel: "vowel", interval: "interval", ear: "ear", vibrato: "vibrato", dynamics: "dynamics", scale: "scale", melody: "melody", harmony: "harmony", song: "song" };
  const mode = modeMap[game] || "single";
  if (App.trMode !== mode && App.listening) stopTracking();
  go("tracker");
@@ -970,7 +971,7 @@ function nextGameRecommendation(){
   .map(([g]) => g)[0] || null;
  const game = recommendNextGame(
   latest.vowel ?? null, latest.interval ?? null, latest.ear ?? null,
-  lastGame, latest.vibrato ?? null, latest.dynamics ?? null, latest.scale ?? null, latest.melody ?? null, latest.harmony ?? null);
+  lastGame, latest.vibrato ?? null, latest.dynamics ?? null, latest.scale ?? null, latest.melody ?? null, latest.harmony ?? null, latest.song ?? null);
  const reason = recommendationEvidence(
   game, latest[game] ?? null,
   Store.data.lastVibratoRateHz || 0, Store.data.lastVibratoExtentCents || 0,
@@ -1902,6 +1903,10 @@ const FOLK_SONGS = [
    notes: [[0,1],[0,1],[3,1],[5,1],[3,2],[0,3],[3,1],[3,1],[5,1],[7,1],[5,2],[3,3]] },
  { title: "한오백년", origin: "전라 민요(육자백이 계열) — 전통 원형",
    notes: [[0,1],[3,1],[5,2],[7,1],[10,1],[7,1],[5,1],[3,1],[0,4]] },
+ { title: "정선아리랑", origin: "강원 정선 지역 민요(정선아라리) — 전통 원형",
+   notes: [[5,1],[5,1],[7,1],[5,1],[3,1],[5,2],[3,1],[0,1],[0,1],[3,1],[5,1],[3,3]] },
+ { title: "둥당기타령", origin: "경기 민요(선소리 판소리 계열) — 전통 원형",
+   notes: [[0,1],[3,1],[5,1],[7,1],[7,1],[5,2],[5,1],[3,1],[3,1],[0,1],[0,4]] },
 ];
 const SONG_STATE = { index: 0, rolled: false };
 function currentSong(){
@@ -2111,7 +2116,7 @@ function stopTracking(){
  // melody runs store the contour label.
  const tgtLabel = App.trMode === "scale" ? GAME_LABELS.scale
   : (App.trMode === "melody" ? GAME_LABELS.melody
-  : (App.trMode === "song" ? (App._melodyLabel || currentSong().title)
+  : (App.trMode === "song" ? GAME_LABELS.song
   : (isSeq ? echoLabel() : App.target.name)));
  Store.data.pitchRecords.push({
  t:Date.now(), target:tgtLabel, acc:score,

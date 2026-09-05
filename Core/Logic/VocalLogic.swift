@@ -764,6 +764,7 @@ public enum VocalLogic {
         case scale = "스케일"
         case melody = "멜로디"
         case harmony = "화음"
+        case song = "민요"
     }
 
     /// Session labels the games persist under (PitchRecord.targetNoteName /
@@ -779,6 +780,7 @@ public enum VocalLogic {
         case .scale: return "스케일 시퀀스"
         case .melody: return "멜로디 프레이즈"
         case .harmony: return "화음 부르기"
+        case .song: return "민요 따라부르기"
         }
     }
 
@@ -801,7 +803,7 @@ public enum VocalLogic {
         vowelAccuracy: Int?, intervalAccuracy: Int?, earAccuracy: Int?,
         vibratoAccuracy: Int? = nil, dynamicsAccuracy: Int? = nil,
         scaleAccuracy: Int? = nil, melodyAccuracy: Int? = nil,
-        harmonyAccuracy: Int? = nil,
+        harmonyAccuracy: Int? = nil, songAccuracy: Int? = nil,
         lastGame: GameType?
     ) -> GameType {
         var scores: [(GameType, Int)] = []
@@ -813,6 +815,7 @@ public enum VocalLogic {
         scores.append((.scale, scaleAccuracy ?? 50))
         scores.append((.melody, melodyAccuracy ?? 50))
         scores.append((.harmony, harmonyAccuracy ?? 50))
+        scores.append((.song, songAccuracy ?? 50))
         // Sort ascending (weakest first), ties broken by declaration order.
         scores.sort { $0.1 < $1.1 }
         // If the weakest is the last game played AND the second-weakest is
@@ -1552,6 +1555,26 @@ public enum VocalLogic {
             notes: [
                 SongNote(0, 1), SongNote(3, 1), SongNote(5, 2), SongNote(7, 1),
                 SongNote(10, 1), SongNote(7, 1), SongNote(5, 1), SongNote(3, 1),
+                SongNote(0, 4),
+            ]
+        ),
+        FolkSong(
+            title: "정선아리랑",
+            origin: "강원 정선 지역 민요(정선아라리) — 전통 원형",
+            notes: [
+                SongNote(5, 1), SongNote(5, 1), SongNote(7, 1), SongNote(5, 1),
+                SongNote(3, 1), SongNote(5, 2),
+                SongNote(3, 1), SongNote(0, 1), SongNote(0, 1), SongNote(3, 1),
+                SongNote(5, 1), SongNote(3, 3),
+            ]
+        ),
+        FolkSong(
+            title: "둥당기타령",
+            origin: "경기 민요(선소리 판소리 계열) — 전통 원형",
+            notes: [
+                SongNote(0, 1), SongNote(3, 1), SongNote(5, 1), SongNote(7, 1),
+                SongNote(7, 1), SongNote(5, 2),
+                SongNote(5, 1), SongNote(3, 1), SongNote(3, 1), SongNote(0, 1),
                 SongNote(0, 4),
             ]
         ),

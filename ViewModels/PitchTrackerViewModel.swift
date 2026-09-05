@@ -402,7 +402,7 @@ public final class PitchTrackerViewModel {
             : (mode == .melody
                ? VocalLogic.gameLabel(for: .melody)
                : (mode == .song
-                  ? currentSong.title
+                  ? VocalLogic.gameLabel(for: .song)
                   : (echoTargetLabel.isEmpty ? targetNoteName : echoTargetLabel)))
         isListening = false
         echoPhaseTask?.cancel()
