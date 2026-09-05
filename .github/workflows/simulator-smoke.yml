@@ -67,7 +67,36 @@ jobs:
           fi
           xcrun simctl io "${{ steps.device.outputs.name }}" screenshot screenshot_2.png
 
+      - name: Screenshot every onboarding page (launch-arg deep link)
+        # simctl cannot synthesize swipes; the app's --onboarding-page N
+        # debug hook (Debug builds only) jumps straight to each page.
+        # Page 2 is the tracker-intro page added 2026-09-06 — this step
+        # proves it renders distinct content, not a blank/duplicated screen.
+        run: |
+          for PAGE in 0 1 2 3 4; do
+            xcrun simctl terminate "${{ steps.device.outputs.name }}" com.tjrgus654.dailyvocal || true
+            sleep 1
+            xcrun simctl launch "${{ steps.device.outputs.name }}" com.tjrgus654.dailyvocal "--onboarding-page" "$PAGE"
+            sleep 4
+            xcrun simctl io "${{ steps.device.outputs.name }}" screenshot "onboarding_$PAGE.png"
+          done
+          # Existence + non-blank + distinctness: every capture is 30KB+
+          # and all five hashes differ (a stuck page would duplicate one).
+          for PAGE in 0 1 2 3 4; do
+            SIZE=$(stat -f%z "onboarding_$PAGE.png")
+            if [ "$SIZE" -lt 30000 ]; then
+              echo "onboarding_$PAGE.png is only $SIZE bytes — blank/failed render"; exit 1
+            fi
+          done
+          DISTINCT=$(md5 -q onboarding_0.png onboarding_1.png onboarding_2.png onboarding_3.png onboarding_4.png | sort -u | wc -l | tr -d ' ')
+          if [ "$DISTINCT" -ne 5 ]; then
+            echo "expected 5 distinct onboarding pages, got $DISTINCT — a page did not render its own content"; exit 1
+          fi
+          echo "5 onboarding pages captured, all non-blank and distinct ✓ (page 2 = tracker intro)"
+
       - uses: actions/upload-artifact@v4
         with:
           name: simulator-screenshots
-          path: screenshot_*.png
+          path: |
+            screenshot_*.png
+            onboarding_*.png

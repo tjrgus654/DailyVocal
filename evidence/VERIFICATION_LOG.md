@@ -594,3 +594,6 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 259 | PROJECT_SCORE 84→85: 피치 정확도 19/20(파이프라인 macOS CI 실측 반영 — 물리 마이크만 남음), 콘텐츠·습관화 근거 갱신(게임 6종 앱 내·딥링크), 실기 오디오 갭 '높음→중간' 하향 | 갱신 | |
 | 260 | 온보딩 5단계 확장: '측정이 모이는 피치 트래커' 페이지 신설(음정 훈련·테크닉 계측·귀 훈련 게임 3카드 + 추천 안내) — pageCount 기반 handleNext 자동 대응 | 파스 통과 | 웹 미러 온보딩 축 없음(패리티 무영향) 확인 |
 | 261 | verify_all 9게이트 | ALL GREEN | |
+| 262 | 온보딩 페이지 런치 인자 후크: --onboarding-page N(DEBUG 전용) — simctl이 스와이프 주입 불가해 페이지 도달의 유일한 CI 경로 | 파스 통과 | OnboardingView.initialOnboardingPage |
+| 263 | 시뮬레이터 스모크 CI에 5페이지 캡처·검증 스텝: terminate→launch(인자)→screenshot 루프 + 존재·30KB+(빈 화면 걸름)·해시 5상이(페이지 미렌더/중복 걸름) + 아티팩트 | 커밋 | 페이지 2(트래커 소개)가 고유 콘텐츠로 렌더됨을 증명 |
+| 264 | verify_all 9게이트 | ALL GREEN | |

@@ -14,12 +14,29 @@ public struct OnboardingView: View {
     @AppStorage("onboardingCompleted") private var onboardingCompleted = false
     @Environment(\.modelContext) private var modelContext
 
-    @State private var currentPage = 0
+    @State private var currentPage = Self.initialOnboardingPage()
     @State private var rangeTest = RangeTestModel()
 
     public init() {}
 
     private let pageCount = 5
+
+    /// CI deep link: `simctl launch ... --onboarding-page N` starts straight
+    /// at page N (0-based). simctl cannot synthesize swipes, so the smoke
+    /// workflow reaches every page (incl. the tracker-intro page) this way.
+    /// Debug builds only — never active in a shipped app.
+    private static func initialOnboardingPage() -> Int {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        if let flag = args.firstIndex(of: "--onboarding-page"),
+           flag + 1 < args.count,
+           let page = Int(args[flag + 1]),
+           (0..<5).contains(page) {
+            return page
+        }
+        #endif
+        return 0
+    }
 
     public var body: some View {
         ZStack {
