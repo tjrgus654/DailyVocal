@@ -47,8 +47,9 @@ check("tolerance 25", "<= 25" in js and "onPitchCentsTolerance = 25.0" in vm)
 check("active = current window", "App.echo.midis[Math.min(App.echo.idx" in js and "echoTargetMidis[min(activeEchoIndex" in vm)
 
 print("=== 6. Label ===")
-check("dash join 3-part", "midis.count == 3" in sw and 'joined(separator: "-")' in sw
-      and "midis.length === 3" in js and ('join("-")' in js or "join('-')" in js))
+check("dash join (echo or scale seq)", 'joined(separator: "-")' in sw
+      and ('join("-")' in js or "join('-')" in js)
+      and "midis.length >= 3" in js)
 
 print("=== 7. Histogram ===")
 check("pitch class %12", "((midiNow % 12) + 12) % 12" in js and "(currentMidi % 12 + 12) % 12" in vm)
@@ -57,7 +58,64 @@ print("=== 8. Listen gating ===")
 check("leak gate", "ignoreUntil = Infinity" in js and "ignorePitchUntil = .distantFuture" in vm)
 check("opens with window 0", "if (i === 0) App.ignoreUntil = 0" in js and "ignorePitchUntil = Date()" in vm)
 
+
+print("=== 9. Scale sing-through parity ===")
+check("patterns", '[0,2,4,7,9]' in js.replace(" ", "") and "[0, 2, 4, 7, 9]" in sw)
+check("major scale", '[0,2,4,5,7,9,11,12]' in js.replace(" ", "") and "[0, 2, 4, 5, 7, 9, 11, 12]" in sw)
+check("arpeggio", '[0,4,7,12,7,4,0]' in js.replace(" ", "") and "[0, 4, 7, 12, 7, 4, 0]" in sw)
+check("level->pattern", 'level === 1 ? "pentatonicUp"' in js and "case 1: return .pentatonicUp" in sw)
+check("band clamp", "Math.min(72, Math.max(43, m))" in js and "min(band.upperBound, max(band.lowerBound" in sw)
+check("one demo pass", "SCALE_T" in js and "scaleNoteDuration" in vm)
+scale_block = js[js.find("const SCALE_T"):js.find("function startScaleFlow")]
+check("timings", "note: 900" in scale_block and "gap: 250" in scale_block and "window: 1800" in scale_block
+      and "scaleNoteDuration = 0.9" in vm and "scaleListenGap = 0.25" in vm and "scaleWindowDuration = 1.8" in vm)
+check("scoring shares active target", '(App.trMode === "echo" || App.trMode === "scale")' in js
+      and "mode == .echo || mode == .scale" in vm)
+check("level applies to scale", 'App.trMode === "echo" || App.trMode === "scale"' in js
+      and "guard mode == .echo || mode == .scale else" in vm)
+
+import subprocess, json
+node_code = r"""
+const fs = require('fs'), vm = require('vm');
+const html = fs.readFileSync('preview/live.html', 'utf8');
+const js = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+const start = js.indexOf('const SCALE_PATTERNS');
+const end = js.indexOf('function startScaleFlow');
+const block = js.slice(start, end);
+const sandbox = { Math, console, Object };
+vm.createContext(sandbox);
+vm.runInContext(block, sandbox);
+const out = vm.runInContext(`(function(){
+  const results = [];
+  // (base, level) -> sequence, mirroring the Swift test vectors.
+  const cases = [
+    [60, 2, [60,62,64,65,67,69,71,72]],
+    [55, 3, [55,59,62,67,62,59,55]],
+    [69, 2, null],  // clamped: last must be 72
+    [40, 1, null],  // clamped: first must be 43
+  ];
+  for (const [base, level, expected] of cases){
+    const seq = scaleSequence(base, scalePattern(level));
+    results.push(expected ? JSON.stringify(seq) === JSON.stringify(expected)
+                          : (seq.every(m => m >= 43 && m <= 72)));
+  }
+  results.push(scalePattern(0) === "pentatonicUp" && scalePattern(9) === "arpeggioSweep");
+  return results;
+})()`, sandbox);
+console.log(JSON.stringify(out));
+"""
+proc = subprocess.run(["node", "--input-type=commonjs", "-e", node_code], capture_output=True, text=True)
+if proc.returncode != 0 or not proc.stdout.strip():
+    check("scale node execution", False, (proc.stderr or proc.stdout)[-200:])
+else:
+    r = json.loads(proc.stdout)
+    check("scale vector: C4 major", r[0] is True)
+    check("scale vector: G3 arpeggio", r[1] is True)
+    check("scale vector: clamp top", r[2] is True)
+    check("scale vector: clamp bottom", r[3] is True)
+    check("scale level clamp", r[4] is True)
+
 print()
 if failures:
     print(f"PARITY FAIL: {failures}"); sys.exit(1)
-print("PARITY OK: 8축 일치 (시퀀스 풀·밴드·타이밍·난이도 전이·채점·라벨·히스토그램·게이팅)")
+print("PARITY OK: 13축 일치 (시퀀스 풀·밴드·타이밍·난이도 전이·채점·라벨·히스토그램·게이팅 + 스케일 5실행축)")

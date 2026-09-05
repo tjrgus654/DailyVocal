@@ -69,6 +69,13 @@ public struct PitchTrackerView: View {
                             .foregroundColor(.textSecondary)
                             .frame(maxWidth: .infinity)
                     }
+                    if viewModel.mode == .scale {
+                        let pattern = VocalLogic.scalePattern(level: viewModel.echoLevel)
+                        Text("패턴: \(pattern.rawValue) · 시작음 \(viewModel.targetNoteName) — 데모 후 노트마다 따라 부르세요\(viewModel.echoLevel >= 3 ? "" : " · 성공하면 다음 단계 패턴으로")")
+                            .font(.caption2)
+                            .foregroundColor(.textSecondary)
+                            .frame(maxWidth: .infinity)
+                    }
                     if viewModel.mode == .vowel {
                         Text("목표 모음: \(viewModel.vowelTarget.rawValue) — 소리를 듣고 그대로 따라 하세요")
                             .font(.caption2)

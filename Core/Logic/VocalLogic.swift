@@ -1216,6 +1216,44 @@ public enum VocalLogic {
         }
     }
 
+    // MARK: - Scale sing-through (own-engine accompaniment)
+
+    /// Fixed scale patterns for guided sing-through — the standard vocal
+    /// warm-up ladder (pentatonic → full scale → arpeggio sweep). Synthesized
+    /// by the own audio engine, so no copyrighted backing tracks.
+    public enum ScalePattern: String, CaseIterable {
+        case pentatonicUp = "펜타토닉 상행"
+        case majorScale = "장음계 상행"
+        case arpeggioSweep = "아르페지오 왕복"
+
+        /// Semitone offsets from the base note, in performance order.
+        public var offsets: [Int] {
+            switch self {
+            case .pentatonicUp: return [0, 2, 4, 7, 9]
+            case .majorScale: return [0, 2, 4, 5, 7, 9, 11, 12]
+            case .arpeggioSweep: return [0, 4, 7, 12, 7, 4, 0]
+            }
+        }
+    }
+
+    /// Pattern per difficulty level: L1 pentatonic (gapped, easy to hear),
+    /// L2 full major scale, L3 arpeggio round trip (register crossing).
+    public static func scalePattern(level: Int) -> ScalePattern {
+        switch min(3, max(1, level)) {
+        case 1: return .pentatonicUp
+        case 2: return .majorScale
+        default: return .arpeggioSweep
+        }
+    }
+
+    /// The sing-through sequence for a pattern from `baseMidi`, clamped into
+    /// the singing band so the top note never leaves the comfortable range.
+    public static func scaleSequence(baseMidi: Int, pattern: ScalePattern, band: ClosedRange<Int> = 43...72) -> [Int] {
+        pattern.offsets.map { offset in
+            min(band.upperBound, max(band.lowerBound, baseMidi + offset))
+        }
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.

@@ -29,7 +29,7 @@ const ok = (name, cond, detail = "") => {
 
 // 1. Mode chip exists and switches.
 const chipCount = await page.locator('.chip[onclick^="setTrMode"]').count();
-ok("mode chips rendered", chipCount === 8, `count=${chipCount}`);
+ok("mode chips rendered", chipCount === 9, `count=${chipCount}`);
 await page.click('span.chip[onclick="setTrMode(\'vibrato\')"]');
 ok("vibrato mode selected", await page.evaluate("App.trMode") === "vibrato");
 await page.waitForTimeout(200);
@@ -164,6 +164,42 @@ ok("recommendation card title", (await page.locator("text=오늘의 추천 훈�
 const recGame = await page.evaluate("nextGameRecommendation().game");
 ok("recommendation game is vibrato", recGame === "vibrato", recGame);
 ok("recommendation reason is unmeasured", (await page.evaluate("nextGameRecommendation().reason")).includes("시도하지 않은"));
+
+// 9. Scale sing-through: chips, caption, sequence synthesis, scoring wiring.
+await page.evaluate('go("tracker")');
+await page.click('span.chip[onclick="setTrMode(\'scale\')"]');
+ok("scale mode selected", await page.evaluate("App.trMode") === "scale");
+await page.waitForTimeout(200);
+ok("scale caption", (await page.locator("text=데모 후 노트마다 따라 부르세요").count()) >= 1);
+const scale = await page.evaluate(`(() => {
+  const l1 = scaleSequence(60, scalePattern(1));
+  const l2 = scaleSequence(60, scalePattern(2));
+  const l3 = scaleSequence(55, scalePattern(3));
+  const clamped = scaleSequence(69, scalePattern(2));
+  return {
+    l1: JSON.stringify(l1) === JSON.stringify([60, 62, 64, 67, 69]),
+    l2: JSON.stringify(l2) === JSON.stringify([60, 62, 64, 65, 67, 69, 71, 72]),
+    l3: JSON.stringify(l3) === JSON.stringify([55, 59, 62, 67, 62, 59, 55]),
+    clamp: clamped.every(m => m >= 43 && m <= 72) && clamped[clamped.length - 1] === 72,
+    levelClamp: scalePattern(9) === "arpeggioSweep",
+  };
+})()`);
+ok("scale L1 pentatonic", scale.l1);
+ok("scale L2 major", scale.l2);
+ok("scale L3 arpeggio", scale.l3);
+ok("scale band clamp", scale.clamp);
+ok("scale level clamp", scale.levelClamp);
+// Flow wiring: startScaleFlow must exist and gate scoring during the demo.
+const flowOk = await page.evaluate(`(() => {
+  App.echo.gen++;
+  const gen = App.echo.gen;
+  startScaleFlow();
+  const gated = App.ignoreUntil === Infinity && App.echo.midis.length >= 5;
+  App.echo.timers.forEach(clearTimeout);
+  App.echo.gen++; App.echo.midis = []; App.ignoreUntil = 0; App.listening = false;
+  return gated;
+})()`);
+ok("scale flow gates + sequence", flowOk);
 
 await browser.close();
 

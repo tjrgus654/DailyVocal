@@ -95,11 +95,13 @@ public final class PitchTrackerViewModel {
         VocalAudioEngine.frequency(forMidi: Double(targetMidi))
     }
 
-    /// Joined note names of the current echo sequence, e.g. "C4-E4-G4"
+    /// Joined note names of the current echo/scale sequence, e.g. "C4-E4-G4"
     /// (empty in single mode). Used by the completion alert and the stored
     /// record so both always agree.
     public var echoTargetLabel: String {
-        mode == .echo ? VocalLogic.echoLabel(midis: echoTargetMidis) : ""
+        (mode == .echo || mode == .scale) && !echoTargetMidis.isEmpty
+            ? VocalLogic.echoLabel(midis: echoTargetMidis)
+            : ""
     }
 
     /// Listen-first ear training (SingTrue-style, strongest research backing):
@@ -118,6 +120,7 @@ public final class PitchTrackerViewModel {
         case vowel = "모음 게임"
         case vibrato = "비브라토 체크"
         case dynamics = "다이내믹스 아치"
+        case scale = "스케일 따라부르기"
         public var id: String { rawValue }
     }
     public var mode: TrackerMode = .single {
@@ -182,6 +185,11 @@ public final class PitchTrackerViewModel {
     private static let echoNoteDuration = 1.0
     private static let echoListenGap = 0.5
     private static let echoWindowDuration = 2.6
+    /// Scale sing-through timings: one demo pass (scales are predictable),
+    /// then a shorter window per note.
+    private static let scaleNoteDuration = 0.9
+    private static let scaleListenGap = 0.25
+    private static let scaleWindowDuration = 1.8
 
     public init() {
         syncTargetFrequency()
@@ -289,6 +297,8 @@ public final class PitchTrackerViewModel {
             }
         } else if mode == .echo {
             startEchoFlow()
+        } else if mode == .scale {
+            startScaleFlow()
         } else if isListenFirstMode {
             // Ear-training flow: hear the target twice first, then sing with
             // the visuals hidden (revealed on stop).
@@ -569,6 +579,48 @@ public final class PitchTrackerViewModel {
         }
     }
 
+    /// Scale sing-through: the engine plays the pattern ladder once (own
+    /// synthesis — no copyrighted backing), then one window per note with
+    /// scoring following the active target, same as echo.
+    private func startScaleFlow() {
+        echoGeneration += 1
+        let generation = echoGeneration
+        let pattern = VocalLogic.scalePattern(level: echoLevel)
+        echoTargetMidis = VocalLogic.scaleSequence(baseMidi: targetMidi, pattern: pattern)
+        activeEchoIndex = 0
+        ignorePitchUntil = .distantFuture
+        LiveActivityManager.shared.startGameActivity(
+            gameMode: pattern.rawValue,
+            totalRounds: echoTargetMidis.count
+        )
+
+        echoPhaseTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            // Demo once — scales are predictable, one pass is enough.
+            for midi in self.echoTargetMidis {
+                guard !Task.isCancelled, generation == self.echoGeneration else { return }
+                self.audio.playTone(
+                    frequency: VocalAudioEngine.frequency(forMidi: Double(midi)),
+                    duration: Self.scaleNoteDuration,
+                    volume: 0.5
+                )
+                try? await Task.sleep(for: .seconds(Self.scaleNoteDuration + Self.scaleListenGap))
+            }
+            try? await Task.sleep(for: .seconds(0.3))
+            // Sing: one window per note of the ladder.
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.ignorePitchUntil = Date()
+            for index in self.echoTargetMidis.indices {
+                guard !Task.isCancelled, generation == self.echoGeneration else { return }
+                self.activeEchoIndex = index
+                LiveActivityManager.shared.updateGameRound(index + 1, of: self.echoTargetMidis.count)
+                try? await Task.sleep(for: .seconds(Self.scaleWindowDuration))
+            }
+            guard generation == self.echoGeneration else { return }
+            self.stopTracking()
+        }
+    }
+
     /// Karaoke-style scoring familiar to Korean users: on-pitch ratio over
     /// voiced frames, expressed as 0...100 with an S/A/B/C/D grade.
     private func finishSession() {
@@ -595,8 +647,9 @@ public final class PitchTrackerViewModel {
     /// Personalized difficulty: session history drives level transitions
     /// through VocalLogic.recommendedLevel (same rule the contract tests
     /// and the web prototype use), replacing the ad-hoc fail-streak.
+    /// Applies to both sequence drills: echo and scale sing-through.
     private func updateEchoLevelIfNeeded(score: Int) {
-        guard mode == .echo else { return }
+        guard mode == .echo || mode == .scale else { return }
         lastEchoLevelDelta = nil
         echoHistory.append(score)
         let newLevel = VocalLogic.recommendedLevel(

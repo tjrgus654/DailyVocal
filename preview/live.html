@@ -1421,7 +1421,7 @@ function screenTracker(){
  </div>
 
  <div class="glass" style="margin:10px 20px 0;padding:8px 12px;display:flex;gap:8px;border-radius:14px;">
- ${[["single","단음"],["echo","에코"],["speak","말하기"],["vowel","모음"],["interval","음정"],["ear","귀훈련"],["vibrato","비브라토"],["dynamics","셈여림"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')" role="button" tabindex="0" aria-label="모드 ${label}">${label}</span>`).join("")}
+ ${[["single","단음"],["echo","에코"],["speak","말하기"],["vowel","모음"],["interval","음정"],["ear","귀훈련"],["vibrato","비브라토"],["dynamics","셈여림"],["scale","스케일"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')" role="button" tabindex="0" aria-label="모드 ${label}">${label}</span>`).join("")}
  </div>
 
  ${App.trMode==='vowel'&&VOWEL_GAME.active?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">라운드 ${Math.min(VOWEL_GAME.idx + 1, VOWEL_GAME.rounds.length)}/${VOWEL_GAME.rounds.length} · 목표 모음: ${VOWEL_GAME.target || "-"}${VOWEL_GAME.tips.length ? "<br><span style='color:var(--text-secondary);font-weight:400;'>" + VOWEL_GAME.tips[0] + "</span>" : ""}</div>`:""}
@@ -1436,6 +1436,7 @@ function screenTracker(){
  </div>` : `<div class="cap2" style="color:var(--text-secondary);margin:10px 0;">🎧 듣고 있어요...</div>`}
  </div>`:""}
  ${App.trMode==='echo'?`<div class="cap2" style="text-align:center;color:var(--text-secondary);margin:8px 0 0;">에코 난이도 ${echoLevel()}단계 · ${echoLevel()>=3?"최고 난이도입니다":"성공하면 이동 폭이 넓어져요"}</div>`:""}
+ ${App.trMode==='scale'?`<div class="cap2" style="text-align:center;color:var(--text-secondary);margin:8px 0 0;">패턴: ${SCALE_PATTERNS[scalePattern(echoLevel())].name} · 시작음 ${App.target.name} — 데모 후 노트마다 따라 부르세요${echoLevel()>=3?"":" · 성공하면 다음 단계 패턴으로"}</div>`:""}
  ${App.trMode==='vibrato'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${VIBRATO_CHECK.phase==='guide'?"기준음이 먼저 울립니다 — 같은 음을 5초간 길게 끌며 비브라토를 넣어보세요":(VIBRATO_CHECK.phase==='recording'?"지금 길게 '아~' — 목소리를 자연스럽게 흔들어보세요":(VIBRATO_CHECK.result?"측정 완료 — 결과 카드를 확인하세요":"시작하면 기준음이 울립니다 — 그 음을 길게 끌며 비브라토를 넣어보세요"))}</div>`:""}
  ${App.trMode==='dynamics'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${DYNAMICS_CHECK.phase==='guide'?"기준음이 먼저 울립니다 — 그 음을 한 호흡으로 여리게 → 크게 → 여리게":(DYNAMICS_CHECK.phase==='recording'?"지금 '아~'를 여리게 시작해 점점 크게, 다시 여리게 — 숨을 아껴가며":(DYNAMICS_CHECK.result?"측정 완료 — 아래 아치 결과를 확인하세요":"메사 디 보체: 한 음을 셈→여림으로 부풀렸다가 줄이는 왕도 훈련입니다"))}</div>`:""}
 
@@ -1553,7 +1554,7 @@ function setA4(d){
 }
 window.setA4 = setA4;
 function activeTarget(){
- if (App.trMode === "echo" && App.echo.midis.length)
+ if ((App.trMode === "echo" || App.trMode === "scale") && App.echo.midis.length)
  return App.echo.midis[Math.min(App.echo.idx, App.echo.midis.length - 1)];
  return App.target.midi;
 }
@@ -1692,6 +1693,54 @@ function finishDynamicsCheck(){
  }
  render();
 }
+// ── 스케일 따라부르기 (Swift VocalLogic ScalePattern 미러) ──────────
+// 자체 엔진 합성 반주 — 저작권 없는 웜업 래더(펜타토닉→장음계→아르페지오).
+const SCALE_PATTERNS = {
+ pentatonicUp: { name: "펜타토닉 상행", offsets: [0, 2, 4, 7, 9] },
+ majorScale: { name: "장음계 상행", offsets: [0, 2, 4, 5, 7, 9, 11, 12] },
+ arpeggioSweep: { name: "아르페지오 왕복", offsets: [0, 4, 7, 12, 7, 4, 0] },
+};
+function scalePattern(level){
+ level = Math.min(3, Math.max(1, level));
+ return level === 1 ? "pentatonicUp" : level === 2 ? "majorScale" : "arpeggioSweep";
+}
+function scaleSequence(base, patternKey){
+ const cl = m => Math.min(72, Math.max(43, m));
+ return SCALE_PATTERNS[patternKey].offsets.map(o => cl(base + o));
+}
+const SCALE_T = { note: 900, gap: 250, window: 1800 };
+function startScaleFlow(){
+ App.echo.gen++;
+ const gen = App.echo.gen;
+ const patternKey = scalePattern(echoLevel());
+ App.echo.midis = scaleSequence(App.target.midi, patternKey);
+ App.echo.idx = 0;
+ App.echo.timers = [];
+ App.ignoreUntil = Infinity;
+ let delay = 0;
+ // 데모 1회 — 스케일은 예측 가능하므로 한 번이면 충분
+ App.echo.midis.forEach(m => {
+  const at = delay;
+  App.echo.timers.push(setTimeout(() => {
+   if (gen === App.echo.gen) Audio5.playTone(midiToFreq(m), SCALE_T.note/1000, 0.5);
+  }, at));
+  delay += SCALE_T.note + SCALE_T.gap;
+ });
+ delay += 300;
+ App.echo.timers.push(setTimeout(() => {
+  if (gen !== App.echo.gen) return;
+  App.ignoreUntil = 0;
+ }, delay));
+ App.echo.midis.forEach((m, i) => {
+  const at = delay;
+  App.echo.timers.push(setTimeout(() => {
+   if (gen !== App.echo.gen) return;
+   App.echo.idx = i; render();
+  }, at));
+  delay += SCALE_T.window;
+ });
+ App.echo.timers.push(setTimeout(() => { if (gen === App.echo.gen) stopTracking(); }, delay));
+}
 function playTarget(){
  haptic();
  App.ignoreUntil = Date.now() + 1600;
@@ -1739,6 +1788,7 @@ async function startTracking(){
  if (App.trMode === "speak"){
   App._speakTimer = setTimeout(() => { if (App.listening) stopTracking(); }, 10000);
  } else if (App.trMode === "echo") startEchoFlow();
+ else if (App.trMode === "scale") startScaleFlow();
 }
 function stopTracking(){
  if (VOWEL_GAME.active){ VOWEL_GAME.active = false; VOWEL_GAME.idx = 99; App.listening = false; Audio5.stopMic(); render(); return; }
@@ -1779,9 +1829,9 @@ function stopTracking(){
    sustainMsg = "<br><span style='font-size:12px;color:var(--text-secondary);'>" + sustainFeedback(secs, Store.data.prefs.femaleKey) + "</span>";
   }
  }
- // 성공 게이트 난이도: 80%+ 승급, 2연속 50% 미만 강급
+ // 성공 게이트 난이도: 80%+ 승급, 2연속 50% 미만 강급 (에코·스케일 공용)
  let levelMsg = "";
- if (App.trMode === "echo"){
+ if (App.trMode === "echo" || App.trMode === "scale"){
  (App._echoHistory = App._echoHistory || []).push(score);
  const newLevel = recommendedLevel(App._echoHistory, echoLevel());
  if (newLevel !== echoLevel()){
@@ -1793,8 +1843,8 @@ function stopTracking(){
  }
  Store.save();
  }
- const isEcho = App.trMode === "echo" && App.echo.midis.length === 3;
- const tgtLabel = isEcho ? echoLabel() : App.target.name;
+ const isSeq = (App.trMode === "echo" || App.trMode === "scale") && App.echo.midis.length >= 3;
+ const tgtLabel = isSeq ? echoLabel() : App.target.name;
  Store.data.pitchRecords.push({
  t:Date.now(), target:tgtLabel, acc:score,
  lo:App.lo, hi:App.hi, dur:Math.round((Date.now()-App.sessionStart)/1000),
@@ -1802,7 +1852,7 @@ function stopTracking(){
  if (App.lo > 0 && (Store.data.range.lo === 0 || App.lo < Store.data.range.lo)) Store.data.range.lo = App.lo;
  if (App.hi > Store.data.range.hi) Store.data.range.hi = App.hi;
  Store.save();
- toast(`이번 세션 <b style="font-size:20px;">${score}점</b><br>등급 ${App.lastGrade} · ${isEcho ? "시퀀스 "+tgtLabel : "목표음 "+tgtLabel} 온피치 ${score}%${levelMsg}${sustainMsg}`, 3600);
+ toast(`이번 세션 <b style="font-size:20px;">${score}점</b><br>등급 ${App.lastGrade} · ${isSeq ? "시퀀스 "+tgtLabel : "목표음 "+tgtLabel} 온피치 ${score}%${levelMsg}${sustainMsg}`, 3600);
  }
  render();
 }
