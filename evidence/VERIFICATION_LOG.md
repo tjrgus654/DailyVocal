@@ -560,3 +560,16 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 243 | verify_all 9게이트 | ALL GREEN | |
 | 244 | CI 실패 → 원인 판별: nextGameCard 조건분기가 Button<Card> vs Card로 서로 다른 opaque 타입 반환 — 로컬 swift-frontend -parse는 구문만 검사해 이 간극을 못 잡음(iOS SDK 타입체크가 유일한 타입 게이트) | CI가 포착 | @ViewBuilder 전환으로 수정(커밋 a4037c9) |
 | 245 | 수정 커밋 CI: iOS typecheck + 시뮬레이터 스모크 | 2/2 success | 갭 메모: 뷰 코드 opaque 타입 변경 시 CI 확인 필수 |
+
+
+## Swift 오디오 파이프라인 실측 통합 테스트 (세션 14 — 2026-09-06)
+
+리서치: simctl 오디오 주입 없음, CI 표준 패턴은 버퍼 레벨 주입(BlackHole류 가상
+드라이버는 러너에서 취약). 마이크만 어댑터로 제외하고 tap 이후 전 경로를 macOS CI에서 실측.
+
+| # | 검증 행위 | 결과 | 증거/비고 |
+|---|---|---|---|
+| 246 | Goertzel 스펙트럼을 VocalLogic.SpectralAnalysis로 이동(엔진은 위임) — 앱·순수 테스트가 동일 DSP 공유 | 파스 48/48 | 행동 무변경 이동 |
+| 247 | macOS 통합 테스트 6종 신설: 버퍼 디코드·YIN(220±3Hz·voiced≥90%)·비브라토 종단(5.5±0.5Hz·70±15¢)·다이내믹스 아치(14±3dB)·포먼트 피크(700±130Hz)·지속 런(3.0±0.15s) | CI에서 실행 | Windows는 블록 제외 — 로컬 113 테스트 무손상 확인 |
+| 248 | 어서션 버그 자체 수정(범위 리터럴→부등식 쌍) — 커밋 전 로컬 실행으로 포착 | 수정 | |
+| 249 | verify_all 9게이트 + Windows swift test 113 | ALL GREEN | macOS 실행은 CI typecheck의 swift test |

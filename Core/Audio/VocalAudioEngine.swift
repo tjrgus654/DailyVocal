@@ -410,30 +410,10 @@ public final class VocalAudioEngine {
 
     /// 512-bin magnitude spectrum via Goertzel over the first 1024 samples.
     /// Bins cover 0...(sampleRate/2); consumers use fftBin-mapped bands.
+    /// The DSP lives in VocalLogic.SpectralAnalysis so the pure-logic package
+    /// (and the macOS pipeline integration test) shares the exact code.
     nonisolated static func magnitudeSpectrum(_ samples: [Float], sampleRate: Double, binCount: Int) -> [Double] {
-        let window = min(1024, samples.count)
-        // Hann window to suppress edge leakage.
-        var windowed = [Double](repeating: 0, count: window)
-        for i in 0..<window {
-            let w = 0.5 * (1 - cos(2 * .pi * Double(i) / Double(window - 1)))
-            windowed[i] = Double(samples[i]) * w
-        }
-        let binHz = sampleRate / Double(binCount)
-        var mags = [Double](repeating: 0, count: binCount)
-        for bin in 0..<binCount {
-            let f = Double(bin) * binHz
-            if f > sampleRate / 2 { break }
-            let k = 2.0 * cos(2 * .pi * f / sampleRate)
-            var s0: Double = 0, s1: Double = 0, s2: Double = 0
-            for x in windowed {
-                s0 = x + k * s1 - s2
-                s2 = s1
-                s1 = s0
-            }
-            let power = s1 * s1 + s2 * s2 - k * s1 * s2
-            mags[bin] = max(0, sqrt(power / Double(window)))
-        }
-        return mags
+        VocalLogic.SpectralAnalysis.magnitudeSpectrum(samples, sampleRate: sampleRate, binCount: binCount)
     }
 
     /// Sample rate of the analysis chain (for FFT bin math).
