@@ -613,6 +613,10 @@ function dynamicsScore(m){
 // ── 최장 지속 / MPT (Swift VocalLogic.SustainStats 미러) ──────────────
 // 한국인 정상 성인: 남 20.8±6.4초·여 17.2±4.1초(JKSLP), 15초 미만 임상 주의선.
 const SUSTAIN = { GAP: 0.25, CAUTION: 15.0, MALE_NORM: 20.8, FEMALE_NORM: 17.2 };
+function centsLabel(cents){
+ if (!cents) return "—";
+ return (cents > 0 ? "+" : "−") + Math.round(Math.abs(cents)) + "¢";
+}
 function sustainLongestRun(times, gap){
  gap = gap ?? SUSTAIN.GAP;
  if (!times.length) return 0;
@@ -2532,6 +2536,7 @@ function screenProgress(){
  </div>
  <div class="cap2" style="color:var(--text-secondary);margin-top:6px;">비브라토 4.5~6.5Hz·±50~100¢ / 셈여림 6dB+ 가 목표 범위입니다</div>
  ${(Store.data.bestSustainSeconds || 0) > 0 ? `<div class="cap2" style="color:${Store.data.bestSustainSeconds >= SUSTAIN.CAUTION ? 'var(--vocal-success)' : 'var(--vocal-warning)'};margin-top:2px;">최장 지속 ${Store.data.bestSustainSeconds.toFixed(1)}초 (한 호흡 최대 발성) — 15초 이상이 건강 기준</div>` : ""}
+ ${((Store.data.harmonyAboveCents || 0) !== 0 || (Store.data.harmonyBelowCents || 0) !== 0) ? `<div class="cap2" style="color:var(--text-secondary);margin-top:2px;">하모니 성향: 위 성부 ${centsLabel(Store.data.harmonyAboveCents)} / 아래 성부 ${centsLabel(Store.data.harmonyBelowCents)} — ±15센트 이내가 정확</div>` : ""}
  </div>` : ""}
  ${(Store.data.bestSustainSeconds || 0) > 0 && !(Store.data.lastVibratoRateHz > 0 || Store.data.lastDynamicsRangeDb > 0) ? `<div class="glass" style="margin:14px 20px 0;padding:16px;">
  <div style="display:flex;align-items:center;">

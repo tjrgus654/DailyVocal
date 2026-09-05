@@ -140,11 +140,14 @@ ok("sustain run ~12.1", Math.abs(sus.run - 12.06) <= 0.05, sus.run.toFixed(3));
 ok("sustain tip below norm", sus.tip.includes("남았습니다"));
 await page.evaluate(`(() => {
   Store.data.bestSustainSeconds = 16.4;
+  Store.data.harmonyAboveCents = 22;
+  Store.data.harmonyBelowCents = -30;
   Store.save();
   render();
 })()`);
 await page.waitForTimeout(200);
 ok("growth sustain line", (await page.locator("text=16.4초 (한 호흡 최대 발성)").count()) >= 1);
+ok("growth harmony bias line", (await page.locator("text=위 성부 +22¢ / 아래 성부 −30¢").count()) >= 1);
 
 // 8. Next-game recommendation card (records-driven, technique-aware).
 await page.evaluate(`(() => {

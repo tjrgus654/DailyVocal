@@ -68,7 +68,8 @@ public struct VocalProgressView: View {
                                 .padding(.horizontal, 20)
                         }
 
-                        if viewModel.lastVibratoRateHz > 0 || viewModel.lastDynamicsRangeDb > 0 || viewModel.bestSustainSeconds > 0 {
+                        if viewModel.lastVibratoRateHz > 0 || viewModel.lastDynamicsRangeDb > 0 || viewModel.bestSustainSeconds > 0
+                            || viewModel.harmonyAboveCents != 0 || viewModel.harmonyBelowCents != 0 {
                             techniqueSnapshotCard
                                 .padding(.horizontal, 20)
                         }
@@ -459,9 +460,20 @@ public struct VocalProgressView: View {
                     .font(.caption2)
                     .foregroundColor(viewModel.bestSustainSeconds >= 15 ? .vocalSuccess : .vocalWarning)
             }
+            if viewModel.harmonyAboveCents != 0 || viewModel.harmonyBelowCents != 0 {
+                Text("하모니 성향: 위 성부 \(centsLabel(viewModel.harmonyAboveCents)) / 아래 성부 \(centsLabel(viewModel.harmonyBelowCents)) — ±15센트 이내가 정확")
+                    .font(.caption2)
+                    .foregroundColor(.textSecondary)
+            }
         }
         .glassCard(cornerRadius: 16, padding: 14)
         .accessibilityElement(children: .combine)
+    }
+
+    /// "+22¢" / "−30¢" / "—" (unmeasured).
+    private func centsLabel(_ cents: Double) -> String {
+        guard cents != 0 else { return "—" }
+        return String(format: "%+0.f¢", cents)
     }
 
     /// 성종(voice type) card: estimated type, why, and the personal
