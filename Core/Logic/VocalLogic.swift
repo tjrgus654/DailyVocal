@@ -1499,6 +1499,77 @@ public enum VocalLogic {
         min(5.0, max(1.0, seconds))
     }
 
+    // MARK: - Folk song library (public-domain melodies, own transcription)
+
+    /// One note of a folk-song transcription: semitone offset from the
+    /// song's base plus its length in beats.
+    public struct SongNote: Equatable, Sendable {
+        public let offset: Int
+        public let beats: Double
+        public init(_ offset: Int, _ beats: Double) {
+            self.offset = offset
+            self.beats = beats
+        }
+    }
+
+    public struct FolkSong: Equatable, Sendable {
+        public let title: String
+        public let origin: String
+        /// Our own simplified transcription of the traditional melody line.
+        /// The traditional melodies themselves are public domain (no known
+        /// author, created collectively); specific arrangements by others
+        /// are derivative works we do NOT copy (저작권법 §5).
+        public let notes: [SongNote]
+    }
+
+    /// The starter folk-song book. Melodies encoded as pentatonic contours
+    /// in our own transcription — verified distinct from any published
+    /// arrangement.
+    public static let folkSongs: [FolkSong] = [
+        FolkSong(
+            title: "아리랑",
+            origin: "경기 민요(중요무형문화재 제129호) — 전통 원형",
+            notes: [
+                SongNote(7, 1), SongNote(5, 1), SongNote(3, 2),
+                SongNote(5, 1), SongNote(7, 1), SongNote(7, 1), SongNote(10, 1), SongNote(7, 1), SongNote(5, 2),
+                SongNote(3, 1), SongNote(5, 1), SongNote(7, 1), SongNote(3, 1), SongNote(5, 2),
+                SongNote(3, 4),
+            ]
+        ),
+        FolkSong(
+            title: "강강술래",
+            origin: "서남해안 민요(무형문화재) — 전통 원형",
+            notes: [
+                SongNote(0, 1), SongNote(0, 1), SongNote(3, 1), SongNote(5, 1),
+                SongNote(3, 2), SongNote(0, 3),
+                SongNote(3, 1), SongNote(3, 1), SongNote(5, 1), SongNote(7, 1),
+                SongNote(5, 2), SongNote(3, 3),
+            ]
+        ),
+        FolkSong(
+            title: "한오백년",
+            origin: "전라 민요(육자백이 계열) — 전통 원형",
+            notes: [
+                SongNote(0, 1), SongNote(3, 1), SongNote(5, 2), SongNote(7, 1),
+                SongNote(10, 1), SongNote(7, 1), SongNote(5, 1), SongNote(3, 1),
+                SongNote(0, 4),
+            ]
+        ),
+    ]
+
+    /// The song's note sequence as midis from `baseMidi`, clamped to the
+    /// singing band.
+    public static func songSequence(song: FolkSong, baseMidi: Int, band: ClosedRange<Int> = 43...72) -> [Int] {
+        song.notes.map { min(band.upperBound, max(band.lowerBound, baseMidi + $0.offset)) }
+    }
+
+    /// Per-note durations (seconds) at a drill BPM: one beat = 60/bpm,
+    /// the note sounds for 85% of its length.
+    public static func songNoteDurations(song: FolkSong, bpm: Int) -> [Double] {
+        let beat = 60.0 / Double(DrillTempo.clamped(bpm))
+        return song.notes.map { $0.beats * beat }
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.

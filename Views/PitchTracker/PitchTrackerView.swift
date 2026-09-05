@@ -106,6 +106,12 @@ public struct PitchTrackerView: View {
                             .foregroundColor(.textSecondary)
                             .frame(maxWidth: .infinity)
                     }
+                    if viewModel.mode == .song {
+                        Text("곡: \(viewModel.currentSong.title) — 데모를 듣고 박자대로 따라 부르세요 · \(viewModel.currentSong.origin)")
+                            .font(.caption2)
+                            .foregroundColor(.brandSecondary)
+                            .frame(maxWidth: .infinity)
+                    }
                     if viewModel.mode == .harmony {
                         Text(viewModel.harmonyPhase == .guide
                              ? "드론이 울립니다 — 끝나면 그 음의 \(viewModel.harmonyPart.rawValue) 화음을 길게 유지하세요"
@@ -171,7 +177,7 @@ public struct PitchTrackerView: View {
                     tuningReferenceBar
                         .padding(.horizontal, 20)
 
-                    if viewModel.mode == .scale || viewModel.mode == .melody {
+                    if viewModel.mode == .scale || viewModel.mode == .melody || viewModel.mode == .song {
                         tempoBar
                             .padding(.horizontal, 20)
                     }

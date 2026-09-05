@@ -29,7 +29,7 @@ const ok = (name, cond, detail = "") => {
 
 // 1. Mode chip exists and switches.
 const chipCount = await page.locator('.chip[onclick^="setTrMode"]').count();
-ok("mode chips rendered", chipCount === 11, `count=${chipCount}`);
+ok("mode chips rendered", chipCount === 12, `count=${chipCount}`);
 await page.click('span.chip[onclick="setTrMode(\'vibrato\')"]');
 ok("vibrato mode selected", await page.evaluate("App.trMode") === "vibrato");
 await page.waitForTimeout(200);
@@ -374,6 +374,40 @@ const droneAfter = await page.evaluate(`(() => {
 })()`);
 ok("drone stepper raises length", droneAfter.after > droneAfter.before
   && droneAfter.after <= 5.0, JSON.stringify(droneAfter));
+
+// 14. Folk songs: three PD originals, pentatonic notes, rhythm-preserving
+// durations, sequence clamp, rotation, and the flow gating.
+const folk = await page.evaluate(`(() => {
+  const seq = songSequence(FOLK_SONGS[0], 55);
+  const clamped = songSequence(FOLK_SONGS[2], 69);
+  const at60 = songNoteDurations(FOLK_SONGS[1], 60);
+  const at80 = songNoteDurations(FOLK_SONGS[1], 80);
+  return {
+    three: FOLK_SONGS.length === 3 && FOLK_SONGS.map(s => s.title).join(",") === "아리랑,강강술래,한오백년",
+    origins: FOLK_SONGS.every(s => s.origin.includes("전통")),
+    seq: seq[0] === 55 + 7 && seq[seq.length - 1] === 55 + 3,
+    clamp: clamped.every(m => m >= 43 && m <= 72) && Math.max(...clamped) === 72,
+    rhythm: at60[0] === 1000 && at80[0] === 750,
+    ends: FOLK_SONGS.every(s => s.notes[s.notes.length - 1][1] >= 3),
+  };
+})()`);
+ok("folk library ships 3 songs", folk.three);
+ok("folk origins cite tradition", folk.origins);
+ok("folk arirang sequence", folk.seq);
+ok("folk band clamp", folk.clamp);
+ok("folk rhythm at 60/80 BPM", folk.rhythm);
+ok("folk phrases resolve long", folk.ends);
+const folkFlow = await page.evaluate(`(() => {
+  App.echo.gen++;
+  startSongFlow();
+  const okGated = App.ignoreUntil === Infinity
+    && (App._melodyLabel || "").length > 0
+    && FOLK_SONGS.some(s => s.title === App._melodyLabel);
+  App.echo.timers.forEach(clearTimeout);
+  App.echo.gen++; App.echo.midis = []; App.ignoreUntil = 0; App.listening = false;
+  return okGated;
+})()`);
+ok("folk flow gates + song label", folkFlow);
 
 await browser.close();
 

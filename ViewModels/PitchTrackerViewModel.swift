@@ -106,6 +106,16 @@ public final class PitchTrackerViewModel {
         didSet { UserDefaults.standard.set(harmonyDroneSeconds, forKey: "harmonyDroneSeconds") }
     }
 
+    // MARK: - Folk song state
+
+    /// Rotates through the public-domain song book each session.
+    public private(set) var songIndex = 0
+    private var songRolledThisSession = false
+    /// Song currently being sung (for the caption).
+    public var currentSong: VocalLogic.FolkSong {
+        VocalLogic.folkSongs[songIndex % VocalLogic.folkSongs.count]
+    }
+
     // MARK: - Interval game state
 
     public private(set) var intervalPhase: SustainPhase = .idle
@@ -172,6 +182,7 @@ public final class PitchTrackerViewModel {
         case scale = "스케일 따라부르기"
         case melody = "멜로디 따라부르기"
         case harmony = "화음 부르기"
+        case song = "민요 따라부르기"
         case interval = "음정 게임"
         case ear = "귀훈련"
         public var id: String { rawValue }
@@ -204,7 +215,7 @@ public final class PitchTrackerViewModel {
         if mode == .harmony && harmonyTargetMidi > 0 {
             return harmonyTargetMidi
         }
-        return [.echo, .scale, .melody].contains(mode) && !echoTargetMidis.isEmpty
+        return [.echo, .scale, .melody, .song].contains(mode) && !echoTargetMidis.isEmpty
             ? echoTargetMidis[min(activeEchoIndex, echoTargetMidis.count - 1)]
             : targetMidi
     }
@@ -330,6 +341,7 @@ public final class PitchTrackerViewModel {
         lastSustainSeconds = 0
         lastSustainTip = nil
         singleVoicedTimes = []
+        songRolledThisSession = false
         echoHistory = []
         noteBinCounts = Array(repeating: 0, count: 12)
         voicedFrequencies.removeAll()
@@ -365,6 +377,8 @@ public final class PitchTrackerViewModel {
             startMelodyFlow()
         } else if mode == .harmony {
             startHarmonyCheck()
+        } else if mode == .song {
+            startSongFlow()
         } else if isListenFirstMode {
             // Ear-training flow: hear the target twice first, then sing with
             // the visuals hidden (revealed on stop).
@@ -387,7 +401,9 @@ public final class PitchTrackerViewModel {
             ? VocalLogic.gameLabel(for: .scale)
             : (mode == .melody
                ? VocalLogic.gameLabel(for: .melody)
-               : (echoTargetLabel.isEmpty ? targetNoteName : echoTargetLabel))
+               : (mode == .song
+                  ? currentSong.title
+                  : (echoTargetLabel.isEmpty ? targetNoteName : echoTargetLabel)))
         isListening = false
         echoPhaseTask?.cancel()
         echoPhaseTask = nil
@@ -674,6 +690,54 @@ public final class PitchTrackerViewModel {
         audio.stopMicrophone()
         audio.onPitchUpdate = nil
         persistSessionSummary()
+    }
+
+    /// Folk-song sing-through: one demo pass with the song's real note
+    /// lengths (at the drill tempo), then a per-note window scaled to each
+    /// note's beats — the melody keeps its rhythm while singing back.
+    private func startSongFlow() {
+        echoGeneration += 1
+        let generation = echoGeneration
+        if !songRolledThisSession {
+            songIndex += 1
+            songRolledThisSession = true
+        }
+        let song = currentSong
+        let midis = VocalLogic.songSequence(song: song, baseMidi: targetMidi)
+        let durations = VocalLogic.songNoteDurations(song: song, bpm: sequenceBpm)
+        LiveActivityManager.shared.startGameActivity(
+            gameMode: song.title,
+            totalRounds: midis.count
+        )
+        melodyDrillLabel = song.title
+        ignorePitchUntil = .distantFuture
+
+        echoPhaseTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            // Demo once — the melody carries its own rhythm.
+            for (midi, duration) in zip(midis, durations) {
+                guard !Task.isCancelled, generation == self.echoGeneration else { return }
+                self.audio.playTone(
+                    frequency: VocalAudioEngine.frequency(forMidi: Double(midi)),
+                    duration: duration * 0.85,
+                    volume: 0.5
+                )
+                try? await Task.sleep(for: .seconds(duration + 0.08))
+            }
+            try? await Task.sleep(for: .seconds(0.3))
+            // Sing: one window per note, scaled to its length.
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.echoTargetMidis = midis
+            self.ignorePitchUntil = Date()
+            for index in midis.indices {
+                guard !Task.isCancelled, generation == self.echoGeneration else { return }
+                self.activeEchoIndex = index
+                LiveActivityManager.shared.updateGameRound(index + 1, of: midis.count)
+                try? await Task.sleep(for: .seconds(max(0.8, durations[index] * 1.2)))
+            }
+            guard generation == self.echoGeneration else { return }
+            self.stopTracking()
+        }
     }
 
     // MARK: - Interval game flow
