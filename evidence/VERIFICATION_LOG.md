@@ -417,3 +417,18 @@ Mac 인계 전 검증 총량. 각 항목은 실행 증거(명령 출력/CI 런 I
 | 180 | ARIA 접근성 라벨 추가: role=main·tab(role=tab+aria-selected) 4개·aria-label 7요소(모드칩·시작/정지·튜닝±·노트칩·귀훈련 답변) | DOM 확인: main 1·tab 4·aria-label 5 | |
 | 181 | verify_all + CI 양 그린 | ALL GREEN | 커밋 108 |
 
+
+## 적대적 리뷰 3차 + 실오디오 재검증 (세션 종결 7)
+
+| # | 검증 행위 | 결과 | 증거/비고 |
+|---|---|---|---|
+| 182 | 실오디오 E2E 재실행(A4 440Hz WAV→가짜 마이크): A4 +5¢ 441.2Hz·160 발성 프레임 | 통과 | 게임 파이프라인 변경 후에도 검출 정상 |
+| 183 | 성능 벤치마크 3회: 캐시 후 1.4-1.6초 안정 (첫 실행 8.4초=컴파일 포함) | 정상 | swift 82개 테스트 |
+| 184 | 적대적 리뷰 3차(위젯·개인화·ARIA·히트맵): P1 1건·P2 4건 발견 | 전수 수정 | |
+| 185 | P1-1: Activity 핸들 currentActivity 저장 + areActivitiesEnabled guard + 에러 로그 | 수정 | 게임 라운드 업데이트·정리 정상화 |
+| 186 | P2-1: 강등 avg<50 게이트 제거 ([100,30,30]도 강등) + 회귀 테스트 + JS 미러 | 수정 | swift 83/83 |
+| 187 | P2-2: role=button span keydown(Enter/Space) 활성화 | 수정 | WCAG 2.1.1 준수 |
+| 188 | P2-3: recommendedLevel→앱 에코 난이도 연결 (echoFailStreak 제거·JS 파리티) | 수정 | 유령 코드 해소 |
+| 189 | P2-4: finishVowelGame 마이크 정지·결과 저장 (수동 정지 시 점수 덮어씀 방지) | 수정 | |
+| 190 | verify_all ALL GREEN + CI 양 그린 | 그린 | 커밋 110 |
+
