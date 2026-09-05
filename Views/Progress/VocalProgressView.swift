@@ -350,6 +350,7 @@ public struct VocalProgressView: View {
         case .scale: return .scale
         case .melody: return .melody
         case .harmony: return .harmony
+        case .song: return .song
         case .interval: return .interval
         case .ear: return .ear
         }
