@@ -732,11 +732,13 @@ public enum VocalLogic {
         let window = recentAccuracies.suffix(3)
         let avg = Double(window.reduce(0, +)) / Double(window.count)
         if avg >= 80 && currentLevel < maxLevel { return currentLevel + 1 }
-        if avg < 50 && currentLevel > 1 {
-            // Demote only after 2 consecutive sub-50% sessions.
-            if window.count >= 2, window.suffix(2).allSatisfy({ $0 < 50 }) {
-                return currentLevel - 1
-            }
+        // Demote on 2 consecutive sub-50% sessions regardless of the window
+        // average — [100, 30, 30] means the skill regressed and the level
+        // must come down even though the 3-session average is above 50.
+        if currentLevel > 1,
+           window.count >= 2,
+           window.suffix(2).allSatisfy({ $0 < 50 }) {
+            return currentLevel - 1
         }
         return currentLevel
     }

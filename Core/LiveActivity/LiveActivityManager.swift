@@ -106,11 +106,15 @@ public final class LiveActivityManager {
         Task { @MainActor in
             if let current = currentActivity {
                 await current.update(ActivityContent(state: state, staleDate: nil))
-            } else {
-                _ = try? Activity.request(
-                    attributes: VocalActivityAttributes(),
-                    content: ActivityContent(state: state, staleDate: nil)
-                )
+            } else if ActivityAuthorizationInfo().areActivitiesEnabled {
+                do {
+                    currentActivity = try Activity.request(
+                        attributes: VocalActivityAttributes(),
+                        content: ActivityContent(state: state, staleDate: nil)
+                    )
+                } catch {
+                    print("[LiveActivity] game request failed: \(error)")
+                }
             }
         }
     }

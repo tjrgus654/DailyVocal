@@ -482,6 +482,14 @@ final class StreakSystemTests: XCTestCase {
     }
 
     /// Level transitions respect bounds: never below 1, never above max.
+    /// Regression guard: the last 2 sub-50% sessions must demote even when
+    /// the 3-session average is above 50 (e.g. [100, 30, 30] avg=53.3).
+    func testDemoteRegardlessOfAverage() {
+        XCTAssertEqual(VocalLogic.recommendedLevel(recentAccuracies: [100, 30, 30], currentLevel: 2), 1)
+        // Single bad session still holds.
+        XCTAssertEqual(VocalLogic.recommendedLevel(recentAccuracies: [100, 30], currentLevel: 2), 2)
+    }
+
     func testLevelBounds() {
         XCTAssertEqual(VocalLogic.recommendedLevel(recentAccuracies: [20, 20], currentLevel: 1), 1)
         XCTAssertEqual(VocalLogic.recommendedLevel(recentAccuracies: [99, 99, 99], currentLevel: 3), 3)

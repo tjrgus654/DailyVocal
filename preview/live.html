@@ -655,8 +655,8 @@ function recommendedLevel(recentAccuracies, currentLevel, maxLevel){
  const window = recentAccuracies.slice(-3);
  const avg = window.reduce((a,b)=>a+b,0) / window.length;
  if (avg >= 80 && currentLevel < maxLevel) return currentLevel + 1;
- if (avg < 50 && currentLevel > 1){
-  if (window.length >= 2 && window.slice(-2).every(x => x < 50)) return currentLevel - 1;
+ if (currentLevel > 1 && window.length >= 2 && window.slice(-2).every(x => x < 50)){
+  return currentLevel - 1;
  }
  return currentLevel;
 }
@@ -791,6 +791,15 @@ function toast(msg, ms=2200){
  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), ms);
 }
 function haptic(ms=12){ if (navigator.vibrate) navigator.vibrate(ms); }
+// WCAG 2.1.1: role="button" spans need keyboard activation (Enter/Space).
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const el = e.target;
+  if (el.getAttribute && el.getAttribute("role") === "button" && el.onclick) {
+    e.preventDefault();
+    el.onclick();
+  }
+});
 
 const TABS = [
  ["routine","일일 루틴","M3 8h4l2 3 4-6 2 3h6M3 16h18"],

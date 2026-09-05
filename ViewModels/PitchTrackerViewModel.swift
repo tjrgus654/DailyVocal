@@ -226,6 +226,7 @@ public final class PitchTrackerViewModel {
         lastSessionGrade = ""
         lastSessionTargetLabel = ""
         lastEchoLevelDelta = nil
+        echoHistory = []
         noteBinCounts = Array(repeating: 0, count: 12)
         voicedFrequencies.removeAll()
         sessionStartDate = Date()
@@ -362,6 +363,15 @@ public final class PitchTrackerViewModel {
         lastSessionGrade = VocalLogic.sessionGrade(forScore: lastSessionScore ?? 0)
         lastSessionTargetLabel = "모음 게임"
         haptics.routineCompleted()
+        // End the session properly: stop the mic and persist the vowel-game
+        // result instead of leaving the mic on for stopTracking() to
+        // overwrite the score with a single-note accuracy ratio.
+        isListening = false
+        audio.isSpectrumWanted = false
+        LiveActivityManager.shared.endLiveActivity()
+        audio.stopMicrophone()
+        audio.onPitchUpdate = nil
+        persistSessionSummary()
     }
 
     // MARK: - Echo sequence flow
@@ -426,29 +436,23 @@ public final class PitchTrackerViewModel {
         haptics.routineCompleted()
     }
 
-    /// Success-gated difficulty: promote at 80%+, demote after two
-    /// consecutive sub-50% sessions, otherwise hold.
+    /// Personalized difficulty: session history drives level transitions
+    /// through VocalLogic.recommendedLevel (same rule the contract tests
+    /// and the web prototype use), replacing the ad-hoc fail-streak.
     private func updateEchoLevelIfNeeded(score: Int) {
         guard mode == .echo else { return }
         lastEchoLevelDelta = nil
-        if score >= 80 {
-            if echoLevel < 3 {
-                echoLevel += 1
-                lastEchoLevelDelta = 1
-            }
-            echoFailStreak = 0
-        } else if score < 50 {
-            echoFailStreak += 1
-            if echoFailStreak >= 2 && echoLevel > 1 {
-                echoLevel -= 1
-                lastEchoLevelDelta = -1
-                echoFailStreak = 0
-            }
-        } else {
-            echoFailStreak = 0
+        echoHistory.append(score)
+        let newLevel = VocalLogic.recommendedLevel(
+            recentAccuracies: echoHistory, currentLevel: echoLevel
+        )
+        if newLevel != echoLevel {
+            lastEchoLevelDelta = newLevel - echoLevel
+            echoLevel = newLevel
         }
         UserDefaults.standard.set(echoLevel, forKey: "echoDifficultyLevel")
     }
+    private var echoHistory: [Int] = []
 
     public func dismissScoreAlert() {
         lastSessionScore = nil
