@@ -546,3 +546,15 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 235 | 스트릭 패리티 9b 갱신: 8벡터(+스케일 2) + latest 축 5축 + '6-entry score table'·스케일 라벨 정적 축 | ALL PASS | 기존 벡터 3건 동점 제거 재구성 |
 | 236 | UI E2E 44축(+추천 1축: 전 측정 시 최약 measured 승급) — 스케일 미측정 최약→vibrato, 전 측정 후 dynamics 62점 추천 | 44/44 | |
 | 237 | verify_all 9게이트 + swift test 113 | ALL GREEN | |
+
+
+## 스케일 팁 + 추천 딥링크 (세션 13 — 2026-09-06)
+
+| # | 검증 행위 | 결과 | 증거/비고 |
+|---|---|---|---|
+| 238 | 팁 57추: "웜업은 노래가 아니라 사다리를 오르는 겁니다"(사다리 비유, 레벨 순서·승강급 규칙 안내) + 계약 테스트 56→57 갱신(연구 팁 Array(49...57)) | swift 7/7 | relatedShorts 55·56 참조 |
+| 239 | AppRouter(@Observable 싱글턴) 신설 + MainTabView selectedTab 바인딩 이관 + 트래커 onAppear 원샷 모드 적용 | 파스 47/47 | 크로스탭 내비게이션 상태 |
+| 240 | 추천 카드 딥링크: 앱은 in-app 모드 있는 4종(vowel/vibrato/dynamics/scale)만 버튼, interval/ear는 안내 문구 유지 · 웹은 6종 전부 startRecommended | E2E로 확인 | window.startRecommended export |
+| 241 | UI E2E 46축(+딥링크 2축: 탭 전환 + 모드 사전 선택 — 렌더 후 최신 추천 클릭 보장) | 46/46 | |
+| 242 | 스트릭 패리티 node 실패 → 블록에 window.startRecommended 대입 포함으로 샌드박스 window 누락 판별·수정 | ALL PASS | 게이트가 신규 export 즉시 포착 |
+| 243 | verify_all 9게이트 | ALL GREEN | |

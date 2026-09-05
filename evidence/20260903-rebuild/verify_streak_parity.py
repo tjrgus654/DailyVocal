@@ -106,7 +106,7 @@ const start = js.indexOf('const GAME_LABELS');
 const endMarker = js.indexOf('nextGameRecommendation(){');
 const endReason = js.indexOf('return { game, name: GAME_NAMES[game], reason };', endMarker);
 const block = js.slice(start, js.indexOf('\n}', endReason) + 2);
-const sandbox = { Math, Date, isFinite, console, Object };
+const sandbox = { Math, Date, isFinite, console, Object, window: {} };
 vm.createContext(sandbox);
 vm.runInContext(block, sandbox);
 const out = vm.runInContext(`(function(){

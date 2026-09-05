@@ -10,7 +10,7 @@ import SwiftUI
 
 public struct MainTabView: View {
     @AppStorage("onboardingCompleted") private var onboardingCompleted = false
-    @State private var selectedTab = 0
+    private var router = AppRouter.shared
 
     public init() {}
 
@@ -18,7 +18,10 @@ public struct MainTabView: View {
         if !onboardingCompleted {
             OnboardingView()
         } else {
-            TabView(selection: $selectedTab) {
+            TabView(selection: Binding(
+                get: { router.selectedTab },
+                set: { router.selectedTab = $0 }
+            )) {
                 NavigationStack {
                     DailyRoutineView()
                 }

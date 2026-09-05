@@ -169,9 +169,17 @@ ok("recommendation reason is unmeasured", (await page.evaluate("nextGameRecommen
 const recWeakest = await page.evaluate(`(() => {
   Store.data.pitchRecords.push({ t: 6, target: "비브라토 체크", acc: 74, lo: 0, hi: 0, dur: 45 });
   Store.save();
+  render();
   return nextGameRecommendation();
 })()`);
 ok("recommendation weakest measured", recWeakest.game === "dynamics" && recWeakest.reason.includes("62점"), recWeakest.game);
+
+// 9b. Recommendation deep link: tapping the card jumps to the tracker tab
+// with the recommended mode pre-selected.
+await page.locator('[onclick^="startRecommended"]').first().click();
+await page.waitForTimeout(200);
+ok("deep link switches to tracker tab", (await page.evaluate("App.tab")) === "tracker");
+ok("deep link selects recommended mode", (await page.evaluate("App.trMode")) === "dynamics");
 
 // 9. Scale sing-through: chips, caption, sequence synthesis, scoring wiring.
 await page.evaluate('go("tracker")');

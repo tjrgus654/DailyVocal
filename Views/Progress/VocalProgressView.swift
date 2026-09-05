@@ -336,8 +336,21 @@ public struct VocalProgressView: View {
         return (game, reason)
     }
 
+    /// In-app tracker mode a recommended game maps to. Interval/ear games
+    /// live in the web prototype only — no in-app mode to switch to yet.
+    private func trackerMode(for game: VocalLogic.GameType) -> PitchTrackerViewModel.TrackerMode? {
+        switch game {
+        case .vowel: return .vowel
+        case .vibrato: return .vibrato
+        case .dynamics: return .dynamics
+        case .scale: return .scale
+        case .interval, .ear: return nil
+        }
+    }
+
     private func nextGameCard(_ rec: (game: VocalLogic.GameType, reason: String)) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let targetMode = trackerMode(for: rec.game)
+        let card = VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: "sparkles")
                     .foregroundColor(.brandAccent)
@@ -356,12 +369,26 @@ public struct VocalProgressView: View {
             Text(rec.reason)
                 .font(.caption2)
                 .foregroundColor(.textSecondary)
-            Text("피치 트래커의 모드에서 바로 시작할 수 있어요")
+            Text(targetMode != nil
+                 ? "탭하면 피치 트래커에서 바로 시작할 수 있어요"
+                 : "피치 트래커의 모드에서 시작할 수 있어요")
                 .font(.caption2)
                 .foregroundColor(.textSecondary.opacity(0.8))
         }
         .glassCard(cornerRadius: 16, padding: 14)
         .accessibilityElement(children: .combine)
+
+        if let mode = targetMode {
+            return Button {
+                AppRouter.shared.pendingTrackerMode = mode
+                AppRouter.shared.selectedTab = 1
+            } label: {
+                card
+            }
+            .buttonStyle(.plain)
+        } else {
+            return card
+        }
     }
 
     // MARK: - Summary grid

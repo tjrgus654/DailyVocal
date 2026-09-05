@@ -129,6 +129,11 @@ public struct PitchTrackerView: View {
         }
         .onAppear {
             viewModel.setModelContext(modelContext)
+            // One-shot deep link from the growth dashboard's recommendation.
+            if let mode = AppRouter.shared.pendingTrackerMode {
+                viewModel.mode = mode
+                AppRouter.shared.pendingTrackerMode = nil
+            }
         }
         .onDisappear {
             viewModel.stopTracking()
