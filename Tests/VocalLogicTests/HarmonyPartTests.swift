@@ -37,4 +37,13 @@ final class HarmonyPartTests: XCTestCase {
         XCTAssertTrue(VocalLogic.harmonyFeedback(part: .thirdBelow, cents: 90).contains("아래로"))
         XCTAssertTrue(VocalLogic.harmonyFeedback(part: .fifthBelow, cents: -90).contains("위로"))
     }
+
+    func testDroneSecondsClamp() {
+        XCTAssertEqual(VocalLogic.clampedDroneSeconds(0.2), 1.0)
+        XCTAssertEqual(VocalLogic.clampedDroneSeconds(1.0), 1.0)
+        XCTAssertEqual(VocalLogic.clampedDroneSeconds(2.0), 2.0)
+        XCTAssertEqual(VocalLogic.clampedDroneSeconds(3.5), 3.5)
+        XCTAssertEqual(VocalLogic.clampedDroneSeconds(5.0), 5.0)
+        XCTAssertEqual(VocalLogic.clampedDroneSeconds(9.0), 5.0)
+    }
 }

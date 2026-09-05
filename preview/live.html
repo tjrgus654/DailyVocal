@@ -1476,6 +1476,12 @@ function screenTracker(){
  ${App.trMode==='vibrato'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${VIBRATO_CHECK.phase==='guide'?"기준음이 먼저 울립니다 — 같은 음을 5초간 길게 끌며 비브라토를 넣어보세요":(VIBRATO_CHECK.phase==='recording'?"지금 길게 '아~' — 목소리를 자연스럽게 흔들어보세요":(VIBRATO_CHECK.result?"측정 완료 — 결과 카드를 확인하세요":"시작하면 기준음이 울립니다 — 그 음을 길게 끌며 비브라토를 넣어보세요"))}</div>`:""}
  ${App.trMode==='dynamics'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${DYNAMICS_CHECK.phase==='guide'?"기준음이 먼저 울립니다 — 그 음을 한 호흡으로 여리게 → 크게 → 여리게":(DYNAMICS_CHECK.phase==='recording'?"지금 '아~'를 여리게 시작해 점점 크게, 다시 여리게 — 숨을 아껴가며":(DYNAMICS_CHECK.result?"측정 완료 — 아래 아치 결과를 확인하세요":"메사 디 보체: 한 음을 셈→여림으로 부풀렸다가 줄이는 왕도 훈련입니다"))}</div>`:""}
 
+ ${App.trMode==='harmony'?`<div class="glass" style="margin:10px 20px 0;padding:8px 14px;display:flex;align-items:center;gap:10px;border-radius:14px;">
+ <span class="cap2" style="color:var(--text-secondary);">드론 길이</span><div style="flex:1"></div>
+ <span class="btn-ghost" style="width:44px;height:44px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;" onclick="setDroneSeconds(-0.5)" role="button" tabindex="0" aria-label="드론 길이 0.5초 줄이기">−</span>
+ <span style="font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;min-width:52px;text-align:center;">${droneSeconds().toFixed(1)}초</span>
+ <span class="btn-ghost" style="width:44px;height:44px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;" onclick="setDroneSeconds(0.5)" role="button" tabindex="0" aria-label="드론 길이 0.5초 늘리기">+</span>
+ </div>`:""}
  ${(App.trMode==='scale'||App.trMode==='melody')?`<div class="glass" style="margin:10px 20px 0;padding:8px 14px;display:flex;align-items:center;gap:10px;border-radius:14px;">
  <span class="cap2" style="color:var(--text-secondary);">프레이즈 템포</span><div style="flex:1"></div>
  <span class="btn-ghost" style="width:44px;height:44px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;" onclick="setDrillBpm(-5)" role="button" tabindex="0" aria-label="프레이즈 템포 5 BPM 내리기">−</span>
@@ -1834,6 +1840,16 @@ function harmonyFeedback(partKey, cents){
   : `낮게 나갔어요 — ${HARMONY_PARTS[partKey].name}보다 위로 조정해보세요`;
 }
 const HARMONY_CHECK = { phase: "idle", partKey: null, cents: [], timers: [], targetMidi: 0 };
+function clampedDroneSeconds(s){ return Math.min(5.0, Math.max(1.0, s)); }
+function droneSeconds(){
+ if (Store.data.prefs.droneSeconds == null) Store.data.prefs.droneSeconds = 2.0;
+ return clampedDroneSeconds(Store.data.prefs.droneSeconds);
+}
+function setDroneSeconds(d){
+ Store.data.prefs.droneSeconds = clampedDroneSeconds((Store.data.prefs.droneSeconds || 2.0) + d);
+ Store.save(); haptic(); render();
+}
+window.setDroneSeconds = setDroneSeconds;
 function startHarmonyCheck(){
  App.echo.gen++;
  const gen = App.echo.gen;
@@ -1844,15 +1860,16 @@ function startHarmonyCheck(){
  HARMONY_CHECK.timers.forEach(clearTimeout); HARMONY_CHECK.timers = [];
  App.ignoreUntil = Infinity;
  // 드론 2초 → 3.5초 녹음(드론 없이 성부 유지)
+ const drone = droneSeconds();
  HARMONY_CHECK.timers.push(setTimeout(() => {
   if (gen !== App.echo.gen) return;
-  Audio5.playTone(midiToFreq(App.target.midi), 2.0, 0.5);
+  Audio5.playTone(midiToFreq(App.target.midi), drone, 0.5);
  }, 0));
  HARMONY_CHECK.timers.push(setTimeout(() => {
   if (gen !== App.echo.gen) return;
   HARMONY_CHECK.phase = "recording"; App.ignoreUntil = 0; render();
- }, 2400));
- HARMONY_CHECK.timers.push(setTimeout(() => { finishHarmonyCheck(); }, 2400 + 3500));
+ }, Math.round((drone + 0.4) * 1000)));
+ HARMONY_CHECK.timers.push(setTimeout(() => { finishHarmonyCheck(); }, Math.round((drone + 0.4) * 1000) + 3500));
 }
 function finishHarmonyCheck(){
  if (!App.listening) return;

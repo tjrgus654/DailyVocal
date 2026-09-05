@@ -1492,6 +1492,13 @@ public enum VocalLogic {
             : "낮게 나갔어요 — \(part.rawValue)보다 위로 조정해보세요"
     }
 
+    /// Harmony drone length: how long the reference note sustains before the
+    /// silent part window opens. Shorter drones force inner hearing sooner;
+    /// longer ones support beginners. 1.0...5.0 s, default 2.0.
+    public static func clampedDroneSeconds(_ seconds: Double) -> Double {
+        min(5.0, max(1.0, seconds))
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.

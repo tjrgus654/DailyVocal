@@ -97,8 +97,14 @@ public final class PitchTrackerViewModel {
     private var harmonyCents: [Double] = []
     /// Active harmony target (drone base + part offset).
     public private(set) var harmonyTargetMidi = 0
-    private static let harmonyDroneDuration = 2.0
     private static let harmonyRecordDuration = 3.5
+    /// Drone length (1.0...5.0 s, UserDefaults-backed) — shorter drones
+    /// force inner hearing sooner.
+    public var harmonyDroneSeconds = VocalLogic.clampedDroneSeconds(
+        UserDefaults.standard.object(forKey: "harmonyDroneSeconds") as? Double ?? 2.0
+    ) {
+        didSet { UserDefaults.standard.set(harmonyDroneSeconds, forKey: "harmonyDroneSeconds") }
+    }
 
     // MARK: - Interval game state
 
@@ -628,13 +634,13 @@ public final class PitchTrackerViewModel {
 
         echoPhaseTask = Task { @MainActor [weak self] in
             guard let self else { return }
-            // 1) Drone: the base note sustains 2 s through the speaker.
+            // 1) Drone: the base note sustains (user-adjustable) through the speaker.
             self.audio.playTone(
                 frequency: VocalAudioEngine.frequency(forMidi: Double(self.targetMidi)),
-                duration: Self.harmonyDroneDuration,
+                duration: self.harmonyDroneSeconds,
                 volume: 0.5
             )
-            try? await Task.sleep(for: .seconds(Self.harmonyDroneDuration + 0.4))
+            try? await Task.sleep(for: .seconds(self.harmonyDroneSeconds + 0.4))
             // 2) Sing: hold the part over silence for 3.5 s.
             guard !Task.isCancelled, generation == self.echoGeneration else { return }
             self.harmonyPhase = .recording

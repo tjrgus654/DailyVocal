@@ -356,6 +356,25 @@ const harmonyFlow = await page.evaluate(`(() => {
 })()`);
 ok("harmony flow gates + target", harmonyFlow);
 
+// 13b. Drone length: clamp 1.0-5.0, default 2.0, stepper + bar visibility.
+const drone = await page.evaluate(`(() => ({
+  clampLow: clampedDroneSeconds(0.2) === 1.0 && clampedDroneSeconds(9) === 5.0,
+  def: droneSeconds() >= 1.0 && droneSeconds() <= 5.0,
+}))()`);
+ok("drone clamp 1-5s", drone.clampLow);
+ok("drone default bounded", drone.def);
+ok("drone bar hidden in scale mode", (await page.locator("text=드론 길이").count()) === 0);
+await page.click('span.chip[onclick="setTrMode(\'harmony\')"]');
+await page.waitForTimeout(200);
+ok("drone bar visible in harmony mode", (await page.locator("text=드론 길이").count()) >= 1);
+const droneAfter = await page.evaluate(`(() => {
+  const before = droneSeconds();
+  setDroneSeconds(0.5);
+  return { before, after: droneSeconds() };
+})()`);
+ok("drone stepper raises length", droneAfter.after > droneAfter.before
+  && droneAfter.after <= 5.0, JSON.stringify(droneAfter));
+
 await browser.close();
 
 console.log(checks.join("\n"));

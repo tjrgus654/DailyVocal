@@ -704,3 +704,12 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 309 | 웹 미러: GAME_LABELS/NAMES·8엔트리·전달·딥링크 modeMap에 harmony(8종) | JS OK | |
 | 310 | E2E 타임스탬프 결함 2건 발견·수정: recWeakest push t:6 동률으로 lastGame=최약(dynamics)이 되어 variety가 scale 반환(t:8로) · 9c push t:7이 t:8 push보다 앞이라 최신 vibrato가 74로 덮힘(t:9로) — latestAccuracies의 '시간순 마지막 승리' 규칙 학습 | 73/73 | 진단 스크립트로 근본 원인 격리 |
 | 311 | verify_all 9게이트 + swift test 135 + E2E 73/73 | ALL GREEN | |
+
+
+## 드론 지속 시간 조절 (세션 24 — 2026-09-06)
+
+| # | 검증 행위 | 결과 | 증거/비고 |
+|---|---|---|---|
+| 312 | clampedDroneSeconds(1.0-5.0, 기본 2.0) + VM harmonyDroneSeconds(UserDefaults) + 하모니 모드 드론 바(±0.5s) · 웹 미러 동일 | swift 5/5(+1) | 짧은 드론=내청 조기, 긴 드론=초보 지원 |
+| 313 | E2E 78축(+5: 클램프·기본 범위·바 표시 조건·스테퍼 증가) | 78/78 | heredoc 백슬래시 소실로 JS 문자열 깨진 것 파스에서 즉시 포착·수정, 스테퍼 어서션을 before/after 비교로 견고화 |
+| 314 | verify_all 9게이트 | ALL GREEN | swift test 136/136 |

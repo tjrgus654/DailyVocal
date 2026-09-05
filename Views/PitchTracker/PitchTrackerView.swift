@@ -176,6 +176,11 @@ public struct PitchTrackerView: View {
                             .padding(.horizontal, 20)
                     }
 
+                    if viewModel.mode == .harmony {
+                        droneBar
+                            .padding(.horizontal, 20)
+                    }
+
                     Spacer(minLength: 4)
 
                 measureControlButton
@@ -267,6 +272,45 @@ public struct PitchTrackerView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("기준 피치 0.5 헤르츠 올리기")
+        }
+        .glassCard(cornerRadius: 14, padding: 10)
+    }
+
+    /// Harmony drone length — shorter forces inner hearing sooner.
+    private var droneBar: some View {
+        HStack(spacing: 10) {
+            Text("드론 길이")
+                .font(.caption2)
+                .foregroundColor(.textSecondary)
+            Spacer()
+            Button {
+                viewModel.harmonyDroneSeconds = VocalLogic.clampedDroneSeconds(viewModel.harmonyDroneSeconds - 0.5)
+                hapticTick()
+            } label: {
+                Image(systemName: "minus.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(.white.opacity(0.7))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("드론 길이 0.5초 줄이기")
+            Text(String(format: "%.1f초", viewModel.harmonyDroneSeconds))
+                .font(.caption.weight(.bold).monospacedDigit())
+                .foregroundColor(.white)
+                .frame(minWidth: 52)
+            Button {
+                viewModel.harmonyDroneSeconds = VocalLogic.clampedDroneSeconds(viewModel.harmonyDroneSeconds + 0.5)
+                hapticTick()
+            } label: {
+                Image(systemName: "plus.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(.white.opacity(0.7))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("드론 길이 0.5초 늘리기")
         }
         .glassCard(cornerRadius: 14, padding: 10)
     }
