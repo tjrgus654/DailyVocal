@@ -1743,6 +1743,17 @@ public enum VocalLogic {
                 SongNote(0, 4),
             ]
         ),
+        FolkSong(
+            title: "오돌또기",
+            origin: "경기 민요(잡가 계열) — 전통 원형",
+            firstLyric: "오돌또기 오돌또기",
+            notes: [
+                SongNote(3, 1), SongNote(3, 1), SongNote(0, 1), SongNote(3, 1),
+                SongNote(5, 1), SongNote(5, 2),
+                SongNote(3, 1), SongNote(5, 1), SongNote(7, 1), SongNote(5, 1),
+                SongNote(3, 4),
+            ]
+        ),
     ]
 
     /// The song's note sequence as midis from `baseMidi`, clamped to the
