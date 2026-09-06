@@ -1732,6 +1732,17 @@ public enum VocalLogic {
                 SongNote(0, 4),
             ]
         ),
+        FolkSong(
+            title: "진도아리랑",
+            origin: "서남해안 민요(진도 지역) — 전통 원형",
+            firstLyric: "진도아리랑 아리랑가",
+            notes: [
+                SongNote(0, 1), SongNote(0, 1), SongNote(3, 1), SongNote(5, 1),
+                SongNote(3, 1), SongNote(5, 2),
+                SongNote(7, 1), SongNote(5, 1), SongNote(3, 1), SongNote(0, 1),
+                SongNote(0, 4),
+            ]
+        ),
     ]
 
     /// The song's note sequence as midis from `baseMidi`, clamped to the
