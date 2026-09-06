@@ -581,6 +581,57 @@ public struct VocalProgressView: View {
 
 /// Last N pitch sessions' accuracy as a mini bar trend with a 3-vs-3 delta
 /// caption — shows whether matching is actually improving over time.
+/// Technique trend sparkline: vibrato rate (Hz) or dynamics range (dB)
+/// across recent technique sessions — the growth line for the numbers.
+struct TechniqueTrendCard: View {
+    let points: [(index: Int, value: Double)]
+    let kind: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("\(kind) 추이")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                Spacer()
+                Text("최근 \(points.count)회")
+                    .font(.caption2)
+                    .foregroundColor(.textSecondary)
+            }
+            TechniqueTrendBars(points: points)
+        }
+        .glassCard(cornerRadius: 16, padding: 14)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Isolated bar row so the per-bar math doesn't blow up the parent's
+/// type-check time.
+private struct TechniqueTrendBars: View {
+    let points: [(index: Int, value: Double)]
+
+    var body: some View {
+        let values = points.map { $0.value }
+        let lo = values.min() ?? 0
+        let hi = values.max() ?? 1
+        let span = max(0.001, hi - lo)
+        return HStack(alignment: .bottom, spacing: 5) {
+            ForEach(points, id: \.index) { point in
+                VStack(spacing: 3) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(point.value >= hi - span * 0.25 ? Color.vocalSuccess : Color.brandSecondary)
+                        .frame(height: max(6, CGFloat((point.value - lo) / span) * 52))
+                    Text(String(format: "%.1f", point.value))
+                        .font(.system(size: 8, weight: .semibold).monospacedDigit())
+                        .foregroundColor(.textSecondary)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+    }
+}
+
 struct AccuracyTrendCard: View {
     let records: [PitchRecord]
 
