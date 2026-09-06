@@ -58,4 +58,24 @@ final class FolkSongTests: XCTestCase {
         let at80 = VocalLogic.songNoteDurations(song: song, bpm: 80)
         XCTAssertEqual(at80.first! / at60.first!, 0.75, accuracy: 0.001)
     }
+
+    /// The song book must work for MALE singers out of the box: from a
+    /// comfortable male base the whole phrase stays inside the singing band
+    /// without the top note clamping (clamped notes lose the melody).
+    func testSongsSitInMaleComfortableRange() {
+        // Male comfortable bases: E3(52)...G4(67). Everything must stay in
+        // the band; the 55...62 core must be clamp-free.
+        for base in 52...67 {
+            for song in VocalLogic.folkSongs {
+                let seq = VocalLogic.songSequence(song: song, baseMidi: base)
+                XCTAssertTrue(seq.allSatisfy { (43...72).contains($0) },
+                              "\(song.title) from \(base) left the band")
+                if base >= 55 && base <= 62 {
+                    let clamped = zip(seq, song.notes).filter { $0.0 != base + $0.1.offset }.count
+                    XCTAssertEqual(clamped, 0,
+                                   "\(song.title) from \(base) clamps \(clamped) notes — the melody breaks for male voices")
+                }
+            }
+        }
+    }
 }
