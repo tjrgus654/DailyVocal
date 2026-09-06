@@ -1365,6 +1365,11 @@ public enum VocalLogic {
             return stepErrorSemitones > 1.0
                 ? "프레이즈에서 평균 \(st)반음 벗어남 — 데모를 한 번 더 듣고 첫 음부터"
                 : "프레이즈 평균 \(st)반음 — 잡히고 있어요, 길이를 늘려볼 차례"
+        case .song where stepErrorSemitones > 0:
+            let st = String(format: "%.1f", stepErrorSemitones)
+            return stepErrorSemitones > 1.0
+                ? "곡에서 평균 \(st)반음 벗어남 — 첫 소절 가사를 소리 내어 읽고 다시"
+                : "곡 평균 \(st)반음 — 선율이 잡혀요, 다음 곡으로 넘어가요"
         case .passaggio where bestSustainSeconds > 0:
             let s = Int(bestSustainSeconds.rounded())
             return bestSustainSeconds < 15
@@ -1680,6 +1685,17 @@ public enum VocalLogic {
                 SongNote(5, 1), SongNote(3, 1), SongNote(0, 1), SongNote(0, 1),
                 SongNote(3, 1), SongNote(5, 2),
                 SongNote(3, 1), SongNote(0, 1), SongNote(0, 1), SongNote(3, 1),
+                SongNote(0, 4),
+            ]
+        ),
+        FolkSong(
+            title: "닐리리야",
+            origin: "경기 민요(서도 계열) — 전통 원형",
+            firstLyric: "닐리리야 닐리리야",
+            notes: [
+                SongNote(0, 1), SongNote(3, 1), SongNote(5, 1), SongNote(3, 1),
+                SongNote(0, 1), SongNote(3, 2),
+                SongNote(5, 1), SongNote(3, 1), SongNote(0, 1), SongNote(3, 1),
                 SongNote(0, 4),
             ]
         ),

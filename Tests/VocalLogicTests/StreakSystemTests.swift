@@ -544,6 +544,13 @@ final class StreakSystemTests: XCTestCase {
         let roughMelody = VocalLogic.recommendationEvidence(
             game: .melody, latestAccuracy: 40, stepErrorSemitones: 1.8)
         XCTAssertTrue(roughMelody.contains("1.8반음") && roughMelody.contains("한 번 더"))
+        // Song step-error tendency.
+        let roughSong = VocalLogic.recommendationEvidence(
+            game: .song, latestAccuracy: 40, stepErrorSemitones: 1.6)
+        XCTAssertTrue(roughSong.contains("1.6반음") && roughSong.contains("첫 소절"))
+        let tightSong = VocalLogic.recommendationEvidence(
+            game: .song, latestAccuracy: 40, stepErrorSemitones: 0.5)
+        XCTAssertTrue(tightSong.contains("0.5반음") && tightSong.contains("다음 곡"))
         // Sustain tendency on passaggio recommendations.
         let shortBreath = VocalLogic.recommendationEvidence(
             game: .passaggio, latestAccuracy: 40, bestSustainSeconds: 9)

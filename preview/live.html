@@ -280,7 +280,7 @@ const Store = {
  favorites:[], prefs:{femaleKey:false, transpose:0, autoplay:true},
  speechMedianHz:0, lastVibratoRateHz:0, lastVibratoExtentCents:0, lastDynamicsRangeDb:0, bestSustainSeconds:0,
  harmonyAboveCents:0, harmonyBelowCents:0,
- vibratoTrend:[], dynamicsTrend:[], sustainTrend:[], scaleStepError:0, melodyStepError:0,
+ vibratoTrend:[], dynamicsTrend:[], sustainTrend:[], scaleStepError:0, melodyStepError:0, songStepError:0,
  scaleErrTrend:[], melodyErrTrend:[],
  };
  },
@@ -963,8 +963,14 @@ function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame, vibratoAcc, 
 }
 function recommendationEvidence(game, latestAcc, vibRate, vibExt, dynDb, above, below, bestSustain){
  above = above || 0; below = below || 0; bestSustain = bestSustain || 0;
- const stepErr = game === "scale" ? (Store.data.scaleStepError || 0) : (Store.data.melodyStepError || 0);
- if ((game === "scale" || game === "melody") && stepErr > 0){
+ const stepErr = game === "scale" ? (Store.data.scaleStepError || 0)
+  : (game === "melody" ? (Store.data.melodyStepError || 0) : (Store.data.songStepError || 0));
+ if ((game === "scale" || game === "melody" || game === "song") && stepErr > 0){
+  if (game === "song"){
+   return stepErr > 1.0
+    ? `곡에서 평균 ${stepErr.toFixed(1)}반음 벗어남 — 첫 소절 가사를 소리 내어 읽고 다시`
+    : `곡 평균 ${stepErr.toFixed(1)}반음 — 선율이 잡혀요, 다음 곡으로 넘어가요`;
+  }
   const st = stepErr.toFixed(1);
   if (game === "scale"){
    return stepErr > 1.0
@@ -1997,6 +2003,8 @@ const FOLK_SONGS = [
    notes: [[0,1],[0,1],[3,1],[5,1],[3,1],[0,2],[3,1],[5,1],[7,1],[5,1],[3,4]] },
  { title: "오죽령", origin: "경기 민요(유산가 계열) — 전통 원형", firstLyric: "오죽령 오죽령 하늘 밑에",
    notes: [[5,1],[3,1],[0,1],[0,1],[3,1],[5,2],[3,1],[0,1],[0,1],[3,1],[0,4]] },
+ { title: "닐리리야", origin: "경기 민요(서도 계열) — 전통 원형", firstLyric: "닐리리야 닐리리야",
+   notes: [[0,1],[3,1],[5,1],[3,1],[0,1],[3,2],[5,1],[3,1],[0,1],[3,1],[0,4]] },
 ];
 const SONG_STATE = { index: 0, rolled: false };
 function setSongRegionFilter(r){
@@ -2289,9 +2297,11 @@ function stopTracking(){
   if (App.trMode === "scale"){
    Store.data.scaleStepError = err;
    (Store.data.scaleErrTrend = Store.data.scaleErrTrend || []).push(err);
-  } else {
+  } else if (App.trMode === "melody"){
    Store.data.melodyStepError = err;
    (Store.data.melodyErrTrend = Store.data.melodyErrTrend || []).push(err);
+  } else {
+   Store.data.songStepError = err;
   }
  }
  if (App.trMode === "single" && App._sustainTimes && App._sustainTimes.length > 1){

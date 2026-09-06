@@ -1271,7 +1271,7 @@ public final class PitchTrackerViewModel {
             // Sustained hold above ~7.5 s carries the MPT fingerprint.
             techniqueValue = lastSustainSeconds
         }
-        if (mode == .scale || mode == .melody),
+        if [.scale, .melody, .song].contains(mode),
            let stepError = VocalLogic.averageStepError(windowMidis: windowMidis, targets: lastSequenceTargets),
            windowMidis.count == lastSequenceTargets.count {
             techniqueValue = stepError
