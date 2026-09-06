@@ -1625,6 +1625,19 @@ public enum VocalLogic {
         return song.notes.map { $0.beats * beat }
     }
 
+    /// Passaggio round-trip drill: an arch that crosses the personal
+    /// passaggio zone twice (up through it, back down) — the core male
+    /// register-change exercise. Undetermined voices drill the baritone
+    /// zone; the singing band clamps female zones into range.
+    public static func passaggioSequence(voiceType: VoiceType, band: ClosedRange<Int> = 43...72) -> [Int] {
+        let zone = passaggioZone(for: voiceType) ?? passaggioZone(for: .baritone)!
+        let lo = zone.lowerBound
+        let hi = zone.upperBound
+        let mid = (lo + hi) / 2
+        func clamped(_ m: Int) -> Int { min(band.upperBound, max(band.lowerBound, m)) }
+        return [lo - 2, lo, mid, hi, hi + 1, hi, mid, lo].map(clamped)
+    }
+
     /// Suggested default base note for the sequence drills (scale / melody /
     /// song), so male users don't have to lower the target by hand.
     /// Rule: with a measured range, sit comfortably above the bottom

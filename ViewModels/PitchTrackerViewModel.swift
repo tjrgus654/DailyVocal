@@ -192,6 +192,7 @@ public final class PitchTrackerViewModel {
         case melody = "멜로디 따라부르기"
         case harmony = "화음 부르기"
         case song = "민요 따라부르기"
+        case passaggio = "파사지오 왕복"
         case interval = "음정 게임"
         case ear = "귀훈련"
         public var id: String { rawValue }
@@ -404,6 +405,8 @@ public final class PitchTrackerViewModel {
             startHarmonyCheck()
         } else if mode == .song {
             startSongFlow()
+        } else if mode == .passaggio {
+            startPassaggioDrill()
         } else if isListenFirstMode {
             // Ear-training flow: hear the target twice first, then sing with
             // the visuals hidden (revealed on stop).
@@ -772,6 +775,37 @@ public final class PitchTrackerViewModel {
             guard generation == self.echoGeneration else { return }
             self.stopTracking()
         }
+    }
+
+    /// Passaggio round-trip: the arch that crosses the personal passaggio
+    /// zone (estimated from the measured range; baritone fallback). Uses
+    /// the shared sequence drill, so tempo/level/scoring all apply.
+    private func startPassaggioDrill() {
+        let voiceType = estimatedVoiceType()
+        let seq = VocalLogic.passaggioSequence(voiceType: voiceType)
+        if let zone = VocalLogic.passaggioZone(for: voiceType) {
+            melodyDrillLabel = "성구 전환 왕복"
+            passaggioZoneLabel = "\(zone.lowerBound)-\(zone.upperBound)"
+        }
+        startSequenceDrill(midis: seq, gameMode: "파사지오 왕복")
+    }
+
+    /// Personal passaggio zone label for the caption (midi pair).
+    public private(set) var passaggioZoneLabel = ""
+
+    /// Voice type estimated from the profile's measured range (same rule as
+    /// the growth dashboard).
+    private func estimatedVoiceType() -> VocalLogic.VoiceType {
+        let descriptor = FetchDescriptor<UserProfile>()
+        guard let profile = (try? modelContext?.fetch(descriptor))?.first,
+              profile.lowestFrequency > 0 else { return .undetermined }
+        let low = Int(VocalAudioEngine.midiNumber(forFrequency: profile.lowestFrequency).rounded())
+        let high = Int(VocalAudioEngine.midiNumber(forFrequency: profile.highestFrequency).rounded())
+        let base = VocalAudioEngine.midiNumber(forFrequency: profile.baselineHighestFrequency)
+        return VocalLogic.estimateVoiceType(
+            comfortableLowMidi: low, comfortableHighMidi: high,
+            absoluteHighMidi: Int(base.rounded()),
+            isFemale: profile.prefersHigherKeyGuide ? true : nil)
     }
 
     // MARK: - Interval game flow

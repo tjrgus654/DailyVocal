@@ -107,6 +107,14 @@ public struct PitchTrackerView: View {
                             .foregroundColor(.textSecondary)
                             .frame(maxWidth: .infinity)
                     }
+                    if viewModel.mode == .passaggio {
+                        Text(viewModel.passaggioZoneLabel.isEmpty
+                             ? "성구 전환 왕복 — 내 파사지오 존을 오르내리며 경계를 통과합니다"
+                             : "성구 전환 왕복 — 내 파사지오 존(\(viewModel.passaggioZoneLabel))을 오르내립니다. 통과 순간 볼륨을 30% 내리세요")
+                            .font(.caption2)
+                            .foregroundColor(.brandSecondary)
+                            .frame(maxWidth: .infinity)
+                    }
                     if viewModel.mode == .song {
                         Text("곡: \(viewModel.currentSong.title) '\(viewModel.currentSong.firstLyric)' — 데모를 듣고 박자대로 따라 부르세요 · \(viewModel.currentSong.origin)")
                             .font(.caption2)

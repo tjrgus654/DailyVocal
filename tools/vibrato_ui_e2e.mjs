@@ -29,7 +29,7 @@ const ok = (name, cond, detail = "") => {
 
 // 1. Mode chip exists and switches.
 const chipCount = await page.locator('.chip[onclick^="setTrMode"]').count();
-ok("mode chips rendered", chipCount === 12, `count=${chipCount}`);
+ok("mode chips rendered", chipCount === 13, `count=${chipCount}`);
 await page.click('span.chip[onclick="setTrMode(\'vibrato\')"]');
 ok("vibrato mode selected", await page.evaluate("App.trMode") === "vibrato");
 await page.waitForTimeout(200);
@@ -447,6 +447,35 @@ const pickerOk = await page.evaluate(`(() => {
 })()`);
 ok("song picker pins 도라지타령", pickerOk.label === "도라지타령" && pickerOk.rolled,
    JSON.stringify(pickerOk));
+
+// 14d. Passaggio round-trip: zone-crossing arch per male voice type.
+const pass = await page.evaluate(`(() => {
+  const bar = passaggioSequence("baritone");
+  const tenor = passaggioSequence("tenor");
+  const undet = passaggioSequence("미확정");
+  const sop = passaggioSequence("soprano");
+  return {
+    bar: JSON.stringify(bar) === JSON.stringify([62,64,65,67,68,67,65,64]),
+    tenorCross: bar.includes(64) && bar.includes(67) && tenor.includes(66) && tenor.includes(69),
+    fallback: JSON.stringify(undet) === JSON.stringify(bar),
+    clamp: sop.every(m => m >= 43 && m <= 72),
+    zoneLabel: Array.isArray(passaggioZoneOf("baritone")),
+  };
+})()`);
+ok("passaggio baritone arch", pass.bar);
+ok("passaggio tenor crosses its zone", pass.tenorCross);
+ok("passaggio undetermined falls back", pass.fallback);
+ok("passaggio soprano clamps into band", pass.clamp);
+const passFlow = await page.evaluate(`(() => {
+  App.echo.gen++;
+  startPassaggioDrill();
+  const okGated = App.ignoreUntil === Infinity && App.echo.midis.length >= 5
+    && (App._passaggioLabel || "").includes("파사지오");
+  App.echo.timers.forEach(clearTimeout);
+  App.echo.gen++; App.echo.midis = []; App.ignoreUntil = 0; App.listening = false;
+  return okGated;
+})()`);
+ok("passaggio flow gates + zone label", passFlow);
 
 // 14c. Suggested base note: measured range wins, manual pick locks it.
 const sug = await page.evaluate(`(() => {
