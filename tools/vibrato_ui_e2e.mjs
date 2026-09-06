@@ -567,6 +567,23 @@ ok("song completion toasts next song",
    previewNext.text.includes("다음 곡") && previewNext.text.includes(previewNext.before),
    previewNext.before);
 
+// 14i. Session completion toast carries the tip line.
+const tipToast = await page.evaluate(`(() => {
+  App.trMode = "single"; App.listening = true;
+  App.voiced = 20; App.hits = 16;
+  Store.data.bestSustainSeconds = 9;  // breath wall -> tip 60
+  Store.save();
+  window.__toastText = "";
+  const orig = window.toast;
+  window.toast = (html) => { window.__toastText = String(html); };
+  stopTracking();
+  window.toast = orig;
+  Store.data.bestSustainSeconds = 0; Store.save();
+  return window.__toastText;
+})()`);
+ok("session toast carries tip line",
+   tipToast.includes("팁 #60") && tipToast.includes("호흡 지지"), tipToast.slice(-80));
+
 // 14g. Daily summary line: hidden on 1st session, shown from the 2nd.
 const daySum = await page.evaluate(`(() => {
   const hidden = dailySummaryLine(1, 3, 90);

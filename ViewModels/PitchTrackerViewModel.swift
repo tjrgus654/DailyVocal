@@ -117,6 +117,27 @@ public final class PitchTrackerViewModel {
         VocalLogic.folkSongs[songIndex % VocalLogic.folkSongs.count]
     }
 
+    /// Session-completion tip line: the same weakness-first recommender the
+    /// growth dashboard uses, fed with THIS session's measurements (or the
+    /// stored bests when the session itself wasn't a technique measure).
+    public var sessionTipLine: String? {
+        let sustain = mode == .single ? lastSustainSeconds : storedBestSustain
+        let vibRate = mode == .vibrato ? (vibratoResult?.rateHz ?? 0) : storedVibratoRate
+        let dynDb = mode == .dynamics ? (dynamicsResult?.rangeDb ?? 0) : storedDynamicsDb
+        guard let rec = VocalLogic.recommendedTip(
+            vibratoRateHz: vibRate, dynamicsRangeDb: dynDb,
+            bestSustainSeconds: sustain, isMaleVoice: storedIsMaleVoice) else { return nil }
+        return "📖 팁 #\(rec.id) — \(rec.reason)"
+    }
+
+    private var storedProfile: UserProfile? {
+        (try? modelContext?.fetch(FetchDescriptor<UserProfile>()))?.first
+    }
+    private var storedBestSustain: Double { storedProfile?.bestSustainSeconds ?? 0 }
+    private var storedVibratoRate: Double { storedProfile?.lastVibratoRateHz ?? 0 }
+    private var storedDynamicsDb: Double { storedProfile?.lastDynamicsRangeDb ?? 0 }
+    private var storedIsMaleVoice: Bool { storedProfile?.prefersHigherKeyGuide == false }
+
     /// The song that will play on the NEXT song session (rotation preview).
     public var nextSongPreview: VocalLogic.FolkSong {
         VocalLogic.folkSongs[(songIndex + 1) % VocalLogic.folkSongs.count]

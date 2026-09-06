@@ -253,6 +253,9 @@ public struct PitchTrackerView: View {
         default:
             break
         }
+        if let tip = viewModel.sessionTipLine {
+            text += "\n\(tip)"
+        }
         if let delta = viewModel.lastEchoLevelDelta {
             text += delta > 0
                 ? "\n에코 난이도가 \(viewModel.echoLevel)단계로 올라갔어요. 이동 폭이 넓어져요."
