@@ -1710,6 +1710,17 @@ public enum VocalLogic {
                 SongNote(0, 4),
             ]
         ),
+        FolkSong(
+            title: "변강쇠타령",
+            origin: "전라 민요(판소리 계열) — 전통 원형",
+            firstLyric: "변강쇠 죽어서 누구를 타이른다",
+            notes: [
+                SongNote(0, 1), SongNote(5, 1), SongNote(5, 1), SongNote(3, 1),
+                SongNote(0, 1), SongNote(3, 2),
+                SongNote(3, 1), SongNote(5, 1), SongNote(7, 1), SongNote(3, 1),
+                SongNote(0, 4),
+            ]
+        ),
     ]
 
     /// The song's note sequence as midis from `baseMidi`, clamped to the
