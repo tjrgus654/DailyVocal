@@ -1614,6 +1614,28 @@ public enum VocalLogic {
                 SongNote(3, 3),
             ]
         ),
+        FolkSong(
+            title: "난봉가",
+            origin: "경기 민요(잡가 계열) — 전통 원형",
+            firstLyric: "얼씨구 절씨구 난봉으로",
+            notes: [
+                SongNote(5, 1), SongNote(3, 1), SongNote(0, 1), SongNote(3, 1),
+                SongNote(5, 1), SongNote(7, 1), SongNote(5, 2),
+                SongNote(5, 1), SongNote(3, 1), SongNote(3, 1), SongNote(0, 1),
+                SongNote(0, 4),
+            ]
+        ),
+        FolkSong(
+            title: "매화타령",
+            origin: "경기 민요(12잡가 계열) — 전통 원형",
+            firstLyric: "매화가 아주 여의구나",
+            notes: [
+                SongNote(0, 1), SongNote(3, 1), SongNote(5, 1), SongNote(7, 1),
+                SongNote(10, 1), SongNote(7, 1), SongNote(5, 2),
+                SongNote(5, 1), SongNote(7, 1), SongNote(5, 1), SongNote(3, 1),
+                SongNote(3, 3),
+            ]
+        ),
     ]
 
     /// The song's note sequence as midis from `baseMidi`, clamped to the
