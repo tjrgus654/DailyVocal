@@ -51,8 +51,15 @@ public final class ProgressViewModel {
     /// Technique trend sparkline: latest technique measure series with >= 2
     /// points (vibrato Hz or dynamics dB, whichever has more points).
     public struct TechniqueTrend {
-        public let kind: String   // "비브라토 속도(Hz)" / "셈여림 레인지(dB)"
+        public let kind: String   // "비브라토 속도(Hz)" / "셈여림 레인지(dB)" / ...
         public let points: [(index: Int, value: Double)]
+        /// Step-error series: lower is better, so the bars invert.
+        public var lowerIsBetter: Bool = false
+        public init(kind: String, points: [(index: Int, value: Double)], lowerIsBetter: Bool = false) {
+            self.kind = kind
+            self.points = points
+            self.lowerIsBetter = lowerIsBetter
+        }
     }
     public private(set) var techniqueTrend: TechniqueTrend?
     private var pitchRecordsInternal: [PitchRecord] = []
@@ -153,12 +160,19 @@ public final class ProgressViewModel {
         let dyn = records.filter { $0.targetNoteName == VocalLogic.gameLabel(for: .dynamics) && $0.techniqueValue > 0 }
         // Sustained single-note sessions carry MPT seconds as their value.
         let sus = records.filter { $0.targetNoteName == VocalLogic.gameLabel(for: .vibrato) ? false : ($0.targetNoteName == VocalLogic.gameLabel(for: .dynamics) ? false : $0.techniqueValue >= 7.5) }
-        if vib.count >= 2 && vib.count >= dyn.count && vib.count >= sus.count {
+        // Step-error series (semitones) — LOWER is better, bars invert.
+        let scaleErr = records.filter { $0.targetNoteName == VocalLogic.gameLabel(for: .scale) && $0.techniqueValue > 0 }
+        let melodyErr = records.filter { $0.targetNoteName == VocalLogic.gameLabel(for: .melody) && $0.techniqueValue > 0 }
+        if vib.count >= 2 && vib.count >= dyn.count && vib.count >= sus.count && vib.count >= scaleErr.count && vib.count >= melodyErr.count {
             techniqueTrend = TechniqueTrend(kind: "비브라토 속도(Hz)", points: vib.enumerated().map { ($0.offset, $0.element.techniqueValue) })
-        } else if dyn.count >= 2 && dyn.count >= sus.count {
+        } else if dyn.count >= 2 && dyn.count >= sus.count && dyn.count >= scaleErr.count && dyn.count >= melodyErr.count {
             techniqueTrend = TechniqueTrend(kind: "셈여림 레인지(dB)", points: dyn.enumerated().map { ($0.offset, $0.element.techniqueValue) })
-        } else if sus.count >= 2 {
+        } else if sus.count >= 2 && sus.count >= scaleErr.count && sus.count >= melodyErr.count {
             techniqueTrend = TechniqueTrend(kind: "최장 지속(초)", points: sus.enumerated().map { ($0.offset, $0.element.techniqueValue) })
+        } else if scaleErr.count >= 2 && scaleErr.count >= melodyErr.count {
+            techniqueTrend = TechniqueTrend(kind: "스케일 오차(반음)", points: scaleErr.enumerated().map { ($0.offset, $0.element.techniqueValue) }, lowerIsBetter: true)
+        } else if melodyErr.count >= 2 {
+            techniqueTrend = TechniqueTrend(kind: "멜로디 오차(반음)", points: melodyErr.enumerated().map { ($0.offset, $0.element.techniqueValue) }, lowerIsBetter: true)
         } else {
             techniqueTrend = nil
         }

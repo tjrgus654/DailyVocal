@@ -75,7 +75,7 @@ public struct VocalProgressView: View {
                         }
 
                         if let trend = viewModel.techniqueTrend {
-                            TechniqueTrendCard(points: trend.points, kind: trend.kind)
+                            TechniqueTrendCard(points: trend.points, kind: trend.kind, lowerIsBetter: trend.lowerIsBetter)
                                 .padding(.horizontal, 20)
                         }
 
@@ -591,6 +591,7 @@ public struct VocalProgressView: View {
 struct TechniqueTrendCard: View {
     let points: [(index: Int, value: Double)]
     let kind: String
+    var lowerIsBetter: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -604,7 +605,7 @@ struct TechniqueTrendCard: View {
                     .font(.caption2)
                     .foregroundColor(.textSecondary)
             }
-            TechniqueTrendBars(points: points)
+            TechniqueTrendBars(points: points, lowerIsBetter: lowerIsBetter)
         }
         .glassCard(cornerRadius: 16, padding: 14)
         .accessibilityElement(children: .combine)
@@ -615,6 +616,7 @@ struct TechniqueTrendCard: View {
 /// type-check time.
 private struct TechniqueTrendBars: View {
     let points: [(index: Int, value: Double)]
+    var lowerIsBetter: Bool = false
 
     var body: some View {
         let values = points.map { $0.value }
@@ -625,7 +627,7 @@ private struct TechniqueTrendBars: View {
             ForEach(points, id: \.index) { point in
                 VStack(spacing: 3) {
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(point.value >= hi - span * 0.25 ? Color.vocalSuccess : Color.brandSecondary)
+                        .fill(isBest(point.value, lo: lo, hi: hi, span: span) ? Color.vocalSuccess : Color.brandSecondary)
                         .frame(height: max(6, CGFloat((point.value - lo) / span) * 52))
                     Text(String(format: "%.1f", point.value))
                         .font(.system(size: 8, weight: .semibold).monospacedDigit())
@@ -634,6 +636,13 @@ private struct TechniqueTrendBars: View {
                 .frame(maxWidth: .infinity)
             }
         }
+    }
+
+    /// For step-error series the BEST value is the lowest, so the
+    /// highlight inverts — the growth line still reads "green = improving".
+    private func isBest(_ value: Double, lo: Double, hi: Double, span: Double) -> Bool {
+        lowerIsBetter ? value <= lo + span * 0.25
+                      : value >= hi - span * 0.25
     }
 }
 

@@ -281,6 +281,7 @@ const Store = {
  speechMedianHz:0, lastVibratoRateHz:0, lastVibratoExtentCents:0, lastDynamicsRangeDb:0, bestSustainSeconds:0,
  harmonyAboveCents:0, harmonyBelowCents:0,
  vibratoTrend:[], dynamicsTrend:[], sustainTrend:[], scaleStepError:0, melodyStepError:0,
+ scaleErrTrend:[], melodyErrTrend:[],
  };
  },
  load(){
@@ -618,15 +619,20 @@ function techniqueTrendCard(){
  const vib = Store.data.vibratoTrend || [];
  const dyn = Store.data.dynamicsTrend || [];
  const sus = Store.data.sustainTrend || [];
- let title, values;
- if (vib.length >= 2 && vib.length >= dyn.length && vib.length >= sus.length){ title = "비브라토 속도(Hz)"; values = vib; }
- else if (dyn.length >= 2 && dyn.length >= sus.length){ title = "셈여림 레인지(dB)"; values = dyn; }
- else if (sus.length >= 2){ title = "최장 지속(초)"; values = sus; }
+ const scErr = Store.data.scaleErrTrend || [];
+ const meErr = Store.data.melodyErrTrend || [];
+ let title, values, lowerIsBetter = false;
+ if (vib.length >= 2 && vib.length >= Math.max(dyn.length, sus.length, scErr.length, meErr.length)){ title = "비브라토 속도(Hz)"; values = vib; }
+ else if (dyn.length >= 2 && dyn.length >= Math.max(sus.length, scErr.length, meErr.length)){ title = "셈여림 레인지(dB)"; values = dyn; }
+ else if (sus.length >= 2 && sus.length >= Math.max(scErr.length, meErr.length)){ title = "최장 지속(초)"; values = sus; }
+ else if (scErr.length >= 2 && scErr.length >= meErr.length){ title = "스케일 오차(반음)"; values = scErr; lowerIsBetter = true; }
+ else if (meErr.length >= 2){ title = "멜로디 오차(반음)"; values = meErr; lowerIsBetter = true; }
  else return null;
  const lo = Math.min(...values), hi = Math.max(...values);
  const span = Math.max(0.001, hi - lo);
+ const isBest = v => lowerIsBetter ? v <= lo + span * 0.25 : v >= hi - span * 0.25;
  const bars = values.map(v => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;">
-  <div style="width:100%;border-radius:3px;background:${v >= hi - span * 0.25 ? 'var(--vocal-success)' : 'var(--brand-secondary)'};height:${Math.max(6, (v - lo) / span * 52)}px;"></div>
+  <div style="width:100%;border-radius:3px;background:${isBest(v) ? 'var(--vocal-success)' : 'var(--brand-secondary)'};height:${Math.max(6, (v - lo) / span * 52)}px;"></div>
   <span style="font-size:8px;font-weight:700;color:var(--text-secondary);font-variant-numeric:tabular-nums;">${v.toFixed(1)}</span></div>`).join("");
  return { title, values, bars };
 }
@@ -2276,8 +2282,13 @@ function stopTracking(){
   let sum = 0;
   App.echo.midis.forEach((t, i) => { sum += (wm[i] != null ? Math.abs(wm[i] - t) : miss); });
   const err = +(sum / App.echo.midis.length).toFixed(2);
-  if (App.trMode === "scale") Store.data.scaleStepError = err;
-  else Store.data.melodyStepError = err;
+  if (App.trMode === "scale"){
+   Store.data.scaleStepError = err;
+   (Store.data.scaleErrTrend = Store.data.scaleErrTrend || []).push(err);
+  } else {
+   Store.data.melodyStepError = err;
+   (Store.data.melodyErrTrend = Store.data.melodyErrTrend || []).push(err);
+  }
  }
  if (App.trMode === "single" && App._sustainTimes && App._sustainTimes.length > 1){
   const hold = sustainLongestRun(App._sustainTimes);

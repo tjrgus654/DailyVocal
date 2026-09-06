@@ -178,6 +178,25 @@ const susTrend = await page.evaluate(`(() => {
 })()`);
 ok("trend sustain kind", susTrend.title && susTrend.n, JSON.stringify(susTrend));
 ok("trend sustain rendered", (await page.locator("text=최장 지속(초) 추이").count()) >= 1);
+// Step-error trend: lower is better — the LOWEST bar goes green.
+const errTrend = await page.evaluate(`(() => {
+  Store.data.sustainTrend = [];
+  Store.data.scaleErrTrend = [1.8, 1.2, 0.6];
+  Store.save(); render();
+  const card = techniqueTrendCard();
+  const bars = (card.bars.match(/vocal-success/g) || []).length;
+  // The bars render in series order; the green one must be the LAST bar
+  // (0.6 is the best = lowest). Find its offset vs the first bar's start.
+  // The green fill sits inside the LAST bar — after the middle bar's label.
+  const greenPos = card.bars.lastIndexOf("vocal-success");
+  const middleLabelPos = card.bars.lastIndexOf("1.2");
+  Store.data.scaleErrTrend = [];
+  Store.save(); render();
+  return { title: card.title === "스케일 오차(반음)", bars, greenAfterLastValue: greenPos > middleLabelPos };
+})()`);
+ok("step-error trend kind", errTrend.title, JSON.stringify(errTrend));
+ok("step-error trend inverts highlight", errTrend.bars === 1 && errTrend.greenAfterLastValue,
+   JSON.stringify(errTrend));
 await page.evaluate(`(() => {
   Store.data.sustainTrend = [];
   Store.save();
