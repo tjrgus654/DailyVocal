@@ -24,6 +24,8 @@ targets:
       - path: Views
       - path: Resources
         buildPhase: resources
+      - path: Assets.xcassets
+        buildPhase: resources
     info:
       path: Info.plist
       properties:

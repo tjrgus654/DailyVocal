@@ -149,7 +149,7 @@ AVAudioPCMBuffer → 프레임 → YIN(vDSP) → RMS → Goertzel). 실기에서
 
 1. **App Store Connect에 앱 등록** — 번들 ID `com.tjrgus654.dailyvocal` 매칭,
    SKU 설정. 앱 이름은 설명문 초안의 '하루보컬'(APP_STORE_CHECKLIST §4 참고).
-2. **아이콘 에셋 추가** — AppIcon.appiconset 1024×1024(§3 사전 작업).
+2. **아이콘 에셋** — ✅ 완료: 리포지토리의 Assets.xcassets/AppIcon.appiconset(tools/gen_app_icon.py로 생성).
 3. **Archive 업로드** — Xcode > Product > Archive > Distribute App >
    App Store Connect. 코드 서명은 자동 관리.
 4. **내부 테스터 등록**(최대 100명, 심사 없음) — 팀 멤버. 베타 1차 확인:
@@ -163,4 +163,4 @@ AVAudioPCMBuffer → 프레임 → YIN(vDSP) → RMS → Goertzel). 실기에서
 
 - [x] 기능 완성도(CI 크래시 검증) · [x] 프라이버시(수집 0종) ·
   [x] 저작권(PD 원형만) · [x] 의료 주장 부재
-- [ ] **아이콘 1024** · [ ] **실기 6.1 프로토콜** · [ ] 스크린샷 촬영(§6 가이드)
+- [x] **아이콘 1024**(2026-09-07 — tools/gen_app_icon.py 생성, Assets.xcassets/AppIcon.appiconset) · [ ] **실기 6.1 프로토콜** · [ ] 스크린샷 촬영(§6 가이드)

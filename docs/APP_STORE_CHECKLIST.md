@@ -52,7 +52,7 @@
 
 | 작업 | 방법 |
 |---|---|
-| App Icon (1024×1024) | Assets.xcassets에 AppIcon.appiconset |
+| App Icon (1024×1024) | ✅ 완료 — Assets.xcassets/AppIcon.appiconset(tools/gen_app_icon.py 프로그래밍 생성: 네이비 그라디언트+시안 피치 파형, RGB 무알파, project.yml 리소스 연결) |
 | 앱 스크린샷 (6.7" + 5.5") | 시뮬레이터에서 캡처 |
 | App Store 설명문 작성 | 아래 참고 |
 | TestFlight 베타 배포 | App Store Connect 업로드 |
