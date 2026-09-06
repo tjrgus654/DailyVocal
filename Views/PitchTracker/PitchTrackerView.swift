@@ -242,10 +242,10 @@ public struct PitchTrackerView: View {
         switch viewModel.mode {
         case .vibrato where viewModel.vibratoResult != nil:
             let r = viewModel.vibratoResult!
-            text += "\n비브라토 속도 \(String(format: "%.1f", r.rateHz))Hz · 진폭 ±\(Int(r.extentCents.rounded()))센트 · 규칙성 \(Int((r.regularity * 100).rounded()))%"
+            text += "\n" + VocalLogic.vibratoDetailLine(rateHz: r.rateHz, extentCents: r.extentCents, regularity: r.regularity)
         case .dynamics where viewModel.dynamicsResult != nil:
             let r = viewModel.dynamicsResult!
-            text += "\n셈여림 레인지 \(String(format: "%.1f", r.rangeDb))dB · 정점 \(Int((r.peakPosition * 100).rounded()))%"
+            text += "\n" + VocalLogic.dynamicsDetailLine(rangeDb: r.rangeDb, peakPosition: r.peakPosition)
         case .song:
             text += "\n" + VocalLogic.songPreviewLine(after: viewModel.currentSong)
         case .harmony where viewModel.lastHarmonyTip != nil:

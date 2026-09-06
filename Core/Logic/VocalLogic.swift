@@ -1729,6 +1729,19 @@ public enum VocalLogic {
         song.notes.map { min(band.upperBound, max(band.lowerBound, baseMidi + $0.offset)) }
     }
 
+    /// Session-alert technique line for a vibrato check: the numbers behind
+    /// the grade. Pure so the alert content is unit-testable.
+    public static func vibratoDetailLine(rateHz: Double, extentCents: Double, regularity: Double) -> String {
+        let rate = String(format: "%.1f", rateHz)
+        return "비브라토 속도 \(rate)Hz · 진폭 ±\(Int(extentCents.rounded()))센트 · 규칙성 \(Int((regularity * 100).rounded()))%"
+    }
+
+    /// Session-alert technique line for a messa di voce check.
+    public static func dynamicsDetailLine(rangeDb: Double, peakPosition: Double) -> String {
+        let db = String(format: "%.1f", rangeDb)
+        return "셈여림 레인지 \(db)dB · 정점 \(Int((peakPosition * 100).rounded()))%"
+    }
+
     /// End-of-day rollup line for the routine completion alert, shown from
     /// the 2nd session on (the app's daily cadence): "오늘의 마무리: 루틴 2회 ·
     /// 테크닉 측정 3회 · 최고 84점". Pure for unit testing.

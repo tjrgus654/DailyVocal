@@ -582,6 +582,17 @@ final class StreakSystemTests: XCTestCase {
         XCTAssertNil(VocalLogic.averageStepError(windowMidis: [], targets: []))
     }
 
+    func testSessionAlertDetailLines() {
+        // Vibrato: rate 1dp, extent rounded, regularity as %.
+        XCTAssertEqual(
+            VocalLogic.vibratoDetailLine(rateHz: 5.48, extentCents: 71.6, regularity: 0.912),
+            "비브라토 속도 5.5Hz · 진폭 ±72센트 · 규칙성 91%")
+        // Dynamics: range 1dp, peak as %.
+        XCTAssertEqual(
+            VocalLogic.dynamicsDetailLine(rangeDb: 13.24, peakPosition: 0.46),
+            "셈여림 레인지 13.2dB · 정점 46%")
+    }
+
     func testLatestAccuraciesFromRecords() {
         let records: [(label: String, accuracy: Int)] = [
             ("모음 게임", 60), ("E4", 90), ("비브라토 체크", 40),
