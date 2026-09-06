@@ -567,6 +567,23 @@ ok("song completion toasts next song",
    previewNext.text.includes("다음 곡") && previewNext.text.includes(previewNext.before),
    previewNext.before);
 
+// 14g. Daily summary line: hidden on 1st session, shown from the 2nd.
+const daySum = await page.evaluate(`(() => {
+  const hidden = dailySummaryLine(1, 3, 90);
+  const shown = dailySummaryLine(2, 3, 84);
+  const partial = dailySummaryLine(2, 0, 70);
+  const noScore = dailySummaryLine(3, 1, null);
+  return {
+    hidden: hidden === null,
+    shown: shown === "오늘의 마무리: 루틴 2회 · 테크닉 측정 3회 · 최고 84점",
+    partial: partial === "오늘의 마무리: 루틴 2회 · 최고 70점",
+    noScore: noScore === "오늘의 마무리: 루틴 3회 · 테크닉 측정 1회",
+  };
+})()`);
+ok("daily summary hidden on 1st", daySum.hidden);
+ok("daily summary full form", daySum.shown, JSON.stringify(daySum));
+ok("daily summary omits empty", daySum.partial && daySum.noScore);
+
 // 14d. Passaggio round-trip: zone-crossing arch per male voice type.
 const pass = await page.evaluate(`(() => {
   const bar = passaggioSequence("baritone");

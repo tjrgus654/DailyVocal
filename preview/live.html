@@ -636,6 +636,13 @@ function techniqueTrendCard(){
   <span style="font-size:8px;font-weight:700;color:var(--text-secondary);font-variant-numeric:tabular-nums;">${v.toFixed(1)}</span></div>`).join("");
  return { title, values, bars };
 }
+function dailySummaryLine(routineSessions, techniqueMeasures, bestScore){
+ if (routineSessions < 2) return null;
+ let line = "오늘의 마무리: 루틴 " + routineSessions + "회";
+ if (techniqueMeasures > 0) line += " · 테크닉 측정 " + techniqueMeasures + "회";
+ if (bestScore != null) line += " · 최고 " + bestScore + "점";
+ return line;
+}
 function centsLabel(cents){
  if (!cents) return "—";
  return (cents > 0 ? "+" : "−") + Math.round(Math.abs(cents)) + "¢";
@@ -1462,7 +1469,15 @@ function completeRoutine(){
  Store.save();
  const score = full ? "완주!" : "부분 완료";
  const modeName = App.mode === "quick" ? "2분 퀵" : (App.mode === "rest" ? "쉬는 날" : "15분");
- toast(` 오늘 ${modeName} 루틴 ${score}<br>성장 기록에 반영되었습니다.`, 3200);
+ // 하루 롤업: 오늘(4AM 롤오버) 루틴 횟수 + 테크닉 지문 레코드 + 최고 점수.
+ const dayStart = new Date(Date.now() - 4 * 3600 * 1000); dayStart.setHours(0,0,0,0);
+ const todayRecords = Store.data.pitchRecords.filter(r => r.t >= dayStart.getTime());
+ const techGames = [GAME_LABELS.vibrato, GAME_LABELS.dynamics, GAME_LABELS.song];
+ const measures = todayRecords.filter(r => techGames.includes(r.target)).length;
+ const best = todayRecords.length ? Math.max(...todayRecords.map(r => Math.round(r.acc))) : null;
+ const summary = dailySummaryLine(Store.data.sessions.filter(s => s.date >= dayStart.getTime()).length, measures, best);
+ const summaryHtml = summary ? `<br><span style="font-size:12px;color:var(--text-secondary);font-weight:700;">${summary}</span>` : "";
+ toast(` 오늘 ${modeName} 루틴 ${score}<br>성장 기록에 반영되었습니다.${summaryHtml}`, 3400);
  App.stepIdx = 0; App.totalElapsed = 0; App.stepElapsed = 0; App.completed.clear();
  App.stepEnd = Date.now() + currentStep().dur * 1000;
  render();
