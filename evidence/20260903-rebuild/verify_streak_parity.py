@@ -240,6 +240,11 @@ else:
 check("daily summary fn", "function dailySummaryLine" in js and "func dailySummaryLine" in logic)
 check("daily summary 2-session gate", "routineSessions < 2" in js and "routineSessions >= 2" in logic)
 check("tip recommender fn", "function recommendedTip" in js and "func recommendedTip" in logic)
+# Session alert deep link: app exposes a dedicated alert button routing through
+# AppRouter.pendingTipID; web makes the toast tip line clickable.
+tracker = open("Views/PitchTracker/PitchTrackerView.swift", encoding="utf-8").read()
+check("session alert tip button", 'Button("📖 팁 읽기")' in tracker and "pendingTipID = tipID" in tracker)
+check("toast tip clickable", 'onclick="openRecommendedTip(' in js and "function openRecommendedTip" in js)
 check("tip weakness-first gates", "bestSustain > 0 && bestSustain < 15" in js and "bestSustainSeconds > 0 && bestSustainSeconds < 15" in logic)
 check("gap pools", '[0,4,5,7,-4,-5,-7]' in js and '[0, 4, 5, 7, -4, -5, -7]' in logic)
 
