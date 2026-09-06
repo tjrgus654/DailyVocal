@@ -53,7 +53,7 @@
 | 작업 | 방법 |
 |---|---|
 | App Icon (1024×1024) | ✅ 완료 — Assets.xcassets/AppIcon.appiconset(tools/gen_app_icon.py 프로그래밍 생성: 네이비 그라디언트+시안 피치 파형, RGB 무알파, project.yml 리소스 연결) |
-| 앱 스크린샷 (6.7" + 5.5") | 시뮬레이터에서 캡처 |
+| 앱 스크린샷 (6.7" + 5.5") | ⚙️ 자동화 — CI store-screens 잡이 6.7인치 기기에서 탭 4장(데모 시드)을 store_tab*.png 아티팩트로 매 push 캡처(2026-09-07). App Store Connect 업로드만 수동 |
 | App Store 설명문 작성 | 아래 참고 |
 | TestFlight 베타 배포 | App Store Connect 업로드 |
 | 크래시 리포팅 도구 | 선택사항 (로컬 앱이라 필수 아님) |

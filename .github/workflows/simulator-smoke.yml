@@ -100,3 +100,57 @@ jobs:
           path: |
             screenshot_*.png
             onboarding_*.png
+
+  # Store screenshot capture: 6.7" device, demo-seeded content, one capture
+  # per main tab. Uploads store_*.png artifacts ready for App Store Connect.
+  store-screens:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Pick a 6.7-inch simulator
+        id: big
+        run: |
+          DEVICE=$(xcrun simctl list devices available | grep -oE 'iPhone [^(]+ Pro Max[^(]*' | head -1 | xargs || true)
+          if [ -z "$DEVICE" ]; then DEVICE=$(xcrun simctl list devices available | grep -oE 'iPhone [^(]+' | head -1 | xargs); fi
+          echo "name=$DEVICE" >> "$GITHUB_OUTPUT"
+          echo "Using: $DEVICE"
+
+      - name: Build for simulator
+        run: |
+          set -o pipefail
+          xcodebuild -project DailyVocal.xcodeproj             -scheme DailyVocal             -destination "platform=iOS Simulator,name=${{ steps.big.outputs.name }}"             -derivedDataPath dd             CODE_SIGNING_ALLOWED=NO build 2>&1 | xcbeautify --quiet ||           xcodebuild -project DailyVocal.xcodeproj             -scheme DailyVocal             -destination "platform=iOS Simulator,name=${{ steps.big.outputs.name }}"             -derivedDataPath dd             CODE_SIGNING_ALLOWED=NO build
+
+      - name: Boot, install, capture store screenshots
+        run: |
+          xcrun simctl boot "${{ steps.big.outputs.name }}" || true
+          xcrun simctl bootstatus "${{ steps.big.outputs.name }}" -b
+          xcrun simctl install "${{ steps.big.outputs.name }}" dd/Build/Products/Debug-iphonesimulator/DailyVocal.app
+          # Tab order: 0 routine, 1 tracker, 2 lab, 3 growth.
+          for TAB in 0 1 2 3; do
+            xcrun simctl terminate "${{ steps.big.outputs.name }}" com.tjrgus654.dailyvocal || true
+            sleep 1
+            xcrun simctl launch "${{ steps.big.outputs.name }}" com.tjrgus654.dailyvocal "--demo-seed" "--open-tab" "$TAB"
+            sleep 6
+            xcrun simctl io "${{ steps.big.outputs.name }}" screenshot "store_tab${TAB}.png"
+          done
+          # All four must be non-blank and distinct (same guard as onboarding).
+          for TAB in 0 1 2 3; do
+            SIZE=$(stat -f%z "store_tab${TAB}.png")
+            if [ "$SIZE" -lt 30000 ]; then echo "store_tab${TAB}.png only $SIZE bytes"; exit 1; fi
+          done
+          DISTINCT=$(md5 -q store_tab0.png store_tab1.png store_tab2.png store_tab3.png | sort -u | wc -l | tr -d ' ')
+          if [ "$DISTINCT" -ne 4 ]; then echo "expected 4 distinct screens, got $DISTINCT"; exit 1; fi
+          echo "4 store screenshots captured on a 6.7-class device ✓"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: store-screenshots
+          path: store_tab*.png

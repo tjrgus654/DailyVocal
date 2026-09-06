@@ -163,4 +163,4 @@ AVAudioPCMBuffer → 프레임 → YIN(vDSP) → RMS → Goertzel). 실기에서
 
 - [x] 기능 완성도(CI 크래시 검증) · [x] 프라이버시(수집 0종) ·
   [x] 저작권(PD 원형만) · [x] 의료 주장 부재
-- [x] **아이콘 1024**(2026-09-07 — tools/gen_app_icon.py 생성, Assets.xcassets/AppIcon.appiconset) · [ ] **실기 6.1 프로토콜** · [ ] 스크린샷 촬영(§6 가이드)
+- [x] **아이콘 1024**(2026-09-07 — tools/gen_app_icon.py 생성, Assets.xcassets/AppIcon.appiconset) · [ ] **실기 6.1 프로토콜** · [x] 스크린샷 촬영(CI store-screens 잡이 6.7인치 탭 4장 자동 캡처 — 데모 시드 + --open-tab 런치 인자)

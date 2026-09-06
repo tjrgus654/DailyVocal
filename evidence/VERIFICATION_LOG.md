@@ -1153,3 +1153,12 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 |---|---|---|---|
 | 467 | 앱 아이콘 1024×1024 생성(tools/gen_app_icon.py — PIL 결정론적 생성: 네이비 수직 그라디언트+유리 카드 글로우+시안 피치 파형(과거 궤적 고스트+라이브 노트 점)+웜 타깃 라인) — RGB 무알파(앱스토어 요건) 실측 확인, Assets.xcassets/AppIcon.appiconset + 단일 사이즈 Contents.json(iOS 12.1+ 포맷) + project.yml 리소스 연결 | PIL 실측: size=(1024,1024) mode=RGB | 아이콘 블로커 해소, 잔여: 실기 프로토콜·스크린샷(둘 다 Mac/기기 필요) |
 | 468 | 문서 갱신: APP_STORE_CHECKLIST §3(아이콘 완료 표시)·MAC_BUILD_GUIDE §7(블로커 체크박스 체크·TestFlight 2단계 완료 표시) + verify_all 9게이트 | ALL GREEN | swift test 160/160 |
+
+
+## 스토어 스크린샷 CI 자동화 — 블로커 2개째 해소 (세션 70 — 2026-09-07)
+
+| # | 검증 행위 | 결과 | 즼거/비오 |
+|---|---|---|---|
+| 469 | 앱 디버그 실행 인자: --open-tab N(온보딩 스킵+탭 직접 진입)·--demo-seed(측정 음역+테크닉 지문 프로필, 피치 레코드 6건(모음/비브라토/셈여림/스케일/멜로디/E4), 5일 연습 세션 — 결정론적, DEBUG 빌드 전용 게이트) | 파스 56/56 | PracticeSession init 파라미터(notes) 실측 정정 |
+| 470 | simulator-smoke.yml에 store-screens 잡: 6.7인치(Pro Max 우선) 기기에서 탭 0-3 각각 --demo-seed --open-tab N 런치 → 6s 후 store_tabN.png 캡처 → 30KB+·4장 해시 상이 검증 → 아티팩트 업로드 | 워크플로 | 기기 폴백 라인 오타 사전 정정 |
+| 471 | 문서 갱신(체크리스트 §3 스크린샷 자동화 표시·빌드 가이드 §7 블로커 2/3 체크) + verify_all 9게이트 | ALL GREEN | swift test 160/160 |
