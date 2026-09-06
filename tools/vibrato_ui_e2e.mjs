@@ -613,6 +613,30 @@ const tipRec = await page.evaluate(`(() => {
 ok("tip rec weakness-first", tipRec.breath && tipRec.vib, JSON.stringify(tipRec));
 ok("tip rec fallbacks", tipRec.male && tipRec.general);
 
+// 14j. Tip deep link: the growth line opens the lab tip.
+await page.evaluate('go("progress")');
+await page.evaluate(`(() => {
+  Store.data.lastVibratoRateHz = 0;
+  Store.data.lastDynamicsRangeDb = 0;
+  Store.data.bestSustainSeconds = 9;  // -> tip 60
+  Store.save(); render();
+})()`);
+await page.waitForTimeout(200);
+ok("growth tip line clickable", (await page.locator('[onclick^="openRecommendedTip(60)"]').count()) >= 1);
+const tipNav = await page.evaluate(`(() => {
+  window.__toastText = "";
+  const orig = window.toast;
+  window.toast = (html) => { window.__toastText = String(html); };
+  openRecommendedTip(60);
+  window.toast = orig;
+  return { tab: App.tab, text: window.__toastText.slice(0, 120) };
+})()`);
+ok("tip deep link opens lab tip",
+   tipNav.tab === "lab" && tipNav.text.includes("민요로 배우는"), JSON.stringify(tipNav).slice(0, 100));
+await page.evaluate(`(() => {
+  Store.data.bestSustainSeconds = 0; Store.save(); render();
+})()`);
+
 // 14d. Passaggio round-trip: zone-crossing arch per male voice type.
 const pass = await page.evaluate(`(() => {
   const bar = passaggioSequence("baritone");

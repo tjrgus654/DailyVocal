@@ -2628,6 +2628,11 @@ function toggleFav(id){
  s.has(id) ? s.delete(id) : s.add(id);
  Store.data.favorites = [...s]; Store.save(); haptic(); render();
 }
+function openRecommendedTip(id){
+ go("lab");
+ openTip(id);
+}
+window.openRecommendedTip = openRecommendedTip;
 function openTip(id){
  const t = TIPS.find(x => x.id === id);
  if (!t) return;
@@ -2738,7 +2743,7 @@ function screenProgress(){
   </div>`;
  })()}
 
- ${(Store.data.lastVibratoRateHz > 0 || Store.data.lastDynamicsRangeDb > 0) ? `<div class="glass" style="margin:14px 20px 0;padding:16px;">
+ ${((Store.data.lastVibratoRateHz || 0) > 0 || (Store.data.lastDynamicsRangeDb || 0) > 0 || (Store.data.bestSustainSeconds || 0) > 0 || (Store.data.harmonyAboveCents || 0) !== 0 || (Store.data.harmonyBelowCents || 0) !== 0) ? `<div class="glass" style="margin:14px 20px 0;padding:16px;">
  <div style="display:flex;align-items:center;">
  <span class="caption" style="font-size:13px;font-weight:800;">테크닉 스냅샷 (최근 측정)</span><div style="flex:1"></div>
  <span class="cap2" style="color:var(--text-secondary);">피치 트래커에서 측정</span></div>
@@ -2759,7 +2764,7 @@ function screenProgress(){
   }
   const t = recommendedTip(Store.data.lastVibratoRateHz || 0, Store.data.lastDynamicsRangeDb || 0,
    Store.data.bestSustainSeconds || 0, ["테너","바리톤","베이스"].includes(vt));
-  return t ? `<div class="cap2" style="color:var(--brand-secondary);margin-top:2px;">📖 팁 #${t.id} — ${t.reason}</div>` : "";
+  return t ? `<div class="cap2" style="color:var(--brand-secondary);margin-top:2px;cursor:pointer;text-decoration:underline dotted;" onclick="openRecommendedTip(${t.id})" role="button" tabindex="0" aria-label="추천 팁 ${t.id} 열기">📖 팁 #${t.id} — ${t.reason}</div>` : "";
  })()}
  ${((Store.data.harmonyAboveCents || 0) !== 0 || (Store.data.harmonyBelowCents || 0) !== 0) ? `<div class="cap2" style="color:var(--text-secondary);margin-top:2px;">하모니 성향: 위 성부 ${centsLabel(Store.data.harmonyAboveCents)} / 아래 성부 ${centsLabel(Store.data.harmonyBelowCents)} — ±15센트 이내가 정확</div>` : ""}
  </div>` : ""}

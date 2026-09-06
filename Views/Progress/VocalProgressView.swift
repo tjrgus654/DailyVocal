@@ -75,11 +75,18 @@ public struct VocalProgressView: View {
                         }
 
                         if let tip = viewModel.recommendedTipLine {
-                            Text("📖 \(tip)")
-                                .font(.caption2)
-                                .foregroundColor(.brandSecondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 20)
+                            Button {
+                                AppRouter.shared.pendingTipID = viewModel.recommendedTipID
+                                AppRouter.shared.selectedTab = 2
+                            } label: {
+                                Text("📖 \(tip)")
+                                    .font(.caption2)
+                                    .foregroundColor(.brandSecondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityHint("발성 연구소의 추천 팁 열기")
+                            .padding(.horizontal, 20)
                         }
 
                         if let trend = viewModel.techniqueTrend {

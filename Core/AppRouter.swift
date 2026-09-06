@@ -20,6 +20,9 @@ public final class AppRouter {
     /// Tracker mode to apply when the tracker tab next appears, then clears
     /// (one-shot deep link payload).
     public var pendingTrackerMode: PitchTrackerViewModel.TrackerMode?
+    /// Tip id to open as a detail sheet when the lab tab next appears
+    /// (one-shot deep link payload from the growth dashboard's tip line).
+    public var pendingTipID: Int?
 
     private init() {}
 }

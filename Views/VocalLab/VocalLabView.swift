@@ -54,6 +54,12 @@ public struct VocalLabView: View {
                 }
             }
         }
+        .onAppear {
+            if let id = AppRouter.shared.pendingTipID {
+                AppRouter.shared.pendingTipID = nil
+                selectedTip = viewModel.allTips.first { $0.id == id }
+            }
+        }
         .sheet(item: $selectedTip) { tip in
             TipDetailView(
                 tip: tip,

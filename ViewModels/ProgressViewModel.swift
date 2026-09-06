@@ -68,6 +68,21 @@ public final class ProgressViewModel {
         heatmapDays = VocalLogic.buildEmptyHeatmap(dayCount: 84)
     }
 
+    /// The recommended tip id (for the deep link), nil mirrors the line.
+    public var recommendedTipID: Int? {
+        // Same inputs as recommendedTipLine; duplicated call is cheap/pure.
+        let isMale: Bool
+        if case .tenor = estimatedVoiceType { isMale = true }
+        else if case .baritone = estimatedVoiceType { isMale = true }
+        else if case .bass = estimatedVoiceType { isMale = true }
+        else { isMale = false }
+        return VocalLogic.recommendedTip(
+            vibratoRateHz: lastVibratoRateHz,
+            dynamicsRangeDb: lastDynamicsRangeDb,
+            bestSustainSeconds: bestSustainSeconds,
+            isMaleVoice: isMale)?.id
+    }
+
     /// Data-driven tip recommendation line ("오늘 읽을 팁: {title} — {reason}").
     public var recommendedTipLine: String? {
         let isMale: Bool
