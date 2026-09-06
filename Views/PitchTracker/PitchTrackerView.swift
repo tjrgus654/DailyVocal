@@ -111,6 +111,7 @@ public struct PitchTrackerView: View {
                             .font(.caption2)
                             .foregroundColor(.brandSecondary)
                             .frame(maxWidth: .infinity)
+                        songPickerBar
                     }
                     if viewModel.mode == .harmony {
                         Text(viewModel.harmonyPhase == .guide
@@ -294,6 +295,36 @@ public struct PitchTrackerView: View {
             .accessibilityLabel("기준 피치 0.5 헤르츠 올리기")
         }
         .glassCard(cornerRadius: 14, padding: 10)
+    }
+
+    /// Song picker for the folk mode — pin any song from the PD book.
+    private var songPickerBar: some View {
+        HStack {
+            Text("곡 선택")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(.textSecondary)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(VocalLogic.folkSongs, id: \.title) { song in
+                        Button(action: { viewModel.selectSong(song) }) {
+                            Text(song.title)
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(song == viewModel.currentSong ? .white : .textSecondary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(song == viewModel.currentSong ? Color.brandPrimary : Color.surfaceDark)
+                                .clipShape(Capsule())
+                        }
+                        .accessibilityLabel("곡 \(song.title) 선택")
+                    }
+                }
+            }
+        }
+        .glassCard(cornerRadius: 14, padding: 10)
+        .padding(.horizontal, 20)
     }
 
     /// Harmony drone length — shorter forces inner hearing sooner.

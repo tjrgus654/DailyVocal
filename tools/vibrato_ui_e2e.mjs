@@ -414,7 +414,7 @@ const folk = await page.evaluate(`(() => {
   const at60 = songNoteDurations(FOLK_SONGS[1], 60);
   const at80 = songNoteDurations(FOLK_SONGS[1], 80);
   return {
-    three: FOLK_SONGS.length === 5 && FOLK_SONGS.map(s => s.title).join(",") === "아리랑,강강술래,한오백년,정선아리랑,둥당기타령",
+    three: FOLK_SONGS.length === 6 && FOLK_SONGS.map(s => s.title).join(",") === "아리랑,강강술래,한오백년,정선아리랑,둥당기타령,도라지타령",
     origins: FOLK_SONGS.every(s => s.origin.includes("전통")),
     seq: seq[0] === 55 + 7 && seq[seq.length - 1] === 55 + 3,
     clamp: clamped.every(m => m >= 43 && m <= 72) && Math.max(...clamped) === 72,
@@ -422,7 +422,7 @@ const folk = await page.evaluate(`(() => {
     ends: FOLK_SONGS.every(s => s.notes[s.notes.length - 1][1] >= 3),
   };
 })()`);
-ok("folk library ships 5 songs", folk.three);
+ok("folk library ships 6 songs", folk.three);
 ok("folk origins cite tradition", folk.origins);
 ok("folk arirang sequence", folk.seq);
 ok("folk band clamp", folk.clamp);
@@ -439,6 +439,14 @@ const folkFlow = await page.evaluate(`(() => {
   return okGated;
 })()`);
 ok("folk flow gates + song label", folkFlow);
+
+// 14b. Song picker: chips pin a specific song (label + flow use it).
+const pickerOk = await page.evaluate(`(() => {
+  selectSong(5);
+  return { label: currentSong().title, rolled: SONG_STATE.rolled };
+})()`);
+ok("song picker pins 도라지타령", pickerOk.label === "도라지타령" && pickerOk.rolled,
+   JSON.stringify(pickerOk));
 
 await browser.close();
 

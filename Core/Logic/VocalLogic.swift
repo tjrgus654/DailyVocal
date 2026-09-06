@@ -1599,6 +1599,17 @@ public enum VocalLogic {
                 SongNote(0, 4),
             ]
         ),
+        FolkSong(
+            title: "도라지타령",
+            origin: "경기 민요(세마치장단) — 전통 원형",
+            firstLyric: "도라지 도라지 백도라지",
+            notes: [
+                SongNote(0, 1), SongNote(3, 1), SongNote(5, 1), SongNote(5, 1),
+                SongNote(7, 1), SongNote(5, 1), SongNote(3, 2),
+                SongNote(3, 1), SongNote(0, 1), SongNote(3, 1), SongNote(5, 1),
+                SongNote(3, 3),
+            ]
+        ),
     ]
 
     /// The song's note sequence as midis from `baseMidi`, clamped to the

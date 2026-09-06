@@ -108,12 +108,21 @@ public final class PitchTrackerViewModel {
 
     // MARK: - Folk song state
 
-    /// Rotates through the public-domain song book each session.
+    /// Rotates through the public-domain song book each session; the user
+    /// can also pin a specific song (songPicker).
     public private(set) var songIndex = 0
     private var songRolledThisSession = false
     /// Song currently being sung (for the caption).
     public var currentSong: VocalLogic.FolkSong {
         VocalLogic.folkSongs[songIndex % VocalLogic.folkSongs.count]
+    }
+
+    /// Pins a specific song for the next (or running) song session.
+    public func selectSong(_ song: VocalLogic.FolkSong) {
+        guard let index = VocalLogic.folkSongs.firstIndex(of: song) else { return }
+        songIndex = index
+        songRolledThisSession = true
+        haptics.buttonTap()
     }
 
     // MARK: - Interval game state
