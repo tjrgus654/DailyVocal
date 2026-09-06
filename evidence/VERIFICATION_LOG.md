@@ -840,3 +840,4 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 359 | PitchRecord.techniqueValue(경량 마이그레이션): 비브라토 세션은 rateHz·셈여림 세션은 rangeDb 저장 | 파스 통과 | |
 | 360 | 테크닉 추이 카드: 2점 이상 시 하이라이트 스파크라인(비브라토 Hz·셈여림 dB 중 많은 쪽, 최근 값 강조) — update()에 전체 레코드 전달 | 파스 통과 | TechniqueTrendCard |
 | 361 | Windows swift test 151/151(전 스위트 0 실패)·E2E 96/96·verify_all 9게이트 | ALL GREEN | 개수 재확정: Windows 순수 151(macOS는 파이프라인 6 포함) — 이전 로그 153은 기재 오류 정정 |
+| 362 | CI 실패 → 원인: TechniqueTrendCard 구조체 삽입 스크립트가 assert에서 조용히 실패해 카드 누락(not-in-scope) + 부모 표현식 타입체크 타임아웃. 카드 삽입 + 바 행 하위 뷰 분리로 수정 | 2/2 success | 교훈: 삽입 스크립트는 print 확인 없이 성공으로 간주 금지 — 이번에 grep 확인 습관화 |
