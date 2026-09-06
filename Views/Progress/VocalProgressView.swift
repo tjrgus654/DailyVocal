@@ -329,6 +329,8 @@ public struct VocalProgressView: View {
             scaleAccuracy: latest[.scale],
             melodyAccuracy: latest[.melody],
             harmonyAccuracy: latest[.harmony],
+            songAccuracy: latest[.song],
+            passaggioAccuracy: latest[.passaggio],
             lastGame: lastGame)
         // Measurement-based reason: technique fingerprints when present,
         // score line otherwise (VocalLogic rule, mirrored on the web).
@@ -354,6 +356,7 @@ public struct VocalProgressView: View {
         case .melody: return .melody
         case .harmony: return .harmony
         case .song: return .song
+        case .passaggio: return .passaggio
         case .interval: return .interval
         case .ear: return .ear
         }
