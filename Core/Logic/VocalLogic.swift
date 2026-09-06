@@ -1776,6 +1776,17 @@ public enum VocalLogic {
                 SongNote(0, 4),
             ]
         ),
+        FolkSong(
+            title: "어랑타령",
+            origin: "강원 민요(고유 지역 가락) — 전통 원형",
+            firstLyric: "얼씨구 어랑타령",
+            notes: [
+                SongNote(0, 1), SongNote(3, 1), SongNote(0, 1), SongNote(5, 1),
+                SongNote(3, 1), SongNote(0, 2),
+                SongNote(3, 1), SongNote(5, 1), SongNote(3, 1), SongNote(0, 1),
+                SongNote(0, 4),
+            ]
+        ),
     ]
 
     /// The song's note sequence as midis from `baseMidi`, clamped to the

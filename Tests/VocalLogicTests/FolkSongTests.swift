@@ -3,10 +3,10 @@ import XCTest
 
 final class FolkSongTests: XCTestCase {
 
-    func testLibraryShipsEighteenSongs() {
-        XCTAssertEqual(VocalLogic.folkSongs.count, 18)
+    func testLibraryShipsNineteenSongs() {
+        XCTAssertEqual(VocalLogic.folkSongs.count, 19)
         XCTAssertEqual(VocalLogic.folkSongs.map(\.title),
-                       ["아리랑", "강강술래", "한오백년", "정선아리랑", "둥당기타령", "도라지타령", "난봉가", "매화타령", "신고산타령", "오죽령", "닐리리야", "새타령", "변강쇠타령", "쾌지나칭칭나네", "진도아리랑", "오돌또기", "베틀가", "칭칭야"])
+                       ["아리랑", "강강술래", "한오백년", "정선아리랑", "둥당기타령", "도라지타령", "난봉가", "매화타령", "신고산타령", "오죽령", "닐리리야", "새타령", "변강쇠타령", "쾌지나칭칭나네", "진도아리랑", "오돌또기", "베틀가", "칭칭야", "어랑타령"])
         // Every song documents its traditional origin (the PD basis).
         for song in VocalLogic.folkSongs {
             XCTAssertTrue(song.origin.contains("전통"), "\(song.title)")
@@ -81,7 +81,7 @@ final class FolkSongTests: XCTestCase {
             XCTAssertNotEqual(song.region, "기타", "\(song.title) origin should name a region: \(song.origin)")
         }
         // 강원 has exactly 정선아리랑; 전라 has 한오백년.
-        XCTAssertEqual(VocalLogic.songs(inRegion: "강원").map(\.title), ["정선아리랑"])
+        XCTAssertEqual(VocalLogic.songs(inRegion: "강원").map(\.title), ["정선아리랑", "어랑타령"])
         XCTAssertEqual(VocalLogic.songs(inRegion: "전라").map(\.title), ["한오백년", "새타령", "변강쇠타령", "베틀가"])
         XCTAssertEqual(VocalLogic.songs(inRegion: "경상").map(\.title), ["쾌지나칭칭나네"])
         // Region list is ordered, distinct, and covers every song.
