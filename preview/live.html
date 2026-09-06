@@ -1522,7 +1522,7 @@ function screenTracker(){
  <div class="glass" style="margin:8px 20px 0;padding:10px;border-radius:14px;display:flex;align-items:center;gap:8px;">
  <span class="caption" style="color:var(--text-secondary);">곡 선택</span>
  <div style="flex:1;display:flex;gap:8px;overflow-x:auto;">
- ${FOLK_SONGS.map((s, i) => `<span class="chip ${s.title === currentSong().title ? 'on' : ''}" style="padding:6px 10px;flex:none;" onclick="selectSong(${i})" role="button" tabindex="0" aria-label="곡 ${s.title} 선택">${s.title}</span>`).join("")}
+ ${FOLK_SONGS.map((s, i) => `<span class="chip ${s.title === currentSong().title ? 'on' : ''}" style="padding:6px 10px;flex:none;" onclick="selectSong(${i})" role="button" tabindex="0" aria-label="곡 ${s.title} 선택">${s.title}<span style="font-size:9px;opacity:.7;margin-left:4px;">${songRegion(s)}</span></span>`).join("")}
  </div>
  </div>`:""}
  ${App.trMode==='harmony'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${HARMONY_CHECK.phase==='guide'?`드론이 울립니다 — 끝나면 그 음의 ${HARMONY_PARTS[HARMONY_CHECK.partKey||"thirdAbove"].name} 화음을 길게 유지하세요`:(HARMONY_CHECK.phase==='recording'?`지금 ${HARMONY_PARTS[HARMONY_CHECK.partKey||"thirdAbove"].name} 음을 길게 — 드론은 끊겼어도 화음을 그리세요`:"측정 완료 — 결과를 확인하세요")}</div>`:""}
@@ -1979,6 +1979,12 @@ function selectSong(i){
 window.selectSong = selectSong;
 function currentSong(){
  return FOLK_SONGS[SONG_STATE.index % FOLK_SONGS.length];
+}
+function songRegion(song){
+ for (const r of ["경기", "강원", "전라", "경남", "충청", "서남해안"]){
+  if (song.origin.includes(r)) return r;
+ }
+ return "기타";
 }
 function songSequence(song, base){
  const cl = m => Math.min(72, Math.max(43, m));

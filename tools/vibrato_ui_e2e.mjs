@@ -484,6 +484,35 @@ const pickerOk = await page.evaluate(`(() => {
 ok("song picker pins 도라지타령", pickerOk.label === "도라지타령" && pickerOk.rolled,
    JSON.stringify(pickerOk));
 
+// 14e. Region tags + next-song preview in the toast line.
+const regionOk = await page.evaluate(`(() => ({
+  gangwon: songRegion(FOLK_SONGS.find(s => s.title === "정선아리랑")) === "강원",
+  jeolla: songRegion(FOLK_SONGS.find(s => s.title === "한오백년")) === "전라",
+  gyeonggi: FOLK_SONGS.filter(s => songRegion(s) === "경기").length >= 4,
+}))()`);
+ok("region tags derive from origin", regionOk.gangwon && regionOk.jeolla && regionOk.gyeonggi,
+   JSON.stringify(regionOk));
+const previewNext = await page.evaluate(`(() => {
+  // Song preview appears in the completion toast: simulate a scored stop in song mode.
+  App.trMode = "song";
+  App.listening = true;  // stopTracking early-returns without this
+  App.voiced = 20; App.hits = 16;
+  App.lastScore = null;
+  const before = FOLK_SONGS[(SONG_STATE.index + 1) % FOLK_SONGS.length].title;
+  // stopTracking pushes a record and toasts; capture the toast text via the
+  // DOM after the call.
+  App.trMode = "song";
+  window.__toastText = "";
+  const origToast = window.toast;
+  window.toast = (html) => { window.__toastText = html; };
+  stopTracking();
+  window.toast = origToast;
+  return { before, text: window.__toastText || "" };
+})()`);
+ok("song completion toasts next song",
+   previewNext.text.includes("다음 곡") && previewNext.text.includes(previewNext.before),
+   previewNext.before);
+
 // 14d. Passaggio round-trip: zone-crossing arch per male voice type.
 const pass = await page.evaluate(`(() => {
   const bar = passaggioSequence("baritone");

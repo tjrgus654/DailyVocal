@@ -1549,6 +1549,14 @@ public enum VocalLogic {
         /// author, created collectively); specific arrangements by others
         /// are derivative works we do NOT copy (저작권법 §5).
         public let notes: [SongNote]
+
+        /// Region tag parsed from the origin line (경기/강원/전라/경남...).
+        public var region: String {
+            for region in ["경기", "강원", "전라", "경남", "충청", "서남해안"] where origin.contains(region) {
+                return region
+            }
+            return "기타"
+        }
     }
 
     /// The starter folk-song book. Melodies encoded as pentatonic contours
@@ -1648,6 +1656,17 @@ public enum VocalLogic {
     /// singing band.
     public static func songSequence(song: FolkSong, baseMidi: Int, band: ClosedRange<Int> = 43...72) -> [Int] {
         song.notes.map { min(band.upperBound, max(band.lowerBound, baseMidi + $0.offset)) }
+    }
+
+    /// Songs of one region (for a region-filtered picker).
+    public static func songs(inRegion region: String) -> [FolkSong] {
+        folkSongs.filter { $0.region == region }
+    }
+
+    /// Distinct regions in the book, in library order.
+    public static var songRegions: [String] {
+        var seen: Set<String> = []
+        return folkSongs.compactMap { seen.insert($0.region).inserted ? $0.region : nil }
     }
 
     /// Per-note durations (seconds) at a drill BPM: one beat = 60/bpm,

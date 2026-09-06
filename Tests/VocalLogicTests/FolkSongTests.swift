@@ -59,6 +59,20 @@ final class FolkSongTests: XCTestCase {
         XCTAssertEqual(at80.first! / at60.first!, 0.75, accuracy: 0.001)
     }
 
+    func testRegionTagsAndFilter() {
+        // Every song derives a real region from its origin line.
+        for song in VocalLogic.folkSongs {
+            XCTAssertFalse(song.region.isEmpty, song.title)
+            XCTAssertNotEqual(song.region, "기타", "\(song.title) origin should name a region: \(song.origin)")
+        }
+        // 강원 has exactly 정선아리랑; 전라 has 한오백년.
+        XCTAssertEqual(VocalLogic.songs(inRegion: "강원").map(\.title), ["정선아리랑"])
+        XCTAssertEqual(VocalLogic.songs(inRegion: "전라").map(\.title), ["한오백년"])
+        // Region list is ordered, distinct, and covers every song.
+        XCTAssertEqual(Set(VocalLogic.songRegions).count, VocalLogic.songRegions.count)
+        XCTAssertEqual(VocalLogic.songRegions.count, Set(VocalLogic.folkSongs.map(\.region)).count)
+    }
+
     /// The song book must work for MALE singers out of the box: from a
     /// comfortable male base the whole phrase stays inside the singing band
     /// without the top note clamping (clamped notes lose the melody).
