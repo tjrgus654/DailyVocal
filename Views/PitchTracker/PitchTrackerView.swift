@@ -225,6 +225,13 @@ public struct PitchTrackerView: View {
                 set: { if !$0 { viewModel.dismissScoreAlert() } }
             )
         ) {
+            if let tipID = viewModel.sessionTipID {
+                Button("📖 팁 읽기") {
+                    viewModel.dismissScoreAlert()
+                    AppRouter.shared.pendingTipID = tipID
+                    AppRouter.shared.selectedTab = 2
+                }
+            }
             Button("확인", role: .cancel) { viewModel.dismissScoreAlert() }
         } message: {
             Text(alertMessageText)

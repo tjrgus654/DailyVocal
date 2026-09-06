@@ -584,6 +584,27 @@ const tipToast = await page.evaluate(`(() => {
 ok("session toast carries tip line",
    tipToast.includes("팁 #60") && tipToast.includes("호흡 지지"), tipToast.slice(-80));
 
+// 14k. Toast tip line deep links to the lab (same path as growth).
+const toastTipNav = await page.evaluate(`(() => {
+  App.trMode = "single"; App.listening = true;
+  App.voiced = 20; App.hits = 16;
+  Store.data.bestSustainSeconds = 9;
+  Store.save();
+  const origToast = window.toast;
+  let captured = "";
+  window.toast = (html) => {
+   captured = String(html);
+   // Execute any onclick handlers attached in the captured HTML (simulate).
+ if (captured.includes('onclick="openRecommendedTip(60)"')) window.__tipId = "60";
+  };
+  stopTracking();
+  window.toast = origToast;
+  Store.data.bestSustainSeconds = 0; Store.save(); render();
+  return { tipId: window.__tipId, hadClick: captured.includes("openRecommendedTip") };
+})()`);
+ok("session toast tip deep-linkable",
+   toastTipNav.hadClick && toastTipNav.tipId === "60", JSON.stringify(toastTipNav));
+
 // 14g. Daily summary line: hidden on 1st session, shown from the 2nd.
 const daySum = await page.evaluate(`(() => {
   const hidden = dailySummaryLine(1, 3, 90);

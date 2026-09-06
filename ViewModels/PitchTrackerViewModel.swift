@@ -117,6 +117,19 @@ public final class PitchTrackerViewModel {
         VocalLogic.folkSongs[songIndex % VocalLogic.folkSongs.count]
     }
 
+    /// The session tip id for the alert's deep-link button (nil mirrors line).
+    public var sessionTipID: Int? {
+        sessionTipLine == nil ? nil : recommendedTipForSession?.id
+    }
+    private var recommendedTipForSession: (id: Int, reason: String)? {
+        let sustain = mode == .single ? lastSustainSeconds : storedBestSustain
+        let vibRate = mode == .vibrato ? (vibratoResult?.rateHz ?? 0) : storedVibratoRate
+        let dynDb = mode == .dynamics ? (dynamicsResult?.rangeDb ?? 0) : storedDynamicsDb
+        return VocalLogic.recommendedTip(
+            vibratoRateHz: vibRate, dynamicsRangeDb: dynDb,
+            bestSustainSeconds: sustain, isMaleVoice: storedIsMaleVoice)
+    }
+
     /// Session-completion tip line: the same weakness-first recommender the
     /// growth dashboard uses, fed with THIS session's measurements (or the
     /// stored bests when the session itself wasn't a technique measure).
