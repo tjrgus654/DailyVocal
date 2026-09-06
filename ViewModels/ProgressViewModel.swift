@@ -48,13 +48,23 @@ public final class ProgressViewModel {
     public private(set) var harmonyAboveCents: Double = 0
     public private(set) var harmonyBelowCents: Double = 0
 
+    /// Technique trend sparkline: latest technique measure series with >= 2
+    /// points (vibrato Hz or dynamics dB, whichever has more points).
+    public struct TechniqueTrend {
+        public let kind: String   // "비브라토 속도(Hz)" / "셈여림 레인지(dB)"
+        public let points: [(index: Int, value: Double)]
+    }
+    public private(set) var techniqueTrend: TechniqueTrend?
+    private var pitchRecordsInternal: [PitchRecord] = []
+
     public init() {
         heatmapDays = VocalLogic.buildEmptyHeatmap(dayCount: 84)
     }
 
     // MARK: - Update entry point (called by the view with @Query results)
 
-    public func update(sessions: [PracticeSession], profile: UserProfile?, latestPitchRecord: PitchRecord? = nil) {
+    public func update(sessions: [PracticeSession], profile: UserProfile?, latestPitchRecord: PitchRecord? = nil, allPitchRecords: [PitchRecord] = []) {
+        pitchRecordsInternal = allPitchRecords.sorted { $0.timestamp < $1.timestamp }
         totalSessions = sessions.count
 
         let totalSeconds = sessions.reduce(0) { $0 + $1.durationSeconds }
@@ -128,6 +138,18 @@ public final class ProgressViewModel {
                 baselineTopHz: profile.baselineHighestFrequency,
                 currentTopHz: profile.highestFrequency
             )
+        }
+
+        // Technique trend: sessions carrying a fingerprint, in order.
+        let records = pitchRecordsInternal
+        let vib = records.filter { $0.targetNoteName == VocalLogic.gameLabel(for: .vibrato) && $0.techniqueValue > 0 }
+        let dyn = records.filter { $0.targetNoteName == VocalLogic.gameLabel(for: .dynamics) && $0.techniqueValue > 0 }
+        if vib.count >= 2 && vib.count >= dyn.count {
+            techniqueTrend = TechniqueTrend(kind: "비브라토 속도(Hz)", points: vib.enumerated().map { ($0.offset, $0.element.techniqueValue) })
+        } else if dyn.count >= 2 {
+            techniqueTrend = TechniqueTrend(kind: "셈여림 레인지(dB)", points: dyn.enumerated().map { ($0.offset, $0.element.techniqueValue) })
+        } else {
+            techniqueTrend = nil
         }
 
         if let record = latestPitchRecord {

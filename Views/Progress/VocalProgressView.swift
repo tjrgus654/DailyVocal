@@ -27,7 +27,7 @@ public struct VocalProgressView: View {
     private var profile: UserProfile? { profiles.first }
 
     private func refreshStats() {
-        viewModel.update(sessions: sessions, profile: profile, latestPitchRecord: pitchRecords.first)
+        viewModel.update(sessions: sessions, profile: profile, latestPitchRecord: pitchRecords.first, allPitchRecords: Array(pitchRecords))
     }
 
     public var body: some View {
@@ -71,6 +71,11 @@ public struct VocalProgressView: View {
                         if viewModel.lastVibratoRateHz > 0 || viewModel.lastDynamicsRangeDb > 0 || viewModel.bestSustainSeconds > 0
                             || viewModel.harmonyAboveCents != 0 || viewModel.harmonyBelowCents != 0 {
                             techniqueSnapshotCard
+                                .padding(.horizontal, 20)
+                        }
+
+                        if let trend = viewModel.techniqueTrend {
+                            TechniqueTrendCard(points: trend.points, kind: trend.kind)
                                 .padding(.horizontal, 20)
                         }
 

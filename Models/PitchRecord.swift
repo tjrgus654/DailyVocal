@@ -30,6 +30,11 @@ public final class PitchRecord {
     public var highestNoteName: String
     public var highestFrequency: Double
 
+    /// Technique fingerprint of the session (0 = not a technique measure):
+    /// vibrato rate in Hz for vibrato checks, dynamic range in dB for the
+    /// messa di voce arch. Feeds the technique trend chart.
+    public var techniqueValue: Double = 0
+
     public init(
         id: UUID = UUID(),
         timestamp: Date = .now,
@@ -42,7 +47,8 @@ public final class PitchRecord {
         lowestNoteName: String = "",
         lowestFrequency: Double = 0,
         highestNoteName: String = "",
-        highestFrequency: Double = 0
+        highestFrequency: Double = 0,
+        techniqueValue: Double = 0
     ) {
         self.id = id
         self.timestamp = timestamp
@@ -56,5 +62,6 @@ public final class PitchRecord {
         self.lowestFrequency = lowestFrequency
         self.highestNoteName = highestNoteName
         self.highestFrequency = highestFrequency
+        self.techniqueValue = techniqueValue
     }
 }

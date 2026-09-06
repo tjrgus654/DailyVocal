@@ -1237,6 +1237,14 @@ public final class PitchTrackerViewModel {
         let low = VocalAudioEngine.noteAndCents(fromFrequency: sessionLowestFrequency)
         let high = VocalAudioEngine.noteAndCents(fromFrequency: sessionHighestFrequency)
 
+        // Technique fingerprint for the trend chart: vibrato Hz / dynamics dB.
+        var techniqueValue: Double = 0
+        if mode == .vibrato, let r = vibratoResult, r.voicedFrames >= VocalLogic.VibratoAnalysis.minFrames {
+            techniqueValue = r.rateHz
+        }
+        if mode == .dynamics, let r = dynamicsResult, r.voicedFrames >= VocalLogic.DynamicsAnalysis.minFrames {
+            techniqueValue = r.rangeDb
+        }
         let record = PitchRecord(
             durationSeconds: max(1, Int(Date().timeIntervalSince(sessionStartDate))),
             targetNoteName: lastSessionTargetLabel.isEmpty ? targetNoteName : lastSessionTargetLabel,
@@ -1247,7 +1255,8 @@ public final class PitchTrackerViewModel {
             lowestNoteName: low.note,
             lowestFrequency: sessionLowestFrequency,
             highestNoteName: high.note,
-            highestFrequency: sessionHighestFrequency
+            highestFrequency: sessionHighestFrequency,
+            techniqueValue: techniqueValue
         )
         context.insert(record)
 
