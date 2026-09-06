@@ -1568,7 +1568,7 @@ public enum VocalLogic {
 
         /// Region tag parsed from the origin line (경기/강원/전라/경남...).
         public var region: String {
-            for region in ["경기", "강원", "전라", "경남", "충청", "서남해안"] where origin.contains(region) {
+            for region in ["경기", "강원", "전라", "경상", "경남", "충청", "서남해안"] where origin.contains(region) {
                 return region
             }
             return "기타"
@@ -1718,6 +1718,17 @@ public enum VocalLogic {
                 SongNote(0, 1), SongNote(5, 1), SongNote(5, 1), SongNote(3, 1),
                 SongNote(0, 1), SongNote(3, 2),
                 SongNote(3, 1), SongNote(5, 1), SongNote(7, 1), SongNote(3, 1),
+                SongNote(0, 4),
+            ]
+        ),
+        FolkSong(
+            title: "쾌지나칭칭나네",
+            origin: "경상 민요(유람 판소리) — 전통 원형",
+            firstLyric: "쾌지나 칭칭 나네",
+            notes: [
+                SongNote(0, 1), SongNote(3, 1), SongNote(0, 1), SongNote(3, 1),
+                SongNote(5, 1), SongNote(3, 2),
+                SongNote(5, 1), SongNote(7, 1), SongNote(5, 1), SongNote(3, 1),
                 SongNote(0, 4),
             ]
         ),
