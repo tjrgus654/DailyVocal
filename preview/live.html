@@ -280,7 +280,7 @@ const Store = {
  favorites:[], prefs:{femaleKey:false, transpose:0, autoplay:true},
  speechMedianHz:0, lastVibratoRateHz:0, lastVibratoExtentCents:0, lastDynamicsRangeDb:0, bestSustainSeconds:0,
  harmonyAboveCents:0, harmonyBelowCents:0,
- vibratoTrend:[], dynamicsTrend:[], sustainTrend:[],
+ vibratoTrend:[], dynamicsTrend:[], sustainTrend:[], scaleStepError:0, melodyStepError:0,
  };
  },
  load(){
@@ -957,6 +957,18 @@ function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame, vibratoAcc, 
 }
 function recommendationEvidence(game, latestAcc, vibRate, vibExt, dynDb, above, below, bestSustain){
  above = above || 0; below = below || 0; bestSustain = bestSustain || 0;
+ const stepErr = game === "scale" ? (Store.data.scaleStepError || 0) : (Store.data.melodyStepError || 0);
+ if ((game === "scale" || game === "melody") && stepErr > 0){
+  const st = stepErr.toFixed(1);
+  if (game === "scale"){
+   return stepErr > 1.0
+    ? `평균 ${st}반음 벗어남 — 템포를 5 BPM 내리고 한 음씩 확실히`
+    : `평균 ${st}반음 벗어남 — 이 템포가 맞아요, 다음 단계로`;
+  }
+  return stepErr > 1.0
+   ? `프레이즈에서 평균 ${st}반음 벗어남 — 데모를 한 번 더 듣고 첫 음부터`
+   : `프레이즈 평균 ${st}반음 — 잡히고 있어요, 길이를 늘려볼 차례`;
+ }
  if (game === "passaggio" && bestSustain > 0){
   const s = Math.round(bestSustain);
   return bestSustain < 15
@@ -2146,6 +2158,7 @@ async function startTracking(){
  clearTimeout(App._speakTimer); App._speakFreqs = [];
  App._sustainTimes = [];
  SONG_STATE.rolled = false;
+ App._windowMidis = [];
  App.listening = true; render();
  const ok = await Audio5.startMic();
  if (!ok){
@@ -2257,6 +2270,15 @@ function stopTracking(){
  if (App.lo > 0 && (Store.data.range.lo === 0 || App.lo < Store.data.range.lo)) Store.data.range.lo = App.lo;
  if (App.hi > Store.data.range.hi) Store.data.range.hi = App.hi;
  Store.save();
+ if ((App.trMode === "scale" || App.trMode === "melody") && App.echo.midis.length){
+  const wm = App._windowMidis || [];
+  const miss = 3;
+  let sum = 0;
+  App.echo.midis.forEach((t, i) => { sum += (wm[i] != null ? Math.abs(wm[i] - t) : miss); });
+  const err = +(sum / App.echo.midis.length).toFixed(2);
+  if (App.trMode === "scale") Store.data.scaleStepError = err;
+  else Store.data.melodyStepError = err;
+ }
  if (App.trMode === "single" && App._sustainTimes && App._sustainTimes.length > 1){
   const hold = sustainLongestRun(App._sustainTimes);
   if (hold >= 7.5) (Store.data.sustainTrend = Store.data.sustainTrend || []).push(+hold.toFixed(1));
@@ -2279,6 +2301,9 @@ function trackerPitchHandler(f, note, cents, voiced){
  if (App.trMode === "speak"){ (App._speakFreqs = App._speakFreqs || []).push(f); }
  if (App.trMode === "single"){
   (App._sustainTimes = App._sustainTimes || []).push(Date.now() / 1000);
+ }
+ if (["scale", "melody", "song"].includes(App.trMode) && App.echo.midis.length){
+  (App._windowMidis = App._windowMidis || [])[App.echo.idx] = midiOf(f);
  }
  if (App.trMode === "harmony" && HARMONY_CHECK.phase === "recording"){
   HARMONY_CHECK.cents.push(cents);

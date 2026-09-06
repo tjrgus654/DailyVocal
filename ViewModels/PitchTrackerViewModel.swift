@@ -382,6 +382,7 @@ public final class PitchTrackerViewModel {
         lastSustainTip = nil
         singleVoicedTimes = []
         songRolledThisSession = false
+        windowMidis = []
         echoHistory = []
         noteBinCounts = Array(repeating: 0, count: 12)
         voicedFrequencies.removeAll()
@@ -454,6 +455,9 @@ public final class PitchTrackerViewModel {
         echoGeneration += 1
         // Clear the echo guides so a later single-note session does not
         // render ghost target lines from the previous sequence.
+        // persistSessionSummary reads echoTargetMidis for the step-error
+        // fingerprint — keep a copy before the guides are cleared.
+        lastSequenceTargets = echoTargetMidis
         echoTargetMidis = []
         activeEchoIndex = 0
         if mode == .vibrato {
@@ -1069,6 +1073,11 @@ public final class PitchTrackerViewModel {
     /// Label of the current melody drill (shown in the caption, persisted as
     /// the session target).
     public private(set) var melodyDrillLabel = ""
+    /// Copy of the finished drill's targets (survives guide clearing).
+    private var lastSequenceTargets: [Int] = []
+    /// Fractional sung midi per sequence window (nil = silent window),
+    /// aligned with echoTargetMidis for the step-error fingerprint.
+    private var windowMidis: [Double?] = []
 
     /// Shared one-demo-then-per-note-window flow for the sequence drills
     /// (scale ladder, melody call-and-response). Timings follow the drill BPM.
@@ -1103,6 +1112,7 @@ public final class PitchTrackerViewModel {
             for index in self.echoTargetMidis.indices {
                 guard !Task.isCancelled, generation == self.echoGeneration else { return }
                 self.activeEchoIndex = index
+                self.windowMidis.append(nil)  // filled by frames in this window
                 LiveActivityManager.shared.updateGameRound(index + 1, of: self.echoTargetMidis.count)
                 try? await Task.sleep(for: .seconds(tempo.window))
             }
@@ -1192,6 +1202,9 @@ public final class PitchTrackerViewModel {
         if mode == .interval, intervalPhase == .recording {
             intervalMidis.append(VocalAudioEngine.midiNumber(forFrequency: frequency))
         }
+        if [.scale, .melody, .song].contains(mode), !windowMidis.isEmpty {
+            windowMidis[windowMidis.count - 1] = VocalAudioEngine.midiNumber(forFrequency: frequency)
+        }
         if mode == .harmony, harmonyPhase == .recording {
             harmonyCents.append(cents)
         }
@@ -1257,6 +1270,11 @@ public final class PitchTrackerViewModel {
         if mode == .single, lastSustainSeconds >= VocalLogic.SustainStats.cautionSeconds * 0.5 {
             // Sustained hold above ~7.5 s carries the MPT fingerprint.
             techniqueValue = lastSustainSeconds
+        }
+        if (mode == .scale || mode == .melody),
+           let stepError = VocalLogic.averageStepError(windowMidis: windowMidis, targets: lastSequenceTargets),
+           windowMidis.count == lastSequenceTargets.count {
+            techniqueValue = stepError
         }
         let record = PitchRecord(
             durationSeconds: max(1, Int(Date().timeIntervalSince(sessionStartDate))),

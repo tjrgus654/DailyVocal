@@ -534,6 +534,16 @@ final class StreakSystemTests: XCTestCase {
         let accurate = VocalLogic.recommendationEvidence(
             game: .harmony, latestAccuracy: 40, harmonyAboveCents: -10, harmonyBelowCents: 0)
         XCTAssertTrue(accurate.contains("정확해요"))
+        // Step-error tendency on scale/melody recommendations.
+        let roughScale = VocalLogic.recommendationEvidence(
+            game: .scale, latestAccuracy: 40, stepErrorSemitones: 1.4)
+        XCTAssertTrue(roughScale.contains("1.4반음") && roughScale.contains("템포를 5 BPM"))
+        let tightScale = VocalLogic.recommendationEvidence(
+            game: .scale, latestAccuracy: 40, stepErrorSemitones: 0.6)
+        XCTAssertTrue(tightScale.contains("0.6반음") && tightScale.contains("다음 단계"))
+        let roughMelody = VocalLogic.recommendationEvidence(
+            game: .melody, latestAccuracy: 40, stepErrorSemitones: 1.8)
+        XCTAssertTrue(roughMelody.contains("1.8반음") && roughMelody.contains("한 번 더"))
         // Sustain tendency on passaggio recommendations.
         let shortBreath = VocalLogic.recommendationEvidence(
             game: .passaggio, latestAccuracy: 40, bestSustainSeconds: 9)
@@ -552,6 +562,17 @@ final class StreakSystemTests: XCTestCase {
         // Nothing at all -> unmeasured line.
         XCTAssertTrue(VocalLogic.recommendationEvidence(game: .scale, latestAccuracy: nil)
             .contains("시도하지 않은"))
+    }
+
+    func testAverageStepError() {
+        // Perfect: 0.
+        XCTAssertEqual(VocalLogic.averageStepError(windowMidis: [60.1, 62.0, 64.2], targets: [60, 62, 64])!, 0, accuracy: 0.11)
+        // One window 1.4 st off: (0 + 1.4 + 0) / 3.
+        XCTAssertEqual(VocalLogic.averageStepError(windowMidis: [60.0, 63.4, 64.0], targets: [60, 62, 64])!, 1.4 / 3, accuracy: 0.01)
+        // A silent window counts as a 3-st miss, not a skip.
+        XCTAssertEqual(VocalLogic.averageStepError(windowMidis: [60.0, nil, 64.0], targets: [60, 62, 64])!, 1.0, accuracy: 0.001)
+        // Empty -> nil.
+        XCTAssertNil(VocalLogic.averageStepError(windowMidis: [], targets: []))
     }
 
     func testLatestAccuraciesFromRecords() {

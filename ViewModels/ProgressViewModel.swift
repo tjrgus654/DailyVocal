@@ -61,6 +61,13 @@ public final class ProgressViewModel {
         heatmapDays = VocalLogic.buildEmptyHeatmap(dayCount: 84)
     }
 
+    /// Latest step-error fingerprint for a sequence game (semitones), 0 if none.
+    public func latestStepError(for game: VocalLogic.GameType) -> Double {
+        pitchRecordsInternal.last {
+            $0.targetNoteName == VocalLogic.gameLabel(for: game) && $0.techniqueValue > 0
+        }?.techniqueValue ?? 0
+    }
+
     // MARK: - Update entry point (called by the view with @Query results)
 
     public func update(sessions: [PracticeSession], profile: UserProfile?, latestPitchRecord: PitchRecord? = nil, allPitchRecords: [PitchRecord] = []) {

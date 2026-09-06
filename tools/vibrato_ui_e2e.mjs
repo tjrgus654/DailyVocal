@@ -260,6 +260,25 @@ const harmEv2 = await page.evaluate(`(() => {
 })()`);
 ok("harmony evidence flips to below when flatter",
    harmEv2.includes("아래") && harmEv2.includes("−30센트") && harmEv2.includes("올려서"), harmEv2);
+
+// 9e. Step-error evidence for scale/melody recommendations.
+const stepEv = await page.evaluate(`(() => {
+  Store.data.scaleStepError = 1.4;
+  Store.data.melodyStepError = 0.6;
+  Store.save(); render();
+  const scale = recommendationEvidence("scale", 40, 0, 0, 0, 0, 0, 0, 1.4);
+  const melody = recommendationEvidence("melody", 40, 0, 0, 0, 0, 0, 0, 0.6);
+  return { scale, melody };
+})()`);
+ok("scale evidence cites step error",
+   stepEv.scale.includes("1.4반음") && stepEv.scale.includes("5 BPM"), stepEv.scale);
+ok("melody evidence cites tight phrase",
+   stepEv.melody.includes("0.6반음") && stepEv.melody.includes("늘려볼 차례"), stepEv.melody);
+await page.evaluate(`(() => {
+  Store.data.scaleStepError = 0;
+  Store.data.melodyStepError = 0;
+  Store.save(); render();
+})()`);
 // Reset so later phases start clean.
 await page.evaluate(`(() => {
   Store.data.harmonyAboveCents = 0;

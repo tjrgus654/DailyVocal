@@ -325,6 +325,9 @@ public struct VocalProgressView: View {
                 VocalLogic.gameLabel(for: $0) == last.targetNoteName
             }
         }
+        // Latest step-error fingerprint for scale/melody (semitones).
+        let scaleStepError = viewModel.latestStepError(for: .scale)
+        let melodyStepError = viewModel.latestStepError(for: .melody)
         let game = VocalLogic.recommendNextGame(
             vowelAccuracy: latest[.vowel],
             intervalAccuracy: latest[.interval],
@@ -346,7 +349,8 @@ public struct VocalProgressView: View {
             dynamicsRangeDb: viewModel.lastDynamicsRangeDb,
             harmonyAboveCents: viewModel.harmonyAboveCents,
             harmonyBelowCents: viewModel.harmonyBelowCents,
-            bestSustainSeconds: viewModel.bestSustainSeconds)
+            bestSustainSeconds: viewModel.bestSustainSeconds,
+            stepErrorSemitones: game == .scale ? scaleStepError : melodyStepError)
         return (game, reason)
     }
 

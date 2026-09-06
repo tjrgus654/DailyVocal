@@ -1322,7 +1322,8 @@ public enum VocalLogic {
         vibratoRateHz: Double = 0, vibratoExtentCents: Double = 0,
         dynamicsRangeDb: Double = 0,
         harmonyAboveCents: Double = 0, harmonyBelowCents: Double = 0,
-        bestSustainSeconds: Double = 0
+        bestSustainSeconds: Double = 0,
+        stepErrorSemitones: Double = 0
     ) -> String {
         switch game {
         case .vibrato where vibratoRateHz > 0:
@@ -1354,6 +1355,16 @@ public enum VocalLogic {
             return cents > 0
                 ? "최근 \(direction) 성부에서 +\(magnitude)센트 높게 나가요 — 살짝 내려서 맞춰봐요"
                 : "최근 \(direction) 성부에서 −\(magnitude)센트 낮게 나가요 — 살짝 올려서 맞춰봐요"
+        case .scale where stepErrorSemitones > 0:
+            let st = String(format: "%.1f", stepErrorSemitones)
+            return stepErrorSemitones > 1.0
+                ? "평균 \(st)반음 벗어남 — 템포를 5 BPM 내리고 한 음씩 확실히"
+                : "평균 \(st)반음 벗어남 — 이 템포가 맞아요, 다음 단계로"
+        case .melody where stepErrorSemitones > 0:
+            let st = String(format: "%.1f", stepErrorSemitones)
+            return stepErrorSemitones > 1.0
+                ? "프레이즈에서 평균 \(st)반음 벗어남 — 데모를 한 번 더 듣고 첫 음부터"
+                : "프레이즈 평균 \(st)반음 — 잡히고 있어요, 길이를 늘려볼 차례"
         case .passaggio where bestSustainSeconds > 0:
             let s = Int(bestSustainSeconds.rounded())
             return bestSustainSeconds < 15
@@ -1687,6 +1698,20 @@ public enum VocalLogic {
         let mid = (lo + hi) / 2
         func clamped(_ m: Int) -> Int { min(band.upperBound, max(band.lowerBound, m)) }
         return [lo - 2, lo, mid, hi, hi + 1, hi, mid, lo].map(clamped)
+    }
+
+    /// Average per-window pitch error of a sequence drill, in semitones.
+    /// `windowMidis` are the sung fractional midis in window order;
+    /// `targets` the per-window target midis. Windows without a sung value
+    /// count as a full miss (3-semitone penalty) rather than being skipped —
+    /// silence is the worst error. nil when nothing was recorded.
+    public static func averageStepError(windowMidis: [Double?], targets: [Int]) -> Double? {
+        guard windowMidis.count == targets.count, !windowMidis.isEmpty else { return nil }
+        let missPenalty = 3.0
+        let total = zip(windowMidis, targets).reduce(0.0) { sum, pair in
+            sum + (pair.0.map { abs($0 - Double(pair.1)) } ?? missPenalty)
+        }
+        return total / Double(targets.count)
     }
 
     /// Suggested default base note for the sequence drills (scale / melody /
