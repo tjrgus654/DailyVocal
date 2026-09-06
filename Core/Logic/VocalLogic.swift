@@ -1707,6 +1707,23 @@ public enum VocalLogic {
         song.notes.map { min(band.upperBound, max(band.lowerBound, baseMidi + $0.offset)) }
     }
 
+    /// End-of-day rollup line for the routine completion alert, shown from
+    /// the 2nd session on (the app's daily cadence): "오늘의 마무리: 루틴 2회 ·
+    /// 테크닉 측정 3회 · 최고 84점". Pure for unit testing.
+    public static func dailySummaryLine(
+        routineSessions: Int, techniqueMeasures: Int, bestScore: Int?
+    ) -> String? {
+        guard routineSessions >= 2 else { return nil }
+        var line = "오늘의 마무리: 루틴 \(routineSessions)회"
+        if techniqueMeasures > 0 {
+            line += " · 테크닉 측정 \(techniqueMeasures)회"
+        }
+        if let best = bestScore {
+            line += " · 최고 \(best)점"
+        }
+        return line
+    }
+
     /// The completion-alert line previewing the next song in rotation:
     /// "다음 곡: 아리랑 '아리랑 아리랑 아라리요'". Pure so the app alert's
     /// content is unit-testable without rendering the alert itself.

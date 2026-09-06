@@ -11,6 +11,7 @@ import SwiftData
 
 public struct DailyRoutineView: View {
     @Environment(\.modelContext) private var modelContext
+    @Query(sort: [SortDescriptor(\PitchRecord.timestamp, order: .reverse)]) private var pitchRecords: [PitchRecord]
     @State private var viewModel = DailyRoutineViewModel()
 
     public init() {}
@@ -84,6 +85,9 @@ public struct DailyRoutineView: View {
             }
             Button("확인", role: .cancel) { viewModel.reset() }
         } message: {
+            if let summary = todaySummaryLine {
+                Text(summary + "\n")
+            }
             if viewModel.isVoiceRestRecommended {
                 Text("오늘 \(viewModel.sessionsCompletedToday)회째 완료! 성대 회복을 위해 물을 마시고 허밍·립트릴 쿨다운을 충분히 해주세요. 무리한 반복은 피로만 쌓입니다.")
             } else if viewModel.mode == .quick {
@@ -94,6 +98,24 @@ public struct DailyRoutineView: View {
                 Text("목에 힘을 뺀 채 완주했어요.\n내일도 15분이면 충분해요.")
             }
         }
+    }
+
+    /// Day rollup shown from the 2nd routine session on: counts today's
+    /// technique measures (vibrato/dynamics/song-fingerprint records) and
+    /// the best score, using the 4 AM practice-day rollover.
+    private var todaySummaryLine: String? {
+        let dayStart = Calendar.current.startOfDay(for: Date().addingTimeInterval(-4 * 3600))
+        let today = pitchRecords.filter { $0.timestamp >= dayStart }
+        let techniqueGames: Set<String> = [
+            VocalLogic.gameLabel(for: .vibrato), VocalLogic.gameLabel(for: .dynamics),
+            VocalLogic.gameLabel(for: .song),
+        ]
+        let measures = today.filter { techniqueGames.contains($0.targetNoteName) && $0.techniqueValue > 0 }.count
+        let best = today.map { Int($0.accuracyPercentage.rounded()) }.max()
+        return VocalLogic.dailySummaryLine(
+            routineSessions: viewModel.sessionsCompletedToday,
+            techniqueMeasures: measures,
+            bestScore: best)
     }
 
     private var completionAlertTitle: String {
