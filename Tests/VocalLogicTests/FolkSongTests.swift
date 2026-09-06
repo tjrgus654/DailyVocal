@@ -3,10 +3,10 @@ import XCTest
 
 final class FolkSongTests: XCTestCase {
 
-    func testLibraryShipsElevenSongs() {
-        XCTAssertEqual(VocalLogic.folkSongs.count, 11)
+    func testLibraryShipsTwelveSongs() {
+        XCTAssertEqual(VocalLogic.folkSongs.count, 12)
         XCTAssertEqual(VocalLogic.folkSongs.map(\.title),
-                       ["아리랑", "강강술래", "한오백년", "정선아리랑", "둥당기타령", "도라지타령", "난봉가", "매화타령", "신고산타령", "오죽령", "닐리리야"])
+                       ["아리랑", "강강술래", "한오백년", "정선아리랑", "둥당기타령", "도라지타령", "난봉가", "매화타령", "신고산타령", "오죽령", "닐리리야", "새타령"])
         // Every song documents its traditional origin (the PD basis).
         for song in VocalLogic.folkSongs {
             XCTAssertTrue(song.origin.contains("전통"), "\(song.title)")
@@ -82,7 +82,7 @@ final class FolkSongTests: XCTestCase {
         }
         // 강원 has exactly 정선아리랑; 전라 has 한오백년.
         XCTAssertEqual(VocalLogic.songs(inRegion: "강원").map(\.title), ["정선아리랑"])
-        XCTAssertEqual(VocalLogic.songs(inRegion: "전라").map(\.title), ["한오백년"])
+        XCTAssertEqual(VocalLogic.songs(inRegion: "전라").map(\.title), ["한오백년", "새타령"])
         // Region list is ordered, distinct, and covers every song.
         XCTAssertEqual(Set(VocalLogic.songRegions).count, VocalLogic.songRegions.count)
         XCTAssertEqual(VocalLogic.songRegions.count, Set(VocalLogic.folkSongs.map(\.region)).count)

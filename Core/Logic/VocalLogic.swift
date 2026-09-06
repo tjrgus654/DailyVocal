@@ -1699,6 +1699,17 @@ public enum VocalLogic {
                 SongNote(0, 4),
             ]
         ),
+        FolkSong(
+            title: "새타령",
+            origin: "전라 민요(유파 소리) — 전통 원형",
+            firstLyric: "저기 저 새는 뭘 먹고 살까",
+            notes: [
+                SongNote(5, 1), SongNote(5, 1), SongNote(3, 1), SongNote(0, 1),
+                SongNote(3, 1), SongNote(5, 1), SongNote(7, 2),
+                SongNote(5, 1), SongNote(3, 1), SongNote(0, 1), SongNote(3, 1),
+                SongNote(0, 4),
+            ]
+        ),
     ]
 
     /// The song's note sequence as midis from `baseMidi`, clamped to the
