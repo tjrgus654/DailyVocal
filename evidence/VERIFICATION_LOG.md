@@ -1106,3 +1106,4 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 451 | AppRouter.pendingTipID + 연구소 onAppear 소비(시트로 상세 열림) + 성장 기록 팁 라인 탭→연구소(앱) / openRecommendedTip→go lab+openTip(웹, 접근성 라벨·점선 밑줄) | 파스·JS OK | 추천→교육 이동 경로 완결 |
 | 452 | E2E 117축(+2: 라인 클릭 가능·연구소 이동+팁 제목 표시). 첫 실패가 **실제 정합 버그** 노출 — 웹 스냅샷 카드 조건이 vibrato/dynamics만 보고 sustain·harmony 미포함(지속·화음만 측정한 사용자는 카드 자체가 안 뜸). 앱 조건(4지문 전부)과 일치시켜 수정 | 117/117 | E2E가 정합 결함을 찾은 사례 |
 | 453 | verify_all 9게이트 | ALL GREEN | swift test 160/160 |
+| 454 | 종합 상태 재점검: STATUS_REPORT 4차(커밋 194·검증 453항·E2E 117축 — 전부 재실측, 곡 라이브러리 제목 18곡 정합) + PROJECT_SCORE 기술 지표 동기화(검증 453·E2E 117·팁 딥링크) + verify_all 9게이트 | ALL GREEN | swift test 160/160 |

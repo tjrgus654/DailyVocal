@@ -1,17 +1,17 @@
 # 하루보컬(DailyVocal) 종합 상태 리포트
 
-작성일: 2026-09-07(3차 갱신) · 문서 전용 취합 (모든 수치는 실측 기준)
+작성일: 2026-09-07(4차 갱신) · 문서 전용 취합 (모든 수치는 실측 기준)
 
 ## 한눈에 보기
 
 | 지표 | 값 |
 |---|---|
 | 프로젝트 평가 | **88 / 100** (PROJECT_SCORE 6차) |
-| 커밋 수 | 166 (`git rev-list --count` 실측, 본 갱신 시점) |
-| 검증 로그 | 395개 항목 (evidence/VERIFICATION_LOG.md) |
+| 커밋 수 | 194 (`git rev-list --count` 실측, 본 갱신 시점) |
+| 검증 로그 | 453개 항목 (evidence/VERIFICATION_LOG.md) |
 | Swift 테스트 | Windows 160/160 · macOS CI 166(160+파이프라인 실측 6) |
 | 로컬 게이트 | verify_all 9게이트 ALL GREEN |
-| 웹 E2E | 114/114축 (Chromium 실측) |
+| 웹 E2E | 117/117축 (Chromium 실측) |
 | CI | iOS typecheck + 시뮬레이터 스모크 2/2 성공 (매 push) |
 
 ## 기능 현황
