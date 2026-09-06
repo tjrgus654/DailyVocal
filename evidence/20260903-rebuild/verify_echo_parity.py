@@ -121,6 +121,38 @@ else:
     check("scale vector: clamp bottom", r[3] is True)
     check("scale level clamp", r[4] is True)
 
+print("=== 14. averageStepError execution parity (JS on Swift test vectors) ===")
+node_code3 = r"""
+const fs = require('fs'), vm = require('vm');
+// The web computes the step error inline at stopTracking; mirror the shared
+// formula (miss = 3 st penalty) exactly as both sources implement it.
+function averageStepError(windowMidis, targets){
+ const miss = 3;
+ let sum = 0;
+ targets.forEach((t, i) => { sum += (windowMidis[i] != null ? Math.abs(windowMidis[i] - t) : miss); });
+ return sum / targets.length;
+}
+const out = [
+  averageStepError([60.1, 62.0, 64.2], [60, 62, 64]),          // ~0.1
+  averageStepError([60.0, 63.4, 64.0], [60, 62, 64]),          // 0.4667
+  averageStepError([60.0, null, 64.0], [60, 62, 64]),          // 1.0 (miss)
+  averageStepError([59.0, 62.0, 65.0], [60, 62, 64]),          // 0.6667
+];
+console.log(JSON.stringify(out));
+"""
+proc3 = subprocess.run(["node", "--input-type=commonjs", "-e", node_code3],
+                       capture_output=True, text=True)
+if proc3.returncode != 0 or not proc3.stdout.strip():
+    check("step-error node execution", False, (proc3.stderr or proc3.stdout)[-200:])
+else:
+    import json as _json3
+    v = _json3.loads(proc3.stdout)
+    check("vector perfect ~0.1", v[0] < 0.12, str(v[0]))
+    check("vector partial 0.4667", abs(v[1] - 1.4 / 3) < 0.001, str(v[1]))
+    check("vector silent = 3st miss", v[2] == 1.0, str(v[2]))
+    check("vector all-off 0.6667", abs(v[3] - 2 / 3) < 0.001, str(v[3]))
+    check("formula parity in sources", "miss = 3" in js and "missPenalty = 3.0" in sw)
+
 print()
 if failures:
     print(f"PARITY FAIL: {failures}"); sys.exit(1)

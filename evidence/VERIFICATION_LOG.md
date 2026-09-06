@@ -982,3 +982,5 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 414 | verify_all 9게이트 + E2E 112/112 | ALL GREEN | swift test 157/157 |
 | 415 | 에코 파리티에 곡 지문 축 2종: 스텝 오차 저장에 .song 포함([.scale,.melody,.song]·songStepError) + 근거 문구('첫 소절 가사를 소리 내어') 양쪽 존재 | ALL PASS | 변수명 착오(sw) 1회 즉시 수정 |
 | 416 | verify_all 9게이트 | ALL GREEN | swift test 157/157 |
+| 417 | 에코 파리티에 averageStepError 실행 벡터 5종: 완벽(~0.1)·부분(0.4667)·침묵=3반음 미스(1.0)·전체 빗나감(0.6667)·공식 정합(miss=3 양쪽 소스) — Swift 테스트와 동일 벡터 | ALL PASS | 스텝 오차 규칙의 3중 검증(유닛·E2E 근거·파리티 실행) 완성 |
+| 418 | verify_all 9게이트 | ALL GREEN | swift test 157/157 |
