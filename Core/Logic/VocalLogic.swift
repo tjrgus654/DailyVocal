@@ -1798,6 +1798,17 @@ public enum VocalLogic {
                 SongNote(0, 4),
             ]
         ),
+        FolkSong(
+            title: "범피중류",
+            origin: "경기 민요(12잡가 계열) — 전통 원형",
+            firstLyric: "범피중류 물 아래",
+            notes: [
+                SongNote(5, 1), SongNote(3, 1), SongNote(0, 1), SongNote(3, 1),
+                SongNote(5, 1), SongNote(7, 2),
+                SongNote(5, 1), SongNote(3, 1), SongNote(3, 1), SongNote(0, 1),
+                SongNote(0, 4),
+            ]
+        ),
     ]
 
     /// The song's note sequence as midis from `baseMidi`, clamped to the
