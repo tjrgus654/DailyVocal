@@ -534,6 +534,13 @@ final class StreakSystemTests: XCTestCase {
         let accurate = VocalLogic.recommendationEvidence(
             game: .harmony, latestAccuracy: 40, harmonyAboveCents: -10, harmonyBelowCents: 0)
         XCTAssertTrue(accurate.contains("정확해요"))
+        // Sustain tendency on passaggio recommendations.
+        let shortBreath = VocalLogic.recommendationEvidence(
+            game: .passaggio, latestAccuracy: 40, bestSustainSeconds: 9)
+        XCTAssertTrue(shortBreath.contains("9초") && shortBreath.contains("호흡 지지가 먼저"))
+        let solidBreath = VocalLogic.recommendationEvidence(
+            game: .passaggio, latestAccuracy: 40, bestSustainSeconds: 17)
+        XCTAssertTrue(solidBreath.contains("17초") && solidBreath.contains("탄탄합니다"))
         // No harmony fingerprint -> score fallback.
         XCTAssertEqual(
             VocalLogic.recommendationEvidence(game: .harmony, latestAccuracy: 44),

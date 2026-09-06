@@ -345,7 +345,8 @@ public struct VocalProgressView: View {
             vibratoExtentCents: viewModel.lastVibratoExtentCents,
             dynamicsRangeDb: viewModel.lastDynamicsRangeDb,
             harmonyAboveCents: viewModel.harmonyAboveCents,
-            harmonyBelowCents: viewModel.harmonyBelowCents)
+            harmonyBelowCents: viewModel.harmonyBelowCents,
+            bestSustainSeconds: viewModel.bestSustainSeconds)
         return (game, reason)
     }
 

@@ -1321,7 +1321,8 @@ public enum VocalLogic {
         game: GameType, latestAccuracy: Int?,
         vibratoRateHz: Double = 0, vibratoExtentCents: Double = 0,
         dynamicsRangeDb: Double = 0,
-        harmonyAboveCents: Double = 0, harmonyBelowCents: Double = 0
+        harmonyAboveCents: Double = 0, harmonyBelowCents: Double = 0,
+        bestSustainSeconds: Double = 0
     ) -> String {
         switch game {
         case .vibrato where vibratoRateHz > 0:
@@ -1353,6 +1354,11 @@ public enum VocalLogic {
             return cents > 0
                 ? "최근 \(direction) 성부에서 +\(magnitude)센트 높게 나가요 — 살짝 내려서 맞춰봐요"
                 : "최근 \(direction) 성부에서 −\(magnitude)센트 낮게 나가요 — 살짝 올려서 맞춰봐요"
+        case .passaggio where bestSustainSeconds > 0:
+            let s = Int(bestSustainSeconds.rounded())
+            return bestSustainSeconds < 15
+                ? "최장 지속 \(s)초 — 파사지오 통과는 호흡 지지가 먼저입니다. 단음 유지로 15초를 채워요"
+                : "최장 지속 \(s)초 — 호흡 지지가 탄탄합니다. 통과 순간 볼륨만 내리세요"
         default:
             break
         }

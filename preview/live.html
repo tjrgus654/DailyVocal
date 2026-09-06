@@ -955,8 +955,14 @@ function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame, vibratoAcc, 
  }
  return scores[0][0];
 }
-function recommendationEvidence(game, latestAcc, vibRate, vibExt, dynDb, above, below){
- above = above || 0; below = below || 0;
+function recommendationEvidence(game, latestAcc, vibRate, vibExt, dynDb, above, below, bestSustain){
+ above = above || 0; below = below || 0; bestSustain = bestSustain || 0;
+ if (game === "passaggio" && bestSustain > 0){
+  const s = Math.round(bestSustain);
+  return bestSustain < 15
+   ? `최장 지속 ${s}초 — 파사지오 통과는 호흡 지지가 먼저입니다. 단음 유지로 15초를 채워요`
+   : `최장 지속 ${s}초 — 호흡 지지가 탄탄합니다. 통과 순간 볼륨만 내리세요`;
+ }
  if (game === "vibrato" && vibRate > 0){
   const rate = vibRate.toFixed(1);
   if (vibRate < 4.5) return `최근 측정 속도 ${rate}Hz — 느린 워블 구간입니다. 4.5~6.5Hz로 좁혀가요`;
@@ -1011,7 +1017,8 @@ function nextGameRecommendation(){
   game, latest[game] ?? null,
   Store.data.lastVibratoRateHz || 0, Store.data.lastVibratoExtentCents || 0,
   Store.data.lastDynamicsRangeDb || 0,
-  Store.data.harmonyAboveCents || 0, Store.data.harmonyBelowCents || 0);
+  Store.data.harmonyAboveCents || 0, Store.data.harmonyBelowCents || 0,
+  Store.data.bestSustainSeconds || 0);
  return { game, name: GAME_NAMES[game], reason };
 }
 function bestTakeSummary(){
