@@ -322,16 +322,21 @@ public struct PitchTrackerView: View {
                 HStack(spacing: 8) {
                     ForEach(VocalLogic.folkSongs, id: \.title) { song in
                         Button(action: { viewModel.selectSong(song) }) {
-                            Text(song.title)
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(song == viewModel.currentSong ? .white : .textSecondary)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(song == viewModel.currentSong ? Color.brandPrimary : Color.surfaceDark)
-                                .clipShape(Capsule())
+                            HStack(spacing: 4) {
+                                Text(song.title)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                Text(song.region)
+                                    .font(.system(size: 9))
+                                    .opacity(0.7)
+                            }
+                            .foregroundColor(song == viewModel.currentSong ? .white : .textSecondary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(song == viewModel.currentSong ? Color.brandPrimary : Color.surfaceDark)
+                            .clipShape(Capsule())
                         }
-                        .accessibilityLabel("곡 \(song.title) 선택")
+                        .accessibilityLabel("곡 \(song.title) (\(song.region)) 선택")
                     }
                 }
             }
