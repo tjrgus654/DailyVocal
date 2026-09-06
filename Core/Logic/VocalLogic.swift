@@ -1680,6 +1680,15 @@ public enum VocalLogic {
         song.notes.map { min(band.upperBound, max(band.lowerBound, baseMidi + $0.offset)) }
     }
 
+    /// The completion-alert line previewing the next song in rotation:
+    /// "다음 곡: 아리랑 '아리랑 아리랑 아라리요'". Pure so the app alert's
+    /// content is unit-testable without rendering the alert itself.
+    public static func songPreviewLine(after song: FolkSong) -> String {
+        guard let index = folkSongs.firstIndex(of: song) else { return "" }
+        let next = folkSongs[(index + 1) % folkSongs.count]
+        return "다음 곡: \(next.title) '\(next.firstLyric)'"
+    }
+
     /// Songs of one region (for a region-filtered picker).
     public static func songs(inRegion region: String) -> [FolkSong] {
         folkSongs.filter { $0.region == region }

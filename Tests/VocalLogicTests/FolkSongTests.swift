@@ -59,6 +59,21 @@ final class FolkSongTests: XCTestCase {
         XCTAssertEqual(at80.first! / at60.first!, 0.75, accuracy: 0.001)
     }
 
+    func testSongPreviewLine() {
+        // Mid-rotation: 아리랑 -> 강강술래.
+        XCTAssertTrue(VocalLogic.songPreviewLine(after: VocalLogic.folkSongs[0])
+            .hasPrefix("다음 곡: 강강술래 '강강술래 강강술래'"))
+        // Wrap-around: last song previews the first.
+        XCTAssertTrue(VocalLogic.songPreviewLine(after: VocalLogic.folkSongs.last!)
+            .hasPrefix("다음 곡: 아리랑 '아리랑 아리랑 아라리요'"))
+        // Format invariant: title + quoted first lyric.
+        for song in VocalLogic.folkSongs {
+            let line = VocalLogic.songPreviewLine(after: song)
+            XCTAssertTrue(line.contains("'"), line)
+            XCTAssertTrue(line.hasPrefix("다음 곡: "), line)
+        }
+    }
+
     func testRegionTagsAndFilter() {
         // Every song derives a real region from its origin line.
         for song in VocalLogic.folkSongs {
