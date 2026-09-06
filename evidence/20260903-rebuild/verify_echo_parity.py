@@ -70,6 +70,8 @@ check("noteCount param", "melodyPhrase(contourKey, base, roll, noteCount)" in js
       and "noteCount: Int? = nil" in sw)
 check("band clamp", "Math.min(72, Math.max(43, m))" in js and "min(band.upperBound, max(band.lowerBound" in sw)
 check("one demo pass", "function drillTimings" in js and "DrillTempo.timings" in vm)
+check("song step-error fingerprint", "[.scale, .melody, .song].contains(mode)" in vm and "songStepError" in js)
+check("song evidence coaching", ("곡에서 평균" in js) and ("첫 소절 가사를 소리 내어" in js) and ("첫 소절 가사를 소리 내어" in sw))
 check("BPM timings (0.85/0.15/1.5 of a beat)", "beat * 0.85" in js and "beat * 0.15" in js and "beat * 1.5" in js
       and "beat * 0.85" in sw and "beat * 0.15" in sw and "beat * 1.5" in sw)
 check("BPM clamp 40-80", "Math.min(80, Math.max(40" in js and "min(maxBpm, max(minBpm" in sw)
