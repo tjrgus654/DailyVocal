@@ -166,9 +166,20 @@ ok("trend card vibrato series", trend.title && trend.count, JSON.stringify(trend
 ok("trend highlights recent best", trend.lastGreen);
 await page.waitForTimeout(200);
 ok("trend card rendered", (await page.locator("text=비브라토 속도(Hz) 추이").count()) >= 1);
-// Cleanup so later phases see no trend.
-await page.evaluate(`(() => {
+// Cleanup so later phases see no trend — then check the sustain kind.
+const susTrend = await page.evaluate(`(() => {
   Store.data.vibratoTrend = [];
+  Store.data.dynamicsTrend = [];
+  Store.data.sustainTrend = [8.2, 10.5, 12.1];
+  Store.save();
+  render();
+  const card = techniqueTrendCard();
+  return { title: card && card.title === "최장 지속(초)", n: card && card.values.length === 3 };
+})()`);
+ok("trend sustain kind", susTrend.title && susTrend.n, JSON.stringify(susTrend));
+ok("trend sustain rendered", (await page.locator("text=최장 지속(초) 추이").count()) >= 1);
+await page.evaluate(`(() => {
+  Store.data.sustainTrend = [];
   Store.save();
   render();
 })()`);

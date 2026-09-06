@@ -280,7 +280,7 @@ const Store = {
  favorites:[], prefs:{femaleKey:false, transpose:0, autoplay:true},
  speechMedianHz:0, lastVibratoRateHz:0, lastVibratoExtentCents:0, lastDynamicsRangeDb:0, bestSustainSeconds:0,
  harmonyAboveCents:0, harmonyBelowCents:0,
- vibratoTrend:[], dynamicsTrend:[],
+ vibratoTrend:[], dynamicsTrend:[], sustainTrend:[],
  };
  },
  load(){
@@ -617,9 +617,11 @@ const SUSTAIN = { GAP: 0.25, CAUTION: 15.0, MALE_NORM: 20.8, FEMALE_NORM: 17.2 }
 function techniqueTrendCard(){
  const vib = Store.data.vibratoTrend || [];
  const dyn = Store.data.dynamicsTrend || [];
+ const sus = Store.data.sustainTrend || [];
  let title, values;
- if (vib.length >= 2 && vib.length >= dyn.length){ title = "비브라토 속도(Hz)"; values = vib; }
- else if (dyn.length >= 2){ title = "셈여림 레인지(dB)"; values = dyn; }
+ if (vib.length >= 2 && vib.length >= dyn.length && vib.length >= sus.length){ title = "비브라토 속도(Hz)"; values = vib; }
+ else if (dyn.length >= 2 && dyn.length >= sus.length){ title = "셈여림 레인지(dB)"; values = dyn; }
+ else if (sus.length >= 2){ title = "최장 지속(초)"; values = sus; }
  else return null;
  const lo = Math.min(...values), hi = Math.max(...values);
  const span = Math.max(0.001, hi - lo);
@@ -2231,6 +2233,10 @@ function stopTracking(){
  if (App.lo > 0 && (Store.data.range.lo === 0 || App.lo < Store.data.range.lo)) Store.data.range.lo = App.lo;
  if (App.hi > Store.data.range.hi) Store.data.range.hi = App.hi;
  Store.save();
+ if (App.trMode === "single" && App._sustainTimes && App._sustainTimes.length > 1){
+  const hold = sustainLongestRun(App._sustainTimes);
+  if (hold >= 7.5) (Store.data.sustainTrend = Store.data.sustainTrend || []).push(+hold.toFixed(1));
+ }
  const songPreview = App.trMode === "song"
   ? `<br><span style="font-size:12px;color:var(--text-secondary);">다음 곡: ${FOLK_SONGS[(SONG_STATE.index + 1) % FOLK_SONGS.length].title} '${FOLK_SONGS[(SONG_STATE.index + 1) % FOLK_SONGS.length].firstLyric}'</span>`
   : "";

@@ -1245,6 +1245,10 @@ public final class PitchTrackerViewModel {
         if mode == .dynamics, let r = dynamicsResult, r.voicedFrames >= VocalLogic.DynamicsAnalysis.minFrames {
             techniqueValue = r.rangeDb
         }
+        if mode == .single, lastSustainSeconds >= VocalLogic.SustainStats.cautionSeconds * 0.5 {
+            // Sustained hold above ~7.5 s carries the MPT fingerprint.
+            techniqueValue = lastSustainSeconds
+        }
         let record = PitchRecord(
             durationSeconds: max(1, Int(Date().timeIntervalSince(sessionStartDate))),
             targetNoteName: lastSessionTargetLabel.isEmpty ? targetNoteName : lastSessionTargetLabel,

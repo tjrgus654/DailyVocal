@@ -144,10 +144,14 @@ public final class ProgressViewModel {
         let records = pitchRecordsInternal
         let vib = records.filter { $0.targetNoteName == VocalLogic.gameLabel(for: .vibrato) && $0.techniqueValue > 0 }
         let dyn = records.filter { $0.targetNoteName == VocalLogic.gameLabel(for: .dynamics) && $0.techniqueValue > 0 }
-        if vib.count >= 2 && vib.count >= dyn.count {
+        // Sustained single-note sessions carry MPT seconds as their value.
+        let sus = records.filter { $0.targetNoteName == VocalLogic.gameLabel(for: .vibrato) ? false : ($0.targetNoteName == VocalLogic.gameLabel(for: .dynamics) ? false : $0.techniqueValue >= 7.5) }
+        if vib.count >= 2 && vib.count >= dyn.count && vib.count >= sus.count {
             techniqueTrend = TechniqueTrend(kind: "비브라토 속도(Hz)", points: vib.enumerated().map { ($0.offset, $0.element.techniqueValue) })
-        } else if dyn.count >= 2 {
+        } else if dyn.count >= 2 && dyn.count >= sus.count {
             techniqueTrend = TechniqueTrend(kind: "셈여림 레인지(dB)", points: dyn.enumerated().map { ($0.offset, $0.element.techniqueValue) })
+        } else if sus.count >= 2 {
+            techniqueTrend = TechniqueTrend(kind: "최장 지속(초)", points: sus.enumerated().map { ($0.offset, $0.element.techniqueValue) })
         } else {
             techniqueTrend = nil
         }
