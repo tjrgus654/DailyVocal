@@ -1103,7 +1103,7 @@ const App = {
  // 트래커
  listening: false, target: {name:"E4", midi:64}, history: [], hits:0, voiced:0, centsSum:0,
  lo:0, hi:0, sessionStart:0, lastScore:null, lastGrade:"", ignoreUntil:0,
- trMode: "single", echo: {midis:[], idx:0, gen:0, timers:[]},
+ trMode: "single", songRegionFilter: "", echo: {midis:[], idx:0, gen:0, timers:[]},
  bins: new Array(12).fill(0),
  // 온보딩 측정
  measuring:false, mLo:0, mHi:0, mFrames:0, mLive:"--", mFreq:0,
@@ -1519,10 +1519,16 @@ function screenTracker(){
  ${App.trMode==='melody'?`<div class="cap2" style="text-align:center;color:var(--text-secondary);margin:8px 0 0;">프레이즈: ${App._melodyLabel || "멜로디"} — 데모를 듣고 노트마다 따라 불러보세요</div>`:""}
  ${App.trMode==='passaggio'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${App._passaggioLabel || "성구 전환 왕복 — 내 파사지오 존을 오르내리며 경계를 통과합니다"}. 통과 순간 볼륨을 30% 내리세요</div>`:""}
  ${App.trMode==='song'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">곡: ${currentSong().title} '${currentSong().firstLyric}' — 데모를 듣고 박자대로 따라 부르세요 · ${currentSong().origin}</div>
- <div class="glass" style="margin:8px 20px 0;padding:10px;border-radius:14px;display:flex;align-items:center;gap:8px;">
+ <div class="glass" style="margin:8px 20px 0;padding:10px;border-radius:14px;">
+ <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+ <span class="cap2" style="color:var(--text-secondary);">지역</span>
+ ${[""].concat([...new Set(FOLK_SONGS.map(songRegion))]).map(r => `<span class="chip ${App.songRegionFilter === r ? 'on' : ''}" style="padding:4px 8px;flex:none;" onclick="setSongRegionFilter('${r}')" role="button" tabindex="0" aria-label="지역 ${r || "전체"} 필터">${r || "전체"}</span>`).join("")}
+ </div>
+ <div style="display:flex;align-items:center;gap:8px;">
  <span class="caption" style="color:var(--text-secondary);">곡 선택</span>
  <div style="flex:1;display:flex;gap:8px;overflow-x:auto;">
- ${FOLK_SONGS.map((s, i) => `<span class="chip ${s.title === currentSong().title ? 'on' : ''}" style="padding:6px 10px;flex:none;" onclick="selectSong(${i})" role="button" tabindex="0" aria-label="곡 ${s.title} 선택">${s.title}<span style="font-size:9px;opacity:.7;margin-left:4px;">${songRegion(s)}</span></span>`).join("")}
+ ${FOLK_SONGS.map((s, i) => ({ s, i })).filter(({ s }) => !App.songRegionFilter || songRegion(s) === App.songRegionFilter).map(({ s, i }) => `<span class="chip ${s.title === currentSong().title ? 'on' : ''}" style="padding:6px 10px;flex:none;" onclick="selectSong(${i})" role="button" tabindex="0" aria-label="곡 ${s.title} 선택">${s.title}<span style="font-size:9px;opacity:.7;margin-left:4px;">${songRegion(s)}</span></span>`).join("")}
+ </div>
  </div>
  </div>`:""}
  ${App.trMode==='harmony'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${HARMONY_CHECK.phase==='guide'?`드론이 울립니다 — 끝나면 그 음의 ${HARMONY_PARTS[HARMONY_CHECK.partKey||"thirdAbove"].name} 화음을 길게 유지하세요`:(HARMONY_CHECK.phase==='recording'?`지금 ${HARMONY_PARTS[HARMONY_CHECK.partKey||"thirdAbove"].name} 음을 길게 — 드론은 끊겼어도 화음을 그리세요`:"측정 완료 — 결과를 확인하세요")}</div>`:""}
@@ -1971,6 +1977,11 @@ const FOLK_SONGS = [
    notes: [[0,1],[3,1],[5,1],[7,1],[10,1],[7,1],[5,2],[5,1],[7,1],[5,1],[3,1],[3,3]] },
 ];
 const SONG_STATE = { index: 0, rolled: false };
+function setSongRegionFilter(r){
+ App.songRegionFilter = r;
+ haptic(); render();
+}
+window.setSongRegionFilter = setSongRegionFilter;
 function selectSong(i){
  SONG_STATE.index = i;
  SONG_STATE.rolled = true;

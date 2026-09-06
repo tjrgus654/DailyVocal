@@ -310,17 +310,39 @@ public struct PitchTrackerView: View {
         .glassCard(cornerRadius: 14, padding: 10)
     }
 
-    /// Song picker for the folk mode — pin any song from the PD book.
+    /// Song picker for the folk mode — pin any song from the PD book,
+    /// optionally narrowed by region.
     private var songPickerBar: some View {
-        HStack {
-            Text("곡 선택")
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundColor(.textSecondary)
+        VStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Text("지역")
+                    .font(.caption2)
+                    .foregroundColor(.textSecondary)
+                ForEach([""] + VocalLogic.songRegions, id: \.self) { region in
+                    Button {
+                        viewModel.songRegionFilter = region
+                    } label: {
+                        Text(region.isEmpty ? "전체" : region)
+                            .font(.caption2)
+                            .fontWeight(viewModel.songRegionFilter == region ? .bold : .regular)
+                            .foregroundColor(viewModel.songRegionFilter == region ? .white : .textSecondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(viewModel.songRegionFilter == region ? Color.brandPrimary : Color.surfaceDark)
+                            .clipShape(Capsule())
+                    }
+                    .accessibilityLabel("지역 \(region.isEmpty ? "전체" : region) 필터")
+                }
+            }
+            HStack {
+                Text("곡 선택")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.textSecondary)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(VocalLogic.folkSongs, id: \.title) { song in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(viewModel.visibleSongs, id: \.title) { song in
                         Button(action: { viewModel.selectSong(song) }) {
                             HStack(spacing: 4) {
                                 Text(song.title)
@@ -339,6 +361,7 @@ public struct PitchTrackerView: View {
                         .accessibilityLabel("곡 \(song.title) (\(song.region)) 선택")
                     }
                 }
+            }
             }
         }
         .glassCard(cornerRadius: 14, padding: 10)

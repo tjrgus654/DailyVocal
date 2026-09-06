@@ -492,6 +492,22 @@ const regionOk = await page.evaluate(`(() => ({
 }))()`);
 ok("region tags derive from origin", regionOk.gangwon && regionOk.jeolla && regionOk.gyeonggi,
    JSON.stringify(regionOk));
+
+// 14f. Region filter UI narrows the picker.
+await page.evaluate('go("tracker")');
+await page.click('span.chip[onclick="setTrMode(\'song\')"]');
+await page.waitForTimeout(200);
+ok("region filter row rendered", (await page.locator("text=지역").count()) >= 1);
+const filtered = await page.evaluate(`(() => {
+  setSongRegionFilter("강원");
+  const chips = [...document.querySelectorAll('.chip[onclick^="selectSong"]')];
+  const titles = chips.map(c => c.textContent.replace("강원", "").trim());
+  setSongRegionFilter("");
+  return { titles, all: chips.length };
+})()`);
+ok("filter narrows to 강원 songs",
+   filtered.titles.length >= 1 && filtered.titles.every(t => t.includes("정선아리랑")),
+   JSON.stringify(filtered.titles));
 const previewNext = await page.evaluate(`(() => {
   // Song preview appears in the completion toast: simulate a scored stop in song mode.
   App.trMode = "song";

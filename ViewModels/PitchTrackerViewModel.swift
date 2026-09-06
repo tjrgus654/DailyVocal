@@ -122,6 +122,15 @@ public final class PitchTrackerViewModel {
         VocalLogic.folkSongs[(songIndex + 1) % VocalLogic.folkSongs.count]
     }
 
+    /// Region filter for the song picker ("" = all).
+    public var songRegionFilter = "" {
+        didSet { haptics.buttonTap() }
+    }
+    /// Songs shown in the picker under the current filter.
+    public var visibleSongs: [VocalLogic.FolkSong] {
+        songRegionFilter.isEmpty ? VocalLogic.folkSongs : VocalLogic.songs(inRegion: songRegionFilter)
+    }
+
     /// Pins a specific song for the next (or running) song session.
     public func selectSong(_ song: VocalLogic.FolkSong) {
         guard let index = VocalLogic.folkSongs.firstIndex(of: song) else { return }
