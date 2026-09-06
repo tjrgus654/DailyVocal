@@ -13,6 +13,7 @@ import UIKit
 
 public struct PitchTrackerView: View {
     @Environment(\.modelContext) private var modelContext
+    @Query private var profiles: [UserProfile]
     @State private var viewModel = PitchTrackerViewModel()
 
     private let targetNotes = ["C3", "E3", "G3", "A3", "C4", "D4", "E4", "F4", "G4", "A4", "C5"]
@@ -198,6 +199,7 @@ public struct PitchTrackerView: View {
         }
         .onAppear {
             viewModel.setModelContext(modelContext)
+            viewModel.applySuggestedBaseNoteIfNeeded(profile: profiles.first)
             // One-shot deep link from the growth dashboard's recommendation.
             if let mode = AppRouter.shared.pendingTrackerMode {
                 viewModel.mode = mode

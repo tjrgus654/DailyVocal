@@ -1136,6 +1136,7 @@ const tabbar = () => `<div class="tabbar">${TABS.map(([id,label,path])=>`
  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg>
  <span>${label}</span></button>`).join("")}</div>`;
 function go(tab){
+ if (tab === "tracker") applySuggestedBaseNoteIfNeeded();
  if (App.tab === "routine" && tab !== "routine" && App.running) pauseRoutine();
  if (App.tab === "tracker" && tab !== "tracker" && App.listening) stopTracking();
  App.tab = tab; haptic(); render();
@@ -1607,6 +1608,7 @@ function screenTracker(){
  ${tabbar()}`;
 }
 function setTarget(name){
+ Store.data.prefs.userPickedTarget = true; Store.save();
  App.target = {name, midi: 12*(parseInt(name.slice(-1))+1) + NOTE_NAMES.indexOf(name.slice(0,-1))};
  haptic(); render();
 }
@@ -1953,6 +1955,23 @@ function songNoteDurations(song, bpm){
  const beat = 60000 / Math.min(80, Math.max(40, bpm || 50));
  return song.notes.map(n => n[1] * beat);
 }
+function suggestedBaseMidi(prefersHigherKey, lowestMidi, highestMidi){
+ const cl = m => Math.min(72, Math.max(43, m));
+ const ceiling = 72 - 10;
+ if (lowestMidi > 0 && highestMidi > lowestMidi){
+  return Math.min(ceiling, Math.max(43, lowestMidi + 4));
+ }
+ return Math.min(ceiling, Math.max(43, prefersHigherKey ? 60 : 55));
+}
+function applySuggestedBaseNoteIfNeeded(){
+ if (Store.data.prefs.userPickedTarget) return;
+ const lo = Store.data.range.lo > 0 ? Math.round(69 + 12 * Math.log2(Store.data.range.lo / 440)) : 0;
+ const hi = Store.data.range.hi > 0 ? Math.round(69 + 12 * Math.log2(Store.data.range.hi / 440)) : 0;
+ const midi = suggestedBaseMidi(!!Store.data.prefs.femaleKey, lo, hi);
+ App.target.midi = midi;
+ App.target.name = freqToNoteCents(midiToFreq(midi)).note;
+}
+window.applySuggestedBaseNoteIfNeeded = applySuggestedBaseNoteIfNeeded;
 function startSongFlow(){
  App.echo.gen++;
  const gen = App.echo.gen;

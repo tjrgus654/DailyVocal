@@ -320,7 +320,23 @@ public final class PitchTrackerViewModel {
     public func setTargetNote(_ name: String) {
         guard VocalAudioEngine.midiNumber(forNoteName: name) != nil else { return }
         targetNoteName = name
+        UserDefaults.standard.set(true, forKey: "userPickedTargetNote")
         haptics.buttonTap()
+    }
+
+    /// Suggests a starting base note from the profile (key preference +
+    /// measured range) once — after the user picks their own note, the
+    /// suggestion never overrides it. Male users get a base inside their
+    /// comfortable low-mid range instead of the default E4.
+    public func applySuggestedBaseNoteIfNeeded(profile: UserProfile?) {
+        guard !UserDefaults.standard.bool(forKey: "userPickedTargetNote") else { return }
+        let midi = VocalLogic.suggestedBaseMidi(
+            prefersHigherKey: profile?.prefersHigherKeyGuide ?? false,
+            lowestMidi: Int(VocalAudioEngine.midiNumber(forFrequency: profile?.lowestFrequency ?? 0).rounded()),
+            highestMidi: Int(VocalAudioEngine.midiNumber(forFrequency: profile?.highestFrequency ?? 0).rounded()))
+        if let name = VocalAudioEngine.noteAndCents(fromFrequency: VocalAudioEngine.frequency(forMidi: Double(midi))).note as String? {
+            targetNoteName = name
+        }
     }
 
     /// Plays the target tone once. While it sounds (plus a short tail), the

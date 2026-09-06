@@ -448,6 +448,22 @@ const pickerOk = await page.evaluate(`(() => {
 ok("song picker pins 도라지타령", pickerOk.label === "도라지타령" && pickerOk.rolled,
    JSON.stringify(pickerOk));
 
+// 14c. Suggested base note: measured range wins, manual pick locks it.
+const sug = await page.evaluate(`(() => {
+  Store.data.prefs.userPickedTarget = false;
+  Store.data.range = { lo: 110, hi: 330 };  // ~A2..E4 male-typical
+  applySuggestedBaseNoteIfNeeded();
+  const suggested = App.target.midi;
+  // Manual pick locks: setTarget sets the flag, suggestion no longer applies.
+  setTarget("C4");
+  const afterPick = App.target.midi;
+  Store.data.range = { lo: 220, hi: 660 };
+  applySuggestedBaseNoteIfNeeded();
+  return { suggested, afterPick, locked: App.target.midi === afterPick };
+})()`);
+ok("suggested base uses measured range", sug.suggested === 49, "midi " + sug.suggested);
+ok("manual pick locks suggestion", sug.locked && sug.afterPick === 60, JSON.stringify(sug));
+
 await browser.close();
 
 console.log(checks.join("\n"));

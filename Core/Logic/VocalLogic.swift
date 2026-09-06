@@ -1625,6 +1625,25 @@ public enum VocalLogic {
         return song.notes.map { $0.beats * beat }
     }
 
+    /// Suggested default base note for the sequence drills (scale / melody /
+    /// song), so male users don't have to lower the target by hand.
+    /// Rule: with a measured range, sit comfortably above the bottom
+    /// (bottom + 4 semitones, capped so the top note of a phrase stays in
+    /// the band); without one, fall back to the key preference
+    /// (male G3 = 55, female C4 = 60).
+    public static func suggestedBaseMidi(
+        prefersHigherKey: Bool, lowestMidi: Int, highestMidi: Int,
+        band: ClosedRange<Int> = 43...72
+    ) -> Int {
+        // A phrase can rise up to 10 semitones (pentatonic top); keep the
+        // ceiling inside the band.
+        let ceiling = band.upperBound - 10
+        if lowestMidi > 0, highestMidi > lowestMidi {
+            return min(ceiling, max(band.lowerBound, lowestMidi + 4))
+        }
+        return min(ceiling, max(band.lowerBound, prefersHigherKey ? 60 : 55))
+    }
+
     // MARK: - Session grading
 
     /// Karaoke-style 0...100 score to S/A/B/C/D grade.
