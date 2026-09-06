@@ -3,10 +3,10 @@ import XCTest
 
 final class FolkSongTests: XCTestCase {
 
-    func testLibraryShipsEightSongs() {
-        XCTAssertEqual(VocalLogic.folkSongs.count, 8)
+    func testLibraryShipsNineSongs() {
+        XCTAssertEqual(VocalLogic.folkSongs.count, 9)
         XCTAssertEqual(VocalLogic.folkSongs.map(\.title),
-                       ["아리랑", "강강술래", "한오백년", "정선아리랑", "둥당기타령", "도라지타령", "난봉가", "매화타령"])
+                       ["아리랑", "강강술래", "한오백년", "정선아리랑", "둥당기타령", "도라지타령", "난봉가", "매화타령", "신고산타령"])
         // Every song documents its traditional origin (the PD basis).
         for song in VocalLogic.folkSongs {
             XCTAssertTrue(song.origin.contains("전통"), "\(song.title)")

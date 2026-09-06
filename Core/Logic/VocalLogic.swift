@@ -1661,6 +1661,17 @@ public enum VocalLogic {
                 SongNote(3, 3),
             ]
         ),
+        FolkSong(
+            title: "신고산타령",
+            origin: "서남해안 민요(진도 지역) — 전통 원형",
+            firstLyric: "신고산 넘어가는 사공의 배",
+            notes: [
+                SongNote(0, 1), SongNote(0, 1), SongNote(3, 1), SongNote(5, 1),
+                SongNote(3, 1), SongNote(0, 2),
+                SongNote(3, 1), SongNote(5, 1), SongNote(7, 1), SongNote(5, 1),
+                SongNote(3, 4),
+            ]
+        ),
     ]
 
     /// The song's note sequence as midis from `baseMidi`, clamped to the
