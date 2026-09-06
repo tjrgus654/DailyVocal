@@ -841,3 +841,12 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 360 | 테크닉 추이 카드: 2점 이상 시 하이라이트 스파크라인(비브라토 Hz·셈여림 dB 중 많은 쪽, 최근 값 강조) — update()에 전체 레코드 전달 | 파스 통과 | TechniqueTrendCard |
 | 361 | Windows swift test 151/151(전 스위트 0 실패)·E2E 96/96·verify_all 9게이트 | ALL GREEN | 개수 재확정: Windows 순수 151(macOS는 파이프라인 6 포함) — 이전 로그 153은 기재 오류 정정 |
 | 362 | CI 실패 → 원인: TechniqueTrendCard 구조체 삽입 스크립트가 assert에서 조용히 실패해 카드 누락(not-in-scope) + 부모 표현식 타입체크 타임아웃. 카드 삽입 + 바 행 하위 뷰 분리로 수정 | 2/2 success | 교훈: 삽입 스크립트는 print 확인 없이 성공으로 간주 금지 — 이번에 grep 확인 습관화 |
+
+
+## 테크닉 추이 웹 미러 (세션 37 — 2026-09-06)
+
+| # | 검증 행위 | 결과 | 증거/비고 |
+|---|---|---|---|
+| 363 | 웹 추이 카드: vibratoTrend/dynamicsTrend 시리즈(완료 시 푸시, 1자리 반올림) + techniqueTrendCard(≥2점·많은 쪽·최근 최고 초록 바 — Swift 규칙 미러) + 성장 기록 렌더 | JS OK | 이전 라운드 교훈 적용: 삽입 후 grep·렌더 확인 |
+| 364 | E2E 99축(+3: 시리즈 4점·최근 최고 초록·카드 렌더) — 뒷단계 격리 리셋 포함 | 99/99 | |
+| 365 | verify_all 9게이트 | ALL GREEN | swift test 151/151 |

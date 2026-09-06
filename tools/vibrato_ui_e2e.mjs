@@ -149,6 +149,30 @@ await page.waitForTimeout(200);
 ok("growth sustain line", (await page.locator("text=16.4초 (한 호흡 최대 발성)").count()) >= 1);
 ok("growth harmony bias line", (await page.locator("text=위 성부 +22¢ / 아래 성부 −30¢").count()) >= 1);
 
+// 7b. Technique trend sparkline: >=2 same-kind measures render bars.
+const trend = await page.evaluate(`(() => {
+  Store.data.vibratoTrend = [4.2, 4.8, 5.1, 5.4];
+  Store.data.dynamicsTrend = [];
+  Store.save();
+  render();
+  const card = techniqueTrendCard();
+  return {
+    title: card && card.title === "비브라토 속도(Hz)",
+    count: card && card.values.length === 4,
+    lastGreen: (card && card.bars || "").includes("vocal-success"),
+  };
+})()`);
+ok("trend card vibrato series", trend.title && trend.count, JSON.stringify(trend));
+ok("trend highlights recent best", trend.lastGreen);
+await page.waitForTimeout(200);
+ok("trend card rendered", (await page.locator("text=비브라토 속도(Hz) 추이").count()) >= 1);
+// Cleanup so later phases see no trend.
+await page.evaluate(`(() => {
+  Store.data.vibratoTrend = [];
+  Store.save();
+  render();
+})()`);
+
 // 8. Next-game recommendation card (records-driven, technique-aware).
 await page.evaluate(`(() => {
   // Isolate from earlier runs: localStorage keeps fingerprints/records

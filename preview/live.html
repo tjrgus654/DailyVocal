@@ -280,6 +280,7 @@ const Store = {
  favorites:[], prefs:{femaleKey:false, transpose:0, autoplay:true},
  speechMedianHz:0, lastVibratoRateHz:0, lastVibratoExtentCents:0, lastDynamicsRangeDb:0, bestSustainSeconds:0,
  harmonyAboveCents:0, harmonyBelowCents:0,
+ vibratoTrend:[], dynamicsTrend:[],
  };
  },
  load(){
@@ -613,6 +614,20 @@ function dynamicsScore(m){
 // ── 최장 지속 / MPT (Swift VocalLogic.SustainStats 미러) ──────────────
 // 한국인 정상 성인: 남 20.8±6.4초·여 17.2±4.1초(JKSLP), 15초 미만 임상 주의선.
 const SUSTAIN = { GAP: 0.25, CAUTION: 15.0, MALE_NORM: 20.8, FEMALE_NORM: 17.2 };
+function techniqueTrendCard(){
+ const vib = Store.data.vibratoTrend || [];
+ const dyn = Store.data.dynamicsTrend || [];
+ let title, values;
+ if (vib.length >= 2 && vib.length >= dyn.length){ title = "비브라토 속도(Hz)"; values = vib; }
+ else if (dyn.length >= 2){ title = "셈여림 레인지(dB)"; values = dyn; }
+ else return null;
+ const lo = Math.min(...values), hi = Math.max(...values);
+ const span = Math.max(0.001, hi - lo);
+ const bars = values.map(v => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;">
+  <div style="width:100%;border-radius:3px;background:${v >= hi - span * 0.25 ? 'var(--vocal-success)' : 'var(--brand-secondary)'};height:${Math.max(6, (v - lo) / span * 52)}px;"></div>
+  <span style="font-size:8px;font-weight:700;color:var(--text-secondary);font-variant-numeric:tabular-nums;">${v.toFixed(1)}</span></div>`).join("");
+ return { title, values, bars };
+}
 function centsLabel(cents){
  if (!cents) return "—";
  return (cents > 0 ? "+" : "−") + Math.round(Math.abs(cents)) + "¢";
@@ -1711,6 +1726,7 @@ function finishVibratoCheck(){
   if (m.voicedFrames >= VIB.MIN_FRAMES){
    Store.data.lastVibratoRateHz = m.rateHz;
    Store.data.lastVibratoExtentCents = m.extentCents;
+   (Store.data.vibratoTrend = Store.data.vibratoTrend || []).push(+m.rateHz.toFixed(1));
   }
   Store.data.pitchRecords.push({
    t: Date.now(), target: "비브라토 체크", acc: score,
@@ -1755,6 +1771,7 @@ function finishDynamicsCheck(){
   App.lastGrade = score >= 90 ? "S" : score >= 80 ? "A" : score >= 70 ? "B" : score >= 60 ? "C" : "D";
   if (m.voicedFrames >= DYN.MIN_FRAMES){
    Store.data.lastDynamicsRangeDb = m.rangeDb;
+   (Store.data.dynamicsTrend = Store.data.dynamicsTrend || []).push(+m.rangeDb.toFixed(1));
   }
   Store.data.pitchRecords.push({
    t: Date.now(), target: "다이내믹스 아치", acc: score,
@@ -2606,6 +2623,14 @@ function screenProgress(){
  <div class="cap2" style="color:var(--text-secondary);margin-top:6px;">비브라토 4.5~6.5Hz·±50~100¢ / 셈여림 6dB+ 가 목표 범위입니다</div>
  ${(Store.data.bestSustainSeconds || 0) > 0 ? `<div class="cap2" style="color:${Store.data.bestSustainSeconds >= SUSTAIN.CAUTION ? 'var(--vocal-success)' : 'var(--vocal-warning)'};margin-top:2px;">최장 지속 ${Store.data.bestSustainSeconds.toFixed(1)}초 (한 호흡 최대 발성) — 15초 이상이 건강 기준</div>` : ""}
  ${((Store.data.harmonyAboveCents || 0) !== 0 || (Store.data.harmonyBelowCents || 0) !== 0) ? `<div class="cap2" style="color:var(--text-secondary);margin-top:2px;">하모니 성향: 위 성부 ${centsLabel(Store.data.harmonyAboveCents)} / 아래 성부 ${centsLabel(Store.data.harmonyBelowCents)} — ±15센트 이내가 정확</div>` : ""}
+ </div>` : ""}
+ ${techniqueTrendCard() ? `<div class="glass" style="margin:14px 20px 0;padding:14px 16px;border-radius:18px;">
+ <div style="display:flex;align-items:center;">
+ <span style="font-size:12px;font-weight:800;">${techniqueTrendCard().title} 추이</span><div style="flex:1"></div>
+ <span class="cap2" style="color:var(--text-secondary);">최근 ${techniqueTrendCard().values.length}회</span></div>
+ <div style="display:flex;align-items:flex-end;gap:4px;height:64px;margin-top:10px;">
+ ${techniqueTrendCard().bars}
+ </div>
  </div>` : ""}
  ${(Store.data.bestSustainSeconds || 0) > 0 && !(Store.data.lastVibratoRateHz > 0 || Store.data.lastDynamicsRangeDb > 0) ? `<div class="glass" style="margin:14px 20px 0;padding:16px;">
  <div style="display:flex;align-items:center;">
