@@ -155,13 +155,51 @@ else:
     check("latest: vibrato", r["latest"].get("vibrato") == 40)
     check("latest: dynamics", r["latest"].get("dynamics") == 55)
     check("latest: interval nil", r["latest"].get("interval") is None)
+
+print("=== 10. dailySummaryLine execution parity (JS on Swift vectors) ===")
+node_code2 = r"""
+const fs = require('fs'), vm = require('vm');
+const html = fs.readFileSync('preview/live.html', 'utf8');
+const js = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+const anchor = js.indexOf('function dailySummaryLine');
+const nl = String.fromCharCode(10);
+const end = js.indexOf(nl + '}', js.indexOf('bestScore != null', anchor));
+const block = js.slice(anchor, end + 2);
+const sandbox = { Math, Date, isFinite, console, Object, window: {} };
+vm.createContext(sandbox);
+vm.runInContext(block, sandbox);
+const out = vm.runInContext(`(function(){
+  const cases = [
+    // [routineSessions, techniqueMeasures, bestScore, expected]
+    [0, 3, 90, null],
+    [1, 3, 90, null],
+    [2, 3, 84, "오늘의 마무리: 루틴 2회 · 테크닉 측정 3회 · 최고 84점"],
+    [2, 0, 70, "오늘의 마무리: 루틴 2회 · 최고 70점"],
+    [3, 1, null, "오늘의 마무리: 루틴 3회 · 테크닉 측정 1회"],
+  ];
+  return cases.map(([rs, tm, bs]) => dailySummaryLine(rs, tm, bs));
+})()`, sandbox);
+console.log(JSON.stringify(out));
+"""
+proc2 = subprocess.run(["node", "--input-type=commonjs", "-e", node_code2],
+                       capture_output=True, text=True)
+if proc2.returncode != 0 or not proc2.stdout.strip():
+    check("daily summary node execution", False, (proc2.stderr or proc2.stdout)[-200:])
+else:
+    import json as _json
+    vals = _json.loads(proc2.stdout)
+    check("summary hidden before 2nd", vals[0] is None and vals[1] is None)
+    check("summary full form", vals[2] == "오늘의 마무리: 루틴 2회 · 테크닉 측정 3회 · 최고 84점")
+    check("summary omits empty measures", vals[3] == "오늘의 마무리: 루틴 2회 · 최고 70점")
+    check("summary omits missing score", vals[4] == "오늘의 마무리: 루틴 3회 · 테크닉 측정 1회")
     check("latest: scale 68", r["latest"].get("scale") == 68)
     check("latest: melody 71", r["latest"].get("melody") == 71)
     check("latest: harmony 66", r["latest"].get("harmony") == 66)
     check("latest: song 69", r["latest"].get("song") == 69)
     check("latest: passaggio 61", r["latest"].get("passaggio") == 61)
 
-check("best-take compare", "bestTakeSummary" in js and "compareTakes" in logic)
+check("daily summary fn", "function dailySummaryLine" in js and "func dailySummaryLine" in logic)
+check("daily summary 2-session gate", "routineSessions < 2" in js and "routineSessions >= 2" in logic)
 check("gap pools", '[0,4,5,7,-4,-5,-7]' in js and '[0, 4, 5, 7, -4, -5, -7]' in logic)
 
 print()

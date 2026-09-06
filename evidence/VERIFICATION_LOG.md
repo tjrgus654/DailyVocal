@@ -970,3 +970,5 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 408 | verify_all 9게이트 + 전체 swift test | ALL GREEN | swift test 157/157(+3) |
 | 409 | 하루 요약 웹 미러: dailySummaryLine(동일 규칙 — 2회차부터·빈 부분 생략) + 완료 토스트에 오늘(4AM 롤오버) 루틴 횟수·테크닉 지문 레코드·최고 점수 집계 롤업 | JS OK | 앱↔웹 패리티 회복 |
 | 410 | E2E 112축(+3: 1회차 은닉·완전형·부분 생략 2종) + verify_all 9게이트 | ALL GREEN | swift test 157/157 |
+| 411 | 스트릭 패리티에 dailySummaryLine 축: 정적 2종(함수·2회차 게이트) + 실행 벡터 5종(은닉 2·완전형·부분 생략 2 — Swift 테스트와 동일 벡터) | ALL PASS | heredoc 이스케이프가 노드 코드를 깨뜨린 것을 즉시 발견·chr(10) 조립으로 회피(확립된 패턴) |
+| 412 | verify_all 9게이트 | ALL GREEN | swift test 157/157 |
