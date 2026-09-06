@@ -1762,6 +1762,28 @@ public enum VocalLogic {
         song.notes.map { min(band.upperBound, max(band.lowerBound, baseMidi + $0.offset)) }
     }
 
+    /// Data-driven tip recommendation: measurements pick the most relevant
+    /// research tip (weakness-first, mirroring the game recommender's
+    /// principle). Returns (tip id, reason line) or nil with no data.
+    public static func recommendedTip(
+        vibratoRateHz: Double, dynamicsRangeDb: Double,
+        bestSustainSeconds: Double, isMaleVoice: Bool
+    ) -> (id: Int, reason: String)? {
+        if bestSustainSeconds > 0 && bestSustainSeconds < 15 {
+            return (60, "최장 지속이 \(Int(bestSustainSeconds.rounded()))초 — 호흡 지지 팁부터")
+        }
+        if vibratoRateHz > 0 && (vibratoRateHz < 4.5 || vibratoRateHz > 6.5) {
+            return (55, "비브라토 속도가 범위(4.5~6.5Hz)를 벗어났어요")
+        }
+        if dynamicsRangeDb > 0 && dynamicsRangeDb < 6 {
+            return (56, "셈여림 레인지가 목표(6dB)에 못 미쳐요")
+        }
+        if isMaleVoice {
+            return (58, "남성 파사지오 통과 훈련법을 확인해보세요")
+        }
+        return (57, "스케일 래더로 기본기를 다져보세요")
+    }
+
     /// Session-alert technique line for a vibrato check: the numbers behind
     /// the grade. Pure so the alert content is unit-testable.
     public static func vibratoDetailLine(rateHz: Double, extentCents: Double, regularity: Double) -> String {

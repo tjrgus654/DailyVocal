@@ -584,6 +584,18 @@ ok("daily summary hidden on 1st", daySum.hidden);
 ok("daily summary full form", daySum.shown, JSON.stringify(daySum));
 ok("daily summary omits empty", daySum.partial && daySum.noScore);
 
+// 14h. Data-driven tip recommendation.
+const tipRec = await page.evaluate(`(() => {
+  const breath = recommendedTip(3.8, 4.0, 9, true);
+  const vib = recommendedTip(7.2, 4.0, 16, false);
+  const male = recommendedTip(5.5, 8, 16, true);
+  const general = recommendedTip(0, 0, 0, false);
+  return { breath: breath.id === 60 && breath.reason.includes("호흡 지지"),
+           vib: vib.id === 55, male: male.id === 58, general: general.id === 57 };
+})()`);
+ok("tip rec weakness-first", tipRec.breath && tipRec.vib, JSON.stringify(tipRec));
+ok("tip rec fallbacks", tipRec.male && tipRec.general);
+
 // 14d. Passaggio round-trip: zone-crossing arch per male voice type.
 const pass = await page.evaluate(`(() => {
   const bar = passaggioSequence("baritone");

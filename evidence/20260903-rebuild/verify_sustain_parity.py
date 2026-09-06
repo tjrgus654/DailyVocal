@@ -34,7 +34,7 @@ const js = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const start = js.indexOf('// ── 최장 지속');
 const endMarker = js.indexOf('여유 있게 내쉬는 습관', js.indexOf('function sustainFeedback'));
 const block = js.slice(start, js.indexOf('}', endMarker) + 1);
-const sandbox = { Math, Date, isFinite, console };
+const sandbox = { Math, Date, isFinite, console, window: {} };
 vm.createContext(sandbox);
 vm.runInContext(block, sandbox);
 const run = vm.runInContext(`(function(){

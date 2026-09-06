@@ -636,6 +636,17 @@ function techniqueTrendCard(){
   <span style="font-size:8px;font-weight:700;color:var(--text-secondary);font-variant-numeric:tabular-nums;">${v.toFixed(1)}</span></div>`).join("");
  return { title, values, bars };
 }
+function recommendedTip(vibRate, dynDb, bestSustain, isMale){
+ if (bestSustain > 0 && bestSustain < 15)
+  return { id: 60, reason: `최장 지속이 ${Math.round(bestSustain)}초 — 호흡 지지 팁부터` };
+ if (vibRate > 0 && (vibRate < 4.5 || vibRate > 6.5))
+  return { id: 55, reason: "비브라토 속도가 범위(4.5~6.5Hz)를 벗어났어요" };
+ if (dynDb > 0 && dynDb < 6)
+  return { id: 56, reason: "셈여림 레인지가 목표(6dB)에 못 미쳐요" };
+ if (isMale) return { id: 58, reason: "남성 파사지오 통과 훈련법을 확인해보세요" };
+ return { id: 57, reason: "스케일 래더로 기본기를 다져보세요" };
+}
+window.recommendedTip = recommendedTip;
 function dailySummaryLine(routineSessions, techniqueMeasures, bestScore){
  if (routineSessions < 2) return null;
  let line = "오늘의 마무리: 루틴 " + routineSessions + "회";
@@ -2731,6 +2742,18 @@ function screenProgress(){
  </div>
  <div class="cap2" style="color:var(--text-secondary);margin-top:6px;">비브라토 4.5~6.5Hz·±50~100¢ / 셈여림 6dB+ 가 목표 범위입니다</div>
  ${(Store.data.bestSustainSeconds || 0) > 0 ? `<div class="cap2" style="color:${Store.data.bestSustainSeconds >= SUSTAIN.CAUTION ? 'var(--vocal-success)' : 'var(--vocal-warning)'};margin-top:2px;">최장 지속 ${Store.data.bestSustainSeconds.toFixed(1)}초 (한 호흡 최대 발성) — 15초 이상이 건강 기준</div>` : ""}
+ ${(() => {
+  let vt = "미확정";
+  if (Store.data.measured && Store.data.range.lo > 0){
+   const lo = Math.round(69 + 12 * Math.log2(Store.data.range.lo / 440));
+   const hi = Math.round(69 + 12 * Math.log2(Store.data.range.hi / 440));
+   const ceil = Math.round(69 + 12 * Math.log2((Store.data.baseline && Store.data.baseline.hi || Store.data.range.hi) / 440));
+   vt = estimateVoiceType(lo, hi, ceil, Store.data.prefs.femaleKey || null);
+  }
+  const t = recommendedTip(Store.data.lastVibratoRateHz || 0, Store.data.lastDynamicsRangeDb || 0,
+   Store.data.bestSustainSeconds || 0, ["테너","바리톤","베이스"].includes(vt));
+  return t ? `<div class="cap2" style="color:var(--brand-secondary);margin-top:2px;">📖 팁 #${t.id} — ${t.reason}</div>` : "";
+ })()}
  ${((Store.data.harmonyAboveCents || 0) !== 0 || (Store.data.harmonyBelowCents || 0) !== 0) ? `<div class="cap2" style="color:var(--text-secondary);margin-top:2px;">하모니 성향: 위 성부 ${centsLabel(Store.data.harmonyAboveCents)} / 아래 성부 ${centsLabel(Store.data.harmonyBelowCents)} — ±15센트 이내가 정확</div>` : ""}
  </div>` : ""}
  ${techniqueTrendCard() ? `<div class="glass" style="margin:14px 20px 0;padding:14px 16px;border-radius:18px;">

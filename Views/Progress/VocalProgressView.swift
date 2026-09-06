@@ -74,6 +74,14 @@ public struct VocalProgressView: View {
                                 .padding(.horizontal, 20)
                         }
 
+                        if let tip = viewModel.recommendedTipLine {
+                            Text("📖 \(tip)")
+                                .font(.caption2)
+                                .foregroundColor(.brandSecondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 20)
+                        }
+
                         if let trend = viewModel.techniqueTrend {
                             TechniqueTrendCard(points: trend.points, kind: trend.kind, lowerIsBetter: trend.lowerIsBetter)
                                 .padding(.horizontal, 20)

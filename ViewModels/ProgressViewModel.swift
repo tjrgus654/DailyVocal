@@ -68,6 +68,21 @@ public final class ProgressViewModel {
         heatmapDays = VocalLogic.buildEmptyHeatmap(dayCount: 84)
     }
 
+    /// Data-driven tip recommendation line ("오늘 읽을 팁: {title} — {reason}").
+    public var recommendedTipLine: String? {
+        let isMale: Bool
+        if case .tenor = estimatedVoiceType { isMale = true }
+        else if case .baritone = estimatedVoiceType { isMale = true }
+        else if case .bass = estimatedVoiceType { isMale = true }
+        else { isMale = false }
+        guard let rec = VocalLogic.recommendedTip(
+            vibratoRateHz: lastVibratoRateHz,
+            dynamicsRangeDb: lastDynamicsRangeDb,
+            bestSustainSeconds: bestSustainSeconds,
+            isMaleVoice: isMale) else { return nil }
+        return "팁 #\(rec.id) — \(rec.reason)"
+    }
+
     /// Latest step-error fingerprint for a sequence game (semitones), 0 if none.
     public func latestStepError(for game: VocalLogic.GameType) -> Double {
         pitchRecordsInternal.last {
