@@ -192,9 +192,9 @@ public struct OnboardingView: View {
         VStack(spacing: 24) {
             Spacer()
             VStack(spacing: 14) {
-                analogyCard(emoji: "🎯", title: "음정 훈련", desc: "단음 유지 · 에코 3음 · 스케일 따라부르기 — 피치를 정확히 맞추는 기본기")
-                analogyCard(emoji: "〰️", title: "테크닉 계측", desc: "비브라토 체크(속도·진폭) · 셈여림 아치 — 내 목소리의 숫자를 처음으로 봅니다")
-                analogyCard(emoji: "🎮", title: "귀 훈련 게임", desc: "모음 · 음정 · 높낮이 판별 — 듣는 근육도 함께 기릅니다")
+                analogyCard(emoji: "🎯", title: "음정·테크닉 훈련", desc: "단음·에코·스케일·멜로디·비브라토·셈여림 — 피치부터 테크닉까지 전부 숫자로 측정")
+                analogyCard(emoji: "🚪", title: "내 파사지오 왕복", desc: "측정 음역으로 성종을 추정하고, 내 성구 전환 구간을 통과하는 드릴을 자동으로 만들어줍니다")
+                analogyCard(emoji: "🎼", title: "화음·민요", desc: "드론 위 3도·5도 성부 부르기와 저작권 프리 전통 민요 따라부르기 — 귀 훈련 게임까지")
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 12)

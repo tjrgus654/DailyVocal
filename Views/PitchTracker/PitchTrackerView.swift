@@ -246,6 +246,9 @@ public struct PitchTrackerView: View {
         case .dynamics where viewModel.dynamicsResult != nil:
             let r = viewModel.dynamicsResult!
             text += "\n셈여림 레인지 \(String(format: "%.1f", r.rangeDb))dB · 정점 \(Int((r.peakPosition * 100).rounded()))%"
+        case .song:
+            let next = viewModel.nextSongPreview
+            text += "\n다음 곡: \(next.title) '\(next.firstLyric)'"
         case .harmony where viewModel.lastHarmonyTip != nil:
             text += "\n\(viewModel.lastHarmonyTip!)"
         default:

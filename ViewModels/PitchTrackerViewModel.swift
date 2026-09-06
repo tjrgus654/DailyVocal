@@ -117,6 +117,11 @@ public final class PitchTrackerViewModel {
         VocalLogic.folkSongs[songIndex % VocalLogic.folkSongs.count]
     }
 
+    /// The song that will play on the NEXT song session (rotation preview).
+    public var nextSongPreview: VocalLogic.FolkSong {
+        VocalLogic.folkSongs[(songIndex + 1) % VocalLogic.folkSongs.count]
+    }
+
     /// Pins a specific song for the next (or running) song session.
     public func selectSong(_ song: VocalLogic.FolkSong) {
         guard let index = VocalLogic.folkSongs.firstIndex(of: song) else { return }
