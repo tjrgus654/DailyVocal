@@ -192,6 +192,45 @@ else:
     check("summary full form", vals[2] == "오늘의 마무리: 루틴 2회 · 테크닉 측정 3회 · 최고 84점")
     check("summary omits empty measures", vals[3] == "오늘의 마무리: 루틴 2회 · 최고 70점")
     check("summary omits missing score", vals[4] == "오늘의 마무리: 루틴 3회 · 테크닉 측정 1회")
+
+print("=== 11. recommendedTip execution parity (JS on Swift vectors) ===")
+node_code3 = r"""
+const fs = require('fs'), vm = require('vm');
+const html = fs.readFileSync('preview/live.html', 'utf8');
+const js = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+const anchor2 = js.indexOf('function recommendedTip');
+const tail = js.indexOf('bestSustain > 0 && bestSustain < 15', anchor2);
+const nl = String.fromCharCode(10);
+// The function closes with the final fallback return; find its closing brace.
+const nextFn = js.indexOf('function dailySummaryLine', anchor2);
+const seg = js.slice(anchor2, js.lastIndexOf('}', nextFn) + 1);
+const sandbox3 = { Math, Date, isFinite, console, Object, window: {} };
+vm.createContext(sandbox3);
+vm.runInContext(seg, sandbox3);
+const out = vm.runInContext(`(function(){
+  const cases = [
+    [3.8, 4.0, 9, true],    // breath wall -> tip 60
+    [7.2, 4.0, 16, false],  // vibrato out of band -> 55
+    [5.5, 4.2, 16, false],  // dynamics short -> 56
+    [5.5, 8, 16, true],     // healthy male -> 58
+    [0, 0, 0, false],       // no data -> 57
+  ];
+  return cases.map(([v, d, s, m]) => recommendedTip(v, d, s, m).id);
+})()`, sandbox3);
+console.log(JSON.stringify(out));
+"""
+proc3 = subprocess.run(["node", "--input-type=commonjs", "-e", node_code3],
+                       capture_output=True, text=True)
+if proc3.returncode != 0 or not proc3.stdout.strip():
+    check("tip recommender node execution", False, (proc3.stderr or proc3.stdout)[-200:])
+else:
+    import json as _json3
+    ids = _json3.loads(proc3.stdout)
+    check("tip breath wall -> 60", ids[0] == 60)
+    check("tip vibrato -> 55", ids[1] == 55)
+    check("tip dynamics -> 56", ids[2] == 56)
+    check("tip male fallback -> 58", ids[3] == 58)
+    check("tip no-data fallback -> 57", ids[4] == 57)
     check("latest: scale 68", r["latest"].get("scale") == 68)
     check("latest: melody 71", r["latest"].get("melody") == 71)
     check("latest: harmony 66", r["latest"].get("harmony") == 66)
@@ -200,6 +239,8 @@ else:
 
 check("daily summary fn", "function dailySummaryLine" in js and "func dailySummaryLine" in logic)
 check("daily summary 2-session gate", "routineSessions < 2" in js and "routineSessions >= 2" in logic)
+check("tip recommender fn", "function recommendedTip" in js and "func recommendedTip" in logic)
+check("tip weakness-first gates", "bestSustain > 0 && bestSustain < 15" in js and "bestSustainSeconds > 0 && bestSustainSeconds < 15" in logic)
 check("gap pools", '[0,4,5,7,-4,-5,-7]' in js and '[0, 4, 5, 7, -4, -5, -7]' in logic)
 
 print()
