@@ -216,7 +216,8 @@ await page.evaluate(`(() => {
     { t: 6, target: "화음 부르기", acc: 73, lo: 0, hi: 0, dur: 30 },
     { t: 7, target: "민요 따라부르기", acc: 74, lo: 0, hi: 0, dur: 45 },
     { t: 8, target: "파사지오 왕복", acc: 76, lo: 0, hi: 0, dur: 30 },
-    { t: 9, target: "다이내믹스 아치", acc: 62, lo: 0, hi: 0, dur: 40 },
+    { t: 9, target: "고음 확장", acc: 75, lo: 0, hi: 0, dur: 30 },
+    { t: 10, target: "다이내믹스 아치", acc: 62, lo: 0, hi: 0, dur: 40 },
   ];
   Store.data.lastVibratoRateHz = 0;
   Store.data.lastVibratoExtentCents = 0;
@@ -238,7 +239,7 @@ const recWeakest = await page.evaluate(`(() => {
   // t must exceed the seed's max (7): with a tie at t:6 the chronological
   // last stays dynamics, lastGame == weakest, and the variety rule (gap
   // 72-62 <= 15) correctly returns the runner-up scale instead.
-  Store.data.pitchRecords.push({ t: 10, target: "비브라토 체크", acc: 74, lo: 0, hi: 0, dur: 45 });
+  Store.data.pitchRecords.push({ t: 11, target: "비브라토 체크", acc: 74, lo: 0, hi: 0, dur: 45 });
   Store.save();
   render();
   return nextGameRecommendation();
@@ -250,7 +251,7 @@ ok("recommendation weakest measured", recWeakest.game === "dynamics" && recWeake
 const evidence = await page.evaluate(`(() => {
   // t:9 keeps this the LATEST vibrato record (the recWeakest push used
   // t:8; latestAccuracies takes the last match in chronological order).
-  Store.data.pitchRecords.push({ t: 11, target: "비브라토 체크", acc: 30, lo: 0, hi: 0, dur: 45 });
+  Store.data.pitchRecords.push({ t: 12, target: "비브라토 체크", acc: 30, lo: 0, hi: 0, dur: 45 });
   Store.data.lastVibratoRateHz = 3.8;
   Store.data.lastVibratoExtentCents = 80;
   Store.save();

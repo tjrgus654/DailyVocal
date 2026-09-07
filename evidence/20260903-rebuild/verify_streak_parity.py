@@ -94,7 +94,8 @@ check("5 game types", '"비브라토 체크"' in js and 'return "비브라토 �
 check("dynamics label", '"다이내믹스 아치"' in js and 'return "다이내믹스 아치"' in logic)
 check("game type cases", "case vibrato" in logic and "case dynamics" in logic)
 check("latestAccuracies", "function latestAccuracies" in js and "func latestAccuracies" in logic)
-check("10-entry score table", '["passaggio", passaggioAcc ?? 50]' in js and '(.passaggio, passaggioAccuracy ?? 50)' in logic)
+check("11-entry score table", '["stretch", stretchAcc ?? 50]' in js and '(.stretch, stretchAccuracy ?? 50)' in logic)
+check("stretch game label", 'stretch: "고음 확장"' in js and 'return "고음 확장"' in logic)
 check("passaggio game label", 'passaggio: "파사지오 왕복"' in js and 'return "파사지오 왕복"' in logic)
 check("song game label", 'song: "민요 따라부르기"' in js and 'return "민요 따라부르기"' in logic)
 check("harmony game label", 'harmony: "화음 부르기"' in js and 'return "화음 부르기"' in logic)
@@ -114,28 +115,30 @@ vm.createContext(sandbox);
 vm.runInContext(block, sandbox);
 const out = vm.runInContext(`(function(){
   const cases = [
-    // [vowel, interval, ear, lastGame, vibrato, dynamics, scale, melody, harmony, song, passaggio, expected]
-    [40, 80, 60, null, null, null, null, null, null, null, null, "vowel"],
-    [90, 40, 65, "vowel", null, null, null, null, null, null, null, "interval"],
-    [90, 85, 60, "interval", 55, 58, null, 62, 57, 54, 52, "scale"],
-    [80, 90, 85, null, 40, null, null, null, null, null, null, "vibrato"],
-    [80, 90, 85, null, 70, 35, null, null, null, null, null, "dynamics"],
-    [80, 90, 85, "vibrato", 40, 50, 55, 60, 66, 70, 72, "dynamics"],
-    [90, 75, 65, "ear", 72, 68, 70, 78, 82, 85, 88, "dynamics"],
-    [80, 90, 85, null, 75, 70, 40, null, 62, 65, 68, "scale"],
-    [80, 90, 85, null, 75, 70, 65, 33, 60, 58, 62, "melody"],
-    [80, 90, 85, null, 75, 70, 65, 60, 33, 58, 62, "harmony"],
-    [80, 90, 85, null, 75, 70, 65, 60, 58, 33, 62, "song"],
-    [80, 90, 85, null, 75, 70, 65, 60, 58, 62, 33, "passaggio"],
+    // [vowel, interval, ear, lastGame, vibrato, dynamics, scale, melody, harmony, song, passaggio, stretch, expected]
+    [40, 80, 60, null, null, null, null, null, null, null, null, null, "vowel"],
+    [90, 40, 65, "vowel", null, null, null, null, null, null, null, null, "interval"],
+    [90, 85, 60, "interval", 55, 58, null, 62, 57, 54, 52, 51, "scale"],
+    [80, 90, 85, null, 40, null, null, null, null, null, null, null, "vibrato"],
+    [80, 90, 85, null, 70, 35, null, null, null, null, null, null, "dynamics"],
+    [80, 90, 85, "vibrato", 40, 50, 55, 60, 66, 70, 72, 74, "dynamics"],
+    [90, 75, 65, "ear", 72, 68, 70, 78, 82, 85, 88, 90, "dynamics"],
+    [80, 90, 85, null, 75, 70, 40, null, 62, 65, 68, 71, "scale"],
+    [80, 90, 85, null, 75, 70, 65, 33, 60, 58, 62, 65, "melody"],
+    [80, 90, 85, null, 75, 70, 65, 60, 33, 58, 62, 65, "harmony"],
+    [80, 90, 85, null, 75, 70, 65, 60, 58, 33, 62, 65, "song"],
+    [80, 90, 85, null, 75, 70, 65, 60, 58, 62, 33, 65, "passaggio"],
+    [80, 90, 85, null, 75, 70, 65, 60, 58, 62, 55, 33, "stretch"],
   ];
-  const results = cases.map(([v, i, e, last, vb, dy, sc, me, ha, so, pa]) =>
-    recommendNextGame(v, i, e, last, vb, dy, sc, me, ha, so, pa));
+  const results = cases.map(([v, i, e, last, vb, dy, sc, me, ha, so, pa, st]) =>
+    recommendNextGame(v, i, e, last, vb, dy, sc, me, ha, so, pa, st));
   const latest = latestAccuracies([
     {label: "모음 게임", accuracy: 60}, {label: "E4", accuracy: 90},
     {label: "비브라토 체크", accuracy: 40}, {label: "모음 게임", accuracy: 75},
     {label: "다이내믹스 아치", accuracy: 55}, {label: "스케일 시퀀스", accuracy: 68},
     {label: "멜로디 프레이즈", accuracy: 71}, {label: "화음 부르기", accuracy: 66},
     {label: "민요 따라부르기", accuracy: 69}, {label: "파사지오 왕복", accuracy: 61},
+    {label: "고음 확장", accuracy: 59},
   ]);
   return { cases, results, latest };
 })()`, sandbox);
@@ -149,7 +152,7 @@ else:
     import json
     r = json.loads(proc.stdout)
     for idx, (case, got) in enumerate(zip(r["cases"], r["results"])):
-        expected = case[11]
+        expected = case[12]
         check(f"vector {idx} -> {expected}", got == expected, f"got {got}")
     check("latest: vowel most-recent", r["latest"].get("vowel") == 75)
     check("latest: vibrato", r["latest"].get("vibrato") == 40)
@@ -236,6 +239,7 @@ else:
     check("latest: harmony 66", r["latest"].get("harmony") == 66)
     check("latest: song 69", r["latest"].get("song") == 69)
     check("latest: passaggio 61", r["latest"].get("passaggio") == 61)
+    check("latest: stretch 59", r["latest"].get("stretch") == 59)
 
 check("daily summary fn", "function dailySummaryLine" in js and "func dailySummaryLine" in logic)
 check("daily summary 2-session gate", "routineSessions < 2" in js and "routineSessions >= 2" in logic)

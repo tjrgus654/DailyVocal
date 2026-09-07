@@ -951,7 +951,7 @@ const GAME_LABELS = {
  vowel: "모음 게임", interval: "음정 게임", ear: "귀훈련",
  vibrato: "비브라토 체크", dynamics: "다이내믹스 아치", scale: "스케일 시퀀스",
  melody: "멜로디 프레이즈", harmony: "화음 부르기", song: "민요 따라부르기",
- passaggio: "파사지오 왕복",
+ passaggio: "파사지오 왕복", stretch: "고음 확장",
 };
 function latestAccuracies(records){
  const latest = {};
@@ -961,7 +961,7 @@ function latestAccuracies(records){
  }
  return latest;
 }
-function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame, vibratoAcc, dynamicsAcc, scaleAcc, melodyAcc, harmonyAcc, songAcc, passaggioAcc){
+function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame, vibratoAcc, dynamicsAcc, scaleAcc, melodyAcc, harmonyAcc, songAcc, passaggioAcc, stretchAcc){
  const scores = [
   ["vowel", vowelAcc ?? 50],
   ["interval", intervalAcc ?? 50],
@@ -973,6 +973,7 @@ function recommendNextGame(vowelAcc, intervalAcc, earAcc, lastGame, vibratoAcc, 
   ["harmony", harmonyAcc ?? 50],
   ["song", songAcc ?? 50],
   ["passaggio", passaggioAcc ?? 50],
+  ["stretch", stretchAcc ?? 50],
  ].sort((a,b) => a[1] - b[1]);
  if (lastGame && scores[0][0] === lastGame && scores.length > 1 && scores[1][1] - scores[0][1] <= 15){
   return scores[1][0];
@@ -1033,10 +1034,10 @@ function recommendationEvidence(game, latestAcc, vibRate, vibExt, dynDb, above, 
  if (latestAcc != null) return `최근 점수 ${latestAcc}점 — 가장 약한 훈련부터 보완해요`;
  return "아직 시도하지 않은 훈련 — 먼저 한 번 측정해 기준점을 만들어요";
 }
-const GAME_NAMES = { vowel: "모음", interval: "음정", ear: "귀훈련", vibrato: "비브라토", dynamics: "셈여림", scale: "스케일", melody: "멜로디", harmony: "화음", song: "민요", passaggio: "파사지오" };
+const GAME_NAMES = { vowel: "모음", interval: "음정", ear: "귀훈련", vibrato: "비브라토", dynamics: "셈여림", scale: "스케일", melody: "멜로디", harmony: "화음", song: "민요", passaggio: "파사지오", stretch: "고음확장" };
 function startRecommended(game){
  // 딥링크: 성장 기록의 추천 카드 → 트래커 탭 + 해당 모드 (웹은 6종 전부)
- const modeMap = { vowel: "vowel", interval: "interval", ear: "ear", vibrato: "vibrato", dynamics: "dynamics", scale: "scale", melody: "melody", harmony: "harmony", song: "song", passaggio: "passaggio" };
+ const modeMap = { vowel: "vowel", interval: "interval", ear: "ear", vibrato: "vibrato", dynamics: "dynamics", scale: "scale", melody: "melody", harmony: "harmony", song: "song", passaggio: "passaggio", stretch: "stretch" };
  const mode = modeMap[game] || "single";
  if (App.trMode !== mode && App.listening) stopTracking();
  go("tracker");
@@ -1054,7 +1055,7 @@ function nextGameRecommendation(){
   .map(([g]) => g)[0] || null;
  const game = recommendNextGame(
   latest.vowel ?? null, latest.interval ?? null, latest.ear ?? null,
-  lastGame, latest.vibrato ?? null, latest.dynamics ?? null, latest.scale ?? null, latest.melody ?? null, latest.harmony ?? null, latest.song ?? null, latest.passaggio ?? null);
+  lastGame, latest.vibrato ?? null, latest.dynamics ?? null, latest.scale ?? null, latest.melody ?? null, latest.harmony ?? null, latest.song ?? null, latest.passaggio ?? null, latest.stretch ?? null);
  const reason = recommendationEvidence(
   game, latest[game] ?? null,
   Store.data.lastVibratoRateHz || 0, Store.data.lastVibratoExtentCents || 0,
