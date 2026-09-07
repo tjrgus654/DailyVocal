@@ -1162,3 +1162,4 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 469 | 앱 디버그 실행 인자: --open-tab N(온보딩 스킵+탭 직접 진입)·--demo-seed(측정 음역+테크닉 지문 프로필, 피치 레코드 6건(모음/비브라토/셈여림/스케일/멜로디/E4), 5일 연습 세션 — 결정론적, DEBUG 빌드 전용 게이트) | 파스 56/56 | PracticeSession init 파라미터(notes) 실측 정정 |
 | 470 | simulator-smoke.yml에 store-screens 잡: 6.7인치(Pro Max 우선) 기기에서 탭 0-3 각각 --demo-seed --open-tab N 런치 → 6s 후 store_tabN.png 캡처 → 30KB+·4장 해시 상이 검증 → 아티팩트 업로드 | 워크플로 | 기기 폴백 라인 오타 사전 정정 |
 | 471 | 문서 갱신(체크리스트 §3 스크린샷 자동화 표시·빌드 가이드 §7 블로커 2/3 체크) + verify_all 9게이트 | ALL GREEN | swift test 160/160 |
+| 472 | store-screens 잡 첫 실행(커밋 054891f): 6.7인치 기기(iPhone 16 Pro Max)에서 탭 4장 캡처 + 4장 상이 검증 통과, store_tab*.png 아티팩트 업로드 | ✓ 10m55s | 스크린샷 블로커 해소 실증 — 잔여 블로커: 실기 6.1 프로토콜 1개(기기 필요) |
