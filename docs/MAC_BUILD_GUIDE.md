@@ -124,8 +124,10 @@ AVAudioPCMBuffer → 프레임 → YIN(vDSP) → RMS → Goertzel). 실기에서
 > 이 프로토콜 A–H 체크리스트 + 엔진 실측(권한·입력 포맷·피치 콜백·유성률·관측 음역·
 > 인터럽션 카운트) 화면이 뜹니다. 측정 시작 → A–H 판정 탭 → '클립보드로 복사' →
 > `evidence/<날짜>-device-audio/` 에 붙여넣기. 수동 기록은 더 이상 필요 없습니다.
-> (렌더 검증: simulator-smoke CI가 매 푸시마다 `--audio-diag`로 이 화면을 띄워
-> 크래시 없음+비공백 캡처를 확인합니다 — audio_diag.png 아티팩트.)
+> (CI 입증: simulator-smoke가 매 푸시마다 `--audio-diag --diag-autostart`로 이 화면을 띄워
+> 마이크를 사전 부여(simctl privacy grant)한 뒤 엔진을 무인 기동하고 os_log로
+> `running=true rate=48000Hz`를 확인합니다. 시뮬레이터가 입증하는 것은 세션 활성→
+> inputNode 탭→엔진 기동까지 — 기기에서 측정할 것은 실제 음향 에너지 감지뿐입니다.)
 
 | # | 단계 | 통과 기준 | 확인 중인 계층 |
 |---|---|---|---|

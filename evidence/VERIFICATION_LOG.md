@@ -1248,4 +1248,5 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 
 | # | 검증 행위 | 결과 | 증거/비오 |
 |---|---|---|---|
-| 501 | `--diag-autostart` 인자 + CI `simctl privacy grant microphone` — 시뮬레이터에서 진단 화면이 엔진을 무인으로 실제 시작: 세션 활성(.playAndRecord/.measurement) → inputNode 탭 설치 → AVAudioEngine.start() 전 iOS 입력 경로를 CI가 입증. 물리 기기에 남는 것은 '실제 음향 에너지'뿐으로 좁아짐 | CI 대기 | audio_diag.png(엔진 라이브 상태) |
+| 501 | `--diag-autostart` 인자 + CI `simctl privacy grant microphone` — 시뮬레이터에서 진단 화면이 엔진을 무인으로 실제 시작: 세션 활성(.playAndRecord/.measurement) → inputNode 탭 설치 → AVAudioEngine.start() 전 iOS 입력 경로를 CI가 입증 | 실증(fad2ee8): alive 8s + non-blank | audio_diag.png |
+| 502 | 엔진 기동 os_log 증거 강화 — autostart 경로가 os_log로 상태를 남기고 CI가 `log show`로 회수해 running=true 하드 요구. 매 푸시마다 반복 게이트 | 실증(82c63c9): `engine autostart: running=true rate=48000.000000Hz channels=2` + `ENGINE RUNNING confirmed via os_log ✓` | 물리 기기에 남는 것은 '실제 음향 에너지 감지'뿐 |
