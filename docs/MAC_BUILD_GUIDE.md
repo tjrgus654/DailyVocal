@@ -124,6 +124,15 @@ AVAudioPCMBuffer → 프레임 → YIN(vDSP) → RMS → Goertzel). 실기에서
 > 이 프로토콜 A–H 체크리스트 + 엔진 실측(권한·입력 포맷·피치 콜백·유성률·관측 음역·
 > 인터럽션 카운트) 화면이 뜹니다. 측정 시작 → A–H 판정 탭 → '클립보드로 복사' →
 > `evidence/<날짜>-device-audio/` 에 붙여넣기. 수동 기록은 더 이상 필요 없습니다.
+>
+> **기기에서 인자 전달(Xcode)**: Product → Scheme → Edit Scheme… → Run →
+> Arguments 탭 → 'Arguments Passed On Launch'에 `--audio-diag` 추가 → ⌘R.
+> (시뮬레이터 터미널 검증 `simctl launch ... --audio-diag`와 동일 경로.)
+>
+> **보고서 인제스션**: 붙여넣은 텍스트를 파일로 저장한 뒤
+> `python tools/validate_device_report.py <파일>` — 8단계 전부 판정됐는지,
+> 마이크 권한·피치 콜백이 살아 있는지 기계 검증하고 `--write` 옵션으로
+> `evidence/<날짜>-device-audio/report.md` 에 정착합니다.
 > (CI 입증: simulator-smoke가 매 푸시마다 `--audio-diag --diag-autostart`로 이 화면을 띄워
 > 마이크를 사전 부여(simctl privacy grant)한 뒤 엔진을 무인 기동하고 os_log로
 > `running=true rate=48000Hz`를 확인합니다. 시뮬레이터가 입증하는 것은 세션 활성→

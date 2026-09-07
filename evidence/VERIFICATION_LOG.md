@@ -1250,3 +1250,11 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 |---|---|---|---|
 | 501 | `--diag-autostart` 인자 + CI `simctl privacy grant microphone` — 시뮬레이터에서 진단 화면이 엔진을 무인으로 실제 시작: 세션 활성(.playAndRecord/.measurement) → inputNode 탭 설치 → AVAudioEngine.start() 전 iOS 입력 경로를 CI가 입증 | 실증(fad2ee8): alive 8s + non-blank | audio_diag.png |
 | 502 | 엔진 기동 os_log 증거 강화 — autostart 경로가 os_log로 상태를 남기고 CI가 `log show`로 회수해 running=true 하드 요구. 매 푸시마다 반복 게이트 | 실증(82c63c9): `engine autostart: running=true rate=48000.000000Hz channels=2` + `ENGINE RUNNING confirmed via os_log ✓` | 물리 기기에 남는 것은 '실제 음향 에너지 감지'뿐 |
+
+
+## 최종 세션 프랙션 제거 (세션 80 — 2026-09-07)
+
+| # | 검증 행위 | 결과 | 증거/비고 |
+|---|---|---|---|
+| 503 | `tools/validate_device_report.py` — 실기 보고서 인제스션 검증자: 헤더·권한·피치 콜백·A–H 8단계 판정·요약 정합을 기계 검증, `--write`로 evidence/<날짜>-device-audio/report.md 정착. 합성 6케이스(완전·대기 잔존·콜백 0·헤더 오류·요약 불일치·실패 판정 포함 완전) 시험 — 합성 입력은 /tmp에서만 사용, evidence 미기록 | 6/6 PASS | 검증자가 COMPLETE 판정 시 PROJECT_SCORE 100 갱신 근거 성립 |
+| 504 | MAC_BUILD_GUIDE §6.1 — Xcode 스킴 인자 전달 클릭 경로(Edit Scheme → Run → Arguments → --audio-diag) + 검증자 인제스션 절차 문서화. 최종 세션 0단계(인자 전달법) 막힘 제거 | 문서 | |
