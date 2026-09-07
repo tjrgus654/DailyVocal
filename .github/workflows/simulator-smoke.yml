@@ -94,17 +94,22 @@ jobs:
           fi
           echo "5 onboarding pages captured, all non-blank and distinct ✓ (page 2 = tracker intro)"
 
-      - name: Audio diagnostics screen renders (launch-arg deep link)
+      - name: Audio diagnostics screen renders + engine activates (launch-arg deep link)
         # The §6.1 one-tap device self-check (--audio-diag) is the surface
-        # the final release blocker runs on — it must come up without
-        # crashing before any user opens it on real hardware.
+        # the final release blocker runs on. This step goes one layer deeper
+        # than a render check: simctl pre-grants the microphone, then
+        # --diag-autostart has the screen actually start the engine — proving
+        # the full iOS input path (session activation → inputNode tap →
+        # engine start) unattended. Only acoustic energy from a physical mic
+        # is left for the real device.
         run: |
+          xcrun simctl privacy "${{ steps.device.outputs.name }}" grant microphone com.tjrgus654.dailyvocal
           xcrun simctl terminate "${{ steps.device.outputs.name }}" com.tjrgus654.dailyvocal || true
           sleep 1
-          xcrun simctl launch "${{ steps.device.outputs.name }}" com.tjrgus654.dailyvocal "--audio-diag"
-          sleep 5
+          xcrun simctl launch "${{ steps.device.outputs.name }}" com.tjrgus654.dailyvocal "--audio-diag" "--diag-autostart"
+          sleep 8
           if xcrun simctl spawn "${{ steps.device.outputs.name }}" launchctl list | grep -q dailyvocal; then
-            echo "AUDIO DIAG ALIVE after 5s ✓"
+            echo "AUDIO DIAG ALIVE after 8s (engine autostart did not crash) ✓"
           else
             echo "APP DIED on --audio-diag — diagnostics screen crashed"; exit 1
           fi
@@ -113,7 +118,7 @@ jobs:
           if [ "$SIZE" -lt 30000 ]; then
             echo "audio_diag.png is only $SIZE bytes — blank/failed render"; exit 1
           fi
-          echo "§6.1 audio diagnostics screen rendered non-blank ✓"
+          echo "§6.1 audio diagnostics screen rendered with live engine ✓"
 
       - uses: actions/upload-artifact@v4
         name: Upload screenshots

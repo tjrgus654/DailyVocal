@@ -1242,3 +1242,10 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | # | 검증 행위 | 결과 | 증거/비오 |
 |---|---|---|---|
 | 500 | simulator-smoke CI에 `--audio-diag` 렌더 단계 추가 — 뷰가 컴파일만 되고 렌더된 적 없던 갱 해소: 시뮬레이터에서 실제 풀스크린 커버를 띄워 5초 생존+비공백(30KB+) 캡처. 최종 블로커 세션(사용자 실기)이 뷰 크래시로 막히는 일 방지 | 실증(b06dbda): "AUDIO DIAG ALIVE after 5s ✓" + "rendered non-blank ✓", audio_diag.png 아티팩트 업로드 | smoke 로그 |
+
+
+## 자가진단 엔진 기동 무인 입증 (세션 79 — 2026-09-07)
+
+| # | 검증 행위 | 결과 | 증거/비오 |
+|---|---|---|---|
+| 501 | `--diag-autostart` 인자 + CI `simctl privacy grant microphone` — 시뮬레이터에서 진단 화면이 엔진을 무인으로 실제 시작: 세션 활성(.playAndRecord/.measurement) → inputNode 탭 설치 → AVAudioEngine.start() 전 iOS 입력 경로를 CI가 입증. 물리 기기에 남는 것은 '실제 음향 에너지'뿐으로 좁아짐 | CI 대기 | audio_diag.png(엔진 라이브 상태) |

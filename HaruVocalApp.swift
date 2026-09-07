@@ -64,6 +64,9 @@ struct HaruVocalApp: App {
                 || args.contains("--audio-diag") else { return }
         UserDefaults.standard.set(true, forKey: "onboardingCompleted")
         if args.contains("--audio-diag") {
+            if args.contains("--diag-autostart") {
+                AudioDiagnosticsView.autostartOnAppear = true
+            }
             showAudioDiagnostics = true
         }
         if args.contains("--demo-seed") {

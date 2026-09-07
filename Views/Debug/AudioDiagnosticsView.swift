@@ -15,6 +15,12 @@ import SwiftUI
 
 struct AudioDiagnosticsView: View {
 
+    /// CI smoke hook: `--audio-diag --diag-autostart` flips this before the
+    /// cover shows, so the engine-activation path (session → inputNode tap →
+    /// engine start) runs unattended on the simulator. The grant comes from
+    /// `xcrun simctl privacy grant microphone`.
+    static var autostartOnAppear = false
+
     // Matches VocalAudioEngine's installTap buffer size.
     private let tapBufferFrames = 2048
     private let audio = VocalAudioEngine.shared
@@ -45,6 +51,11 @@ struct AudioDiagnosticsView: View {
                     Button("닫기") { dismiss() }
                         .foregroundStyle(.cyan)
                 }
+            }
+        }
+        .onAppear {
+            if Self.autostartOnAppear {
+                startObserving()
             }
         }
         .onDisappear(perform: stopObserving)
