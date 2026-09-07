@@ -15,7 +15,9 @@ import SwiftData
 struct HaruVocalApp: App {
 
     private let container: ModelContainer
+    #if DEBUG
     @State private var showAudioDiagnostics = false
+    #endif
 
     init() {
         do {
@@ -37,9 +39,11 @@ struct HaruVocalApp: App {
                 .preferredColorScheme(.dark)
                 .onAppear(perform: ensureDefaultProfileExists)
                 .onAppear(perform: applyDebugLaunchArgs)
+                #if DEBUG
                 .fullScreenCover(isPresented: $showAudioDiagnostics) {
                     AudioDiagnosticsView()
                 }
+                #endif
         }
         .modelContainer(container)
     }

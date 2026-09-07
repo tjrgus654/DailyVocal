@@ -1233,3 +1233,5 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 496 | AudioDiagnostics 순수 로직(프로토콜 A–H 테이블·보고서 구성·0콜백 가드·판정 집계) 유닛테스트 4종 추가 | swift 170/170 | +4 |
 | 497 | PROJECT_SCORE 내부 정합 — 7차 표기·61팁(48+13)·검증 494회·E2E 128축·게임 11종·macOS CI 172 통일, MAC_BUILD_GUIDE §6.1에 자가진단 사용법 기재 | 문서 | 89/100 유지(유일 감점=실기) |
 | 498 | verify_all 9게이트 | ALL GREEN | swift test 170/170 |
+
+| 499 | CI typecheck 실패(eb22b63) — typecheck 잡은 `-D DEBUG` 없이 swiftc를 돌리는데 fullScreenCover 참조가 #if DEBUG 밖에 있어 AudioDiagnosticsView 부재 에러. 커버+@State를 #if DEBUG로 랩(로컬 파스는 구문만 검사 — 크로스 파일 타입 해석은 CI가 포착, 게이트 정상 작동 사례) | 커밋 후 재확인 | 10분 내 감지·수정 |
