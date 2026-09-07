@@ -94,12 +94,35 @@ jobs:
           fi
           echo "5 onboarding pages captured, all non-blank and distinct ✓ (page 2 = tracker intro)"
 
+      - name: Audio diagnostics screen renders (launch-arg deep link)
+        # The §6.1 one-tap device self-check (--audio-diag) is the surface
+        # the final release blocker runs on — it must come up without
+        # crashing before any user opens it on real hardware.
+        run: |
+          xcrun simctl terminate "${{ steps.device.outputs.name }}" com.tjrgus654.dailyvocal || true
+          sleep 1
+          xcrun simctl launch "${{ steps.device.outputs.name }}" com.tjrgus654.dailyvocal "--audio-diag"
+          sleep 5
+          if xcrun simctl spawn "${{ steps.device.outputs.name }}" launchctl list | grep -q dailyvocal; then
+            echo "AUDIO DIAG ALIVE after 5s ✓"
+          else
+            echo "APP DIED on --audio-diag — diagnostics screen crashed"; exit 1
+          fi
+          xcrun simctl io "${{ steps.device.outputs.name }}" screenshot audio_diag.png
+          SIZE=$(stat -f%z audio_diag.png)
+          if [ "$SIZE" -lt 30000 ]; then
+            echo "audio_diag.png is only $SIZE bytes — blank/failed render"; exit 1
+          fi
+          echo "§6.1 audio diagnostics screen rendered non-blank ✓"
+
       - uses: actions/upload-artifact@v4
+        name: Upload screenshots
         with:
           name: simulator-screenshots
           path: |
             screenshot_*.png
             onboarding_*.png
+            audio_diag.png
 
   # Store screenshot capture: 6.7" device, demo-seeded content, one capture
   # per main tab. Uploads store_*.png artifacts ready for App Store Connect.

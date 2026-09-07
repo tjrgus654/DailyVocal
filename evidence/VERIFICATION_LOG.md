@@ -1235,3 +1235,10 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 498 | verify_all 9게이트 | ALL GREEN | swift test 170/170 |
 
 | 499 | CI typecheck 실패(eb22b63) — typecheck 잡은 `-D DEBUG` 없이 swiftc를 돌리는데 fullScreenCover 참조가 #if DEBUG 밖에 있어 AudioDiagnosticsView 부재 에러. 커버+@State를 #if DEBUG로 랩(로컬 파스는 구문만 검사 — 크로스 파일 타입 해석은 CI가 포착, 게이트 정상 작동 사례) | 커밋 후 재확인 | 10분 내 감지·수정 |
+
+
+## 자가진단 화면 CI 렌더 게이트 (세션 78 — 2026-09-07)
+
+| # | 검증 행위 | 결과 | 증거/비오 |
+|---|---|---|---|
+| 500 | simulator-smoke CI에 `--audio-diag` 렌더 단계 추가 — 뷰가 컴파일만 되고 렌더된 적 없던 갭 해소: 시뮬레이터에서 실제 풀스크린 커버를 띄워 5초 생존+비공백(30KB+) 캡처(audio_diag.png 아티팩트). 최종 블로커 세션(사용자 실기)이 뷰 크래시로 막히는 일 방지 | CI 대기 | 업로드 아티팩트 |
