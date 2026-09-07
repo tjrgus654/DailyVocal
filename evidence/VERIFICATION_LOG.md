@@ -1223,3 +1223,13 @@ Messa di Voce 훈련 + RMS 실시간 피드백 결합 앱은 시장 공백(2026-
 | 492 | 민요 23곡째 '성주풀이' 추가 — PD 원형 근거 확인(국립국악원 국악사전·한국민족문화대백과: 성주굿 무가 유래, 가사 자체에 '경상도 안동땅', 대표 첫 소절 '성주야 성주로구나'). 자체 오음계 채보(기존 22곡과 서열 상이 검증), 경상 2→3 균형. Swift+웹 동일 추가 | swift 166/166 | 밀양아리랑(1926)·독도는 우리땅(1982) 등 저작권 곡 계속 배제 |
 | 493 | 곡 수 카운트 주장 전수 갱신 — FolkSongTests 23곡+경상 지역 벡터, E2E 제목 완전 일치 벡터, README·STATUS·PROJECT_SCORE·APP_STORE_CHECKLIST 22→23 | E2E 128/128 | selectSong(5) 등 인덱스 참조 무흔들 확인(끝 추가) |
 | 494 | verify_all 9게이트 | ALL GREEN | swift test 166/166 |
+
+
+## §6.1 원탭 실기 자가진단 (세션 77 — 2026-09-07)
+
+| # | 검증 행위 | 결과 | 증거/비고 |
+|---|---|---|---|
+| 495 | 실기 오디오 마지막 블로커를 원탭으로: `--audio-diag` 런치 인자 → DEBUG 전용 AudioDiagnosticsView(엔진 실측 카드: 권한·입력 포맷·피치 콜백·유성률·관측 음역·인터럽션 + A–H 판정 체크리스트 + 클립보드 보고서). 엔진에 inputSampleRate/inputChannelCount/interruptionCount 관측 필드 추가(startMicrophone에서 설정, 인터럽션 began에서 증가) | 파스 60/60 | 기기 연결 시 수동 프로토콜 불필요 |
+| 496 | AudioDiagnostics 순수 로직(프로토콜 A–H 테이블·보고서 구성·0콜백 가드·판정 집계) 유닛테스트 4종 추가 | swift 170/170 | +4 |
+| 497 | PROJECT_SCORE 내부 정합 — 7차 표기·61팁(48+13)·검증 494회·E2E 128축·게임 11종·macOS CI 172 통일, MAC_BUILD_GUIDE §6.1에 자가진단 사용법 기재 | 문서 | 89/100 유지(유일 감점=실기) |
+| 498 | verify_all 9게이트 | ALL GREEN | swift test 170/170 |

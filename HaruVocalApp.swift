@@ -15,6 +15,7 @@ import SwiftData
 struct HaruVocalApp: App {
 
     private let container: ModelContainer
+    @State private var showAudioDiagnostics = false
 
     init() {
         do {
@@ -36,6 +37,9 @@ struct HaruVocalApp: App {
                 .preferredColorScheme(.dark)
                 .onAppear(perform: ensureDefaultProfileExists)
                 .onAppear(perform: applyDebugLaunchArgs)
+                .fullScreenCover(isPresented: $showAudioDiagnostics) {
+                    AudioDiagnosticsView()
+                }
         }
         .modelContainer(container)
     }
@@ -44,15 +48,20 @@ struct HaruVocalApp: App {
     //
     // `--open-tab N` skips onboarding and opens tab N directly;
     // `--demo-seed` inserts representative records so the growth dashboard
-    // and lab render rich content in captures. Debug builds only — never
+    // and lab render rich content in captures. `--audio-diag` opens the
+    // §6.1 on-device audio self-check. Debug builds only — never
     // active in a shipped app.
 
     @MainActor
     private func applyDebugLaunchArgs() {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
-        guard args.contains("--open-tab") || args.contains("--demo-seed") else { return }
+        guard args.contains("--open-tab") || args.contains("--demo-seed")
+                || args.contains("--audio-diag") else { return }
         UserDefaults.standard.set(true, forKey: "onboardingCompleted")
+        if args.contains("--audio-diag") {
+            showAudioDiagnostics = true
+        }
         if args.contains("--demo-seed") {
             seedDemoContent()
         }

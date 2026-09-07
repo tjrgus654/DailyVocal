@@ -70,6 +70,12 @@ public final class VocalAudioEngine {
     /// (undetermined is false — the request flow hasn't run yet).
     public private(set) var isMicPermissionDenied = false
     public private(set) var errorMessage: String?
+    // Hardware input facts for the §6.1 diagnostics screen (populated on
+    // startMicrophone; zero when the engine has not run yet).
+    public private(set) var inputSampleRate: Double = 0
+    public private(set) var inputChannelCount: Int = 0
+    /// Times an audio-session interruption began (calls/Siri/alarms).
+    public private(set) var interruptionCount = 0
 
     /// MainActor callback invoked on every analyzed frame while the microphone
     /// runs. Parameters: (frequency, noteName, cents, voiced); `voiced` is false
@@ -178,8 +184,10 @@ public final class VocalAudioEngine {
             let inputFormat = input.outputFormat(forBus: 0)
             guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
                 throw NSError(domain: "VocalAudioEngine", code: 1,
-                              userInfo: [NSLocalizedDescriptionKey: "입력 오디오 포맷을 사용할 수 없습니다."])
+                    userInfo: [NSLocalizedDescriptionKey: "입력 오디오 포맷을 사용할 수 없습니다."])
             }
+            inputSampleRate = inputFormat.sampleRate
+            inputChannelCount = Int(inputFormat.channelCount)
 
             // Detector must match the actual hardware rate (48 kHz on modern
             // iPhones). Local constant: the escaping tap closure captures it
@@ -548,6 +556,7 @@ public final class VocalAudioEngine {
     private func handleInterruptionBegan() {
         // Phone call, Siri, alarm: tear the graph down. Callers observe
         // isMicrophoneRunning to pause their own state.
+        interruptionCount += 1
         stopAllTones()
         stopMicrophone()
         engine.stop()
