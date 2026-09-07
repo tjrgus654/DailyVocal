@@ -1378,6 +1378,20 @@ public enum VocalLogic {
             return bestSustainSeconds < 15
                 ? "최장 지속 \(s)초 — 파사지오 통과는 호흡 지지가 먼저입니다. 단음 유지로 15초를 채워요"
                 : "최장 지속 \(s)초 — 호흡 지지가 탄탄합니다. 통과 순간 볼륨만 내리세요"
+        case .stretch where latestAccuracy != nil:
+            // The ladder score IS the reach rate (reached/3 × 100) — decode
+            // it back into the band the user experienced in the drill.
+            let reached = Int(((Double(latestAccuracy ?? 0) / 100.0) * 3.0).rounded())
+            switch reached {
+            case 3:
+                return "최근 3라운드 모두 도달 — 측정 최고음을 다시 재서 칸을 한 단계 올려요"
+            case 2:
+                return "최근 라운드 2/3 도달 — 마지막 +2반음 스트레치만 남았어요"
+            case 1:
+                return "최근 라운드 1/3 도달 — 최고음 재확인 음부터 안정적으로 다져요"
+            default:
+                return "최근 도달 0/3 — 기준음(최고음의 5도 아래)에서 천천히 미끄러지듯 올라요"
+            }
         default:
             break
         }

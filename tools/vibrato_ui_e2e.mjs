@@ -281,6 +281,19 @@ const harmEv2 = await page.evaluate(`(() => {
 ok("harmony evidence flips to below when flatter",
    harmEv2.includes("아래") && harmEv2.includes("−30센트") && harmEv2.includes("올려서"), harmEv2);
 
+// 9d-2. Stretch ladder reach-rate evidence decodes the ladder score band.
+const stretchEv = await page.evaluate(`(() => {
+  const full = recommendationEvidence("stretch", 100, 0, 0, 0, 0, 0, 0);
+  const two = recommendationEvidence("stretch", 67, 0, 0, 0, 0, 0, 0);
+  const one = recommendationEvidence("stretch", 33, 0, 0, 0, 0, 0, 0);
+  const none = recommendationEvidence("stretch", 0, 0, 0, 0, 0, 0, 0);
+  return [full, two, one, none];
+})()`);
+ok("stretch evidence bands reach rate",
+   stretchEv[0].includes("3라운드 모두 도달") && stretchEv[1].includes("2/3 도달")
+   && stretchEv[2].includes("1/3 도달") && stretchEv[3].includes("0/3"),
+   stretchEv.join(" | "));
+
 // 9e. Step-error evidence for scale/melody recommendations.
 const stepEv = await page.evaluate(`(() => {
   Store.data.scaleStepError = 1.4;

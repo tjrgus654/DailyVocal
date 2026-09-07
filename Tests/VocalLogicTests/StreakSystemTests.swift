@@ -565,6 +565,15 @@ final class StreakSystemTests: XCTestCase {
         let solidBreath = VocalLogic.recommendationEvidence(
             game: .passaggio, latestAccuracy: 40, bestSustainSeconds: 17)
         XCTAssertTrue(solidBreath.contains("17초") && solidBreath.contains("탄탄합니다"))
+        // Stretch ladder reach-rate bands decoded from the ladder score.
+        XCTAssertTrue(VocalLogic.recommendationEvidence(
+            game: .stretch, latestAccuracy: 100).contains("3라운드 모두 도달"))
+        XCTAssertTrue(VocalLogic.recommendationEvidence(
+            game: .stretch, latestAccuracy: 67).contains("2/3 도달"))
+        XCTAssertTrue(VocalLogic.recommendationEvidence(
+            game: .stretch, latestAccuracy: 33).contains("1/3 도달"))
+        XCTAssertTrue(VocalLogic.recommendationEvidence(
+            game: .stretch, latestAccuracy: 0).contains("0/3"))
         // No harmony fingerprint -> score fallback.
         XCTAssertEqual(
             VocalLogic.recommendationEvidence(game: .harmony, latestAccuracy: 44),
