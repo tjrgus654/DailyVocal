@@ -113,6 +113,15 @@ jobs:
           else
             echo "APP DIED on --audio-diag — diagnostics screen crashed"; exit 1
           fi
+          # Engine-started proof: the DEBUG autostart path logs the engine
+          # facts to os_log; pull them back and require running=true.
+          LOG_LINE=$(xcrun simctl spawn "${{ steps.device.outputs.name }}" log show --last 3m --predicate 'process == "DailyVocal"' 2>/dev/null | grep "engine autostart" | tail -1)
+          echo "$LOG_LINE"
+          if echo "$LOG_LINE" | grep -q "running=true"; then
+            echo "ENGINE RUNNING confirmed via os_log ✓"
+          else
+            echo "engine autostart log missing or running=false — activation not proven"; exit 1
+          fi
           xcrun simctl io "${{ steps.device.outputs.name }}" screenshot audio_diag.png
           SIZE=$(stat -f%z audio_diag.png)
           if [ "$SIZE" -lt 30000 ]; then

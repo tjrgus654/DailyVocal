@@ -12,8 +12,15 @@
 
 #if DEBUG
 import SwiftUI
+import os
 
 struct AudioDiagnosticsView: View {
+
+    /// CI smoke hook: the autostart path logs the engine facts here so
+    /// `xcrun simctl spawn ... log show` can prove the engine actually
+    /// started (aliveness alone only proves it did not crash).
+    private static let logger = Logger(
+        subsystem: "com.tjrgus654.dailyvocal", category: "audio-diag")
 
     /// CI smoke hook: `--audio-diag --diag-autostart` flips this before the
     /// cover shows, so the engine-activation path (session → inputNode tap →
@@ -226,6 +233,7 @@ struct AudioDiagnosticsView: View {
             observedHzMax = max(observedHzMax, frequency)
         }
         audio.startMicrophone()
+        Self.logger.log("engine autostart: running=\(audio.isMicrophoneRunning, privacy: .public) rate=\(audio.inputSampleRate, privacy: .public)Hz channels=\(audio.inputChannelCount, privacy: .public)")
     }
 
     private func stopObserving() {
