@@ -16,3 +16,4 @@ node_modules/
 # 로컬 실험용
 *.log
 tmp/
+__pycache__/
