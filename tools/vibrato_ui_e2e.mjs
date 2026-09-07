@@ -29,7 +29,7 @@ const ok = (name, cond, detail = "") => {
 
 // 1. Mode chip exists and switches.
 const chipCount = await page.locator('.chip[onclick^="setTrMode"]').count();
-ok("mode chips rendered", chipCount === 13, `count=${chipCount}`);
+ok("mode chips rendered", chipCount === 14, `count=${chipCount}`);
 await page.click('span.chip[onclick="setTrMode(\'vibrato\')"]');
 ok("vibrato mode selected", await page.evaluate("App.trMode") === "vibrato");
 await page.waitForTimeout(200);
@@ -686,6 +686,42 @@ const passFlow = await page.evaluate(`(() => {
   return okGated;
 })()`);
 ok("passaggio flow gates + zone label", passFlow);
+
+// 15. Range-extension stretch ladder.
+const stretch = await page.evaluate(`(() => {
+  const targets = stretchTargets(65);
+  const base = stretchBaseMidi(65);
+  const clamped = stretchTargets(71);
+  const labels = [0, 1, 2].map(stretchRoundLabel);
+  const reach = [
+    stretchReached(7, 65, 58),
+    stretchReached(6, 65, 58),
+    stretchReached(5, 65, 58),
+    stretchReached(null, 65, 58),
+  ];
+  const fb = stretchFeedback(true, 65, 58, 7).includes("F4");
+  const fbShort = stretchFeedback(false, 65, 58, 5).includes("2\uBC18\uC74C \uC544\uB798");
+  const name = midiNoteName(60) === "C4" && midiNoteName(71) === "B4";
+  const perf = performedSemitones([60, 60.3, 61], 58);
+  return { targets, base, clamped, labels, reach, fb, fbShort, name, perf };
+})()`);
+ok("stretch targets 65->65,66,67", JSON.stringify(stretch.targets) === "[65,66,67]", JSON.stringify(stretch.targets));
+ok("stretch base fifth below", stretch.base === 58);
+ok("stretch clamp at band top", JSON.stringify(stretch.clamped) === "[71,72,72]", JSON.stringify(stretch.clamped));
+ok("stretch round labels", stretch.labels[0].includes("\uC7AC\uD655\uC778") && stretch.labels[2].includes("\uB450 \uC74C \uC704"));
+ok("stretch reached tolerance", stretch.reach[0] && stretch.reach[1] && !stretch.reach[2] && !stretch.reach[3]);
+ok("stretch feedback hit/short", stretch.fb && stretch.fbShort);
+ok("stretch note names", stretch.name);
+ok("stretch performed semitones", stretch.perf === 2);
+const stretchFlow = await page.evaluate(`(() => {
+  App.echo.gen++;
+  startStretchLadder();
+  const gated = App.ignoreUntil === Infinity && STRETCH.timers.length >= 2;
+  STRETCH.timers.forEach(clearTimeout); STRETCH.timers = [];
+  App.echo.gen++; App.ignoreUntil = 0; App.listening = false;
+  return gated;
+})()`);
+ok("stretch flow gates demos", stretchFlow);
 
 // 14c. Suggested base note: measured range wins, manual pick locks it.
 const sug = await page.evaluate(`(() => {

@@ -1550,7 +1550,7 @@ function screenTracker(){
  </div>
 
  <div class="glass" style="margin:10px 20px 0;padding:8px 12px;display:flex;gap:8px;border-radius:14px;">
- ${[["single","단음"],["echo","에코"],["speak","말하기"],["vowel","모음"],["interval","음정"],["ear","귀훈련"],["vibrato","비브라토"],["dynamics","셈여림"],["scale","스케일"],["melody","멜로디"],["harmony","화음"],["song","민요"],["passaggio","파사지오"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')" role="button" tabindex="0" aria-label="모드 ${label}">${label}</span>`).join("")}
+ ${[["single","단음"],["echo","에코"],["speak","말하기"],["vowel","모음"],["interval","음정"],["ear","귀훈련"],["vibrato","비브라토"],["dynamics","셈여림"],["scale","스케일"],["melody","멜로디"],["harmony","화음"],["song","민요"],["passaggio","파사지오"],["stretch","고음확장"]].map(([m,label])=>`<span class="chip ${App.trMode===m?'on':''}" style="flex:1;text-align:center;padding:7px 0;" onclick="setTrMode('${m}')" role="button" tabindex="0" aria-label="모드 ${label}">${label}</span>`).join("")}
  </div>
 
  ${App.trMode==='vowel'&&VOWEL_GAME.active?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">라운드 ${Math.min(VOWEL_GAME.idx + 1, VOWEL_GAME.rounds.length)}/${VOWEL_GAME.rounds.length} · 목표 모음: ${VOWEL_GAME.target || "-"}${VOWEL_GAME.tips.length ? "<br><span style='color:var(--text-secondary);font-weight:400;'>" + VOWEL_GAME.tips[0] + "</span>" : ""}</div>`:""}
@@ -1581,6 +1581,7 @@ function screenTracker(){
  </div>
  </div>
  </div>`:""}
+ ${App.trMode==='stretch'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">라운드 ${Math.min(STRETCH.idx + 1, 3)}/3 · ${stretchRoundLabel(Math.min(STRETCH.idx, 2))} — 기준음에서 목표음까지 미끄러지듯 올라가 길게 유지하세요${App._stretchTip ? "<br><span style='color:var(--text-secondary);font-weight:400;'>" + App._stretchTip + "</span>" : ""}</div>`:""}
  ${App.trMode==='harmony'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${HARMONY_CHECK.phase==='guide'?`드론이 울립니다 — 끝나면 그 음의 ${HARMONY_PARTS[HARMONY_CHECK.partKey||"thirdAbove"].name} 화음을 길게 유지하세요`:(HARMONY_CHECK.phase==='recording'?`지금 ${HARMONY_PARTS[HARMONY_CHECK.partKey||"thirdAbove"].name} 음을 길게 — 드론은 끊겼어도 화음을 그리세요`:"측정 완료 — 결과를 확인하세요")}</div>`:""}
  ${App.trMode==='vibrato'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${VIBRATO_CHECK.phase==='guide'?"기준음이 먼저 울립니다 — 같은 음을 5초간 길게 끌며 비브라토를 넣어보세요":(VIBRATO_CHECK.phase==='recording'?"지금 길게 '아~' — 목소리를 자연스럽게 흔들어보세요":(VIBRATO_CHECK.result?"측정 완료 — 결과 카드를 확인하세요":"시작하면 기준음이 울립니다 — 그 음을 길게 끌며 비브라토를 넣어보세요"))}</div>`:""}
  ${App.trMode==='dynamics'?`<div class="cap2" style="text-align:center;color:var(--brand-secondary);margin:8px 0 0;font-weight:700;">${DYNAMICS_CHECK.phase==='guide'?"기준음이 먼저 울립니다 — 그 음을 한 호흡으로 여리게 → 크게 → 여리게":(DYNAMICS_CHECK.phase==='recording'?"지금 '아~'를 여리게 시작해 점점 크게, 다시 여리게 — 숨을 아껴가며":(DYNAMICS_CHECK.result?"측정 완료 — 아래 아치 결과를 확인하세요":"메사 디 보체: 한 음을 셈→여림으로 부풀렸다가 줄이는 왕도 훈련입니다"))}</div>`:""}
@@ -2113,6 +2114,100 @@ function startPassaggioDrill(){
  App._passaggioLabel = "성구 전환 왕복 — 내 파사지오 존(" + zone[0] + "-" + zone[1] + ")을 오르내립니다";
  startSequenceDrillFlow(passaggioSequence(measuredVoiceType()), "파사지오 왕복");
 }
+function stretchTargets(ceiling){
+ const cl = m => Math.min(72, Math.max(43, m));
+ return [0, 1, 2].map(k => cl(ceiling + k));
+}
+function stretchBaseMidi(ceiling){
+ return Math.max(43, ceiling - 7);
+}
+function stretchRoundLabel(i){
+ return i === 0 ? "최고음 재확인" : i === 1 ? "한 음 위 도전" : "두 음 위 도전";
+}
+function stretchReached(performed, target, base){
+ if (performed == null) return false;
+ return base + performed >= target - 1;
+}
+function midiNoteName(midi){
+ const pitches = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+ return pitches[((midi % 12) + 12) % 12] + (Math.floor(midi / 12) - 1);
+}
+function stretchFeedback(reached, target, base, performed){
+ const name = midiNoteName(target);
+ if (!reached){
+  if (performed != null){
+   const short = target - (base + performed);
+   return `아직 ${short}반음 아래 — 목표 ${name}. 목을 놓고 '야~'로 가볍게 던져보세요`;
+  }
+  return `소리가 잡히지 않았어요 — 기준음에서 시작해 ${name}까지 미끄러지듯 올라가보세요`;
+ }
+ return `${name} 닿았습니다! 다음 단계로 — 무리하지 말고 가벼운 감각 유지`;
+}
+function performedSemitones(midis, base){
+ if (!midis.length) return null;
+ const sorted = midis.slice().sort((a, b) => a - b);
+ const median = sorted[Math.floor(sorted.length / 2)];
+ return Math.round(median - base);
+}
+const STRETCH = { idx: 0, target: 0, base: 0, reached: 0, midis: [], gate: false, timers: [] };
+function startStretchLadder(){
+ App.echo.gen++;
+ const gen = App.echo.gen;
+ const ceiling = Store.data.measured && Store.data.range.hi > 0
+  ? Math.round(69 + 12 * Math.log2(Store.data.range.hi / 440)) : 64;
+ STRETCH.idx = 0; STRETCH.reached = 0; STRETCH.midis = []; STRETCH.gate = false;
+ STRETCH.base = stretchBaseMidi(ceiling);
+ STRETCH.timers.forEach(clearTimeout); STRETCH.timers = [];
+ App._stretchTip = null;
+ App.ignoreUntil = Infinity;
+ playStretchRound(stretchTargets(ceiling), gen);
+}
+function playStretchRound(targets, gen){
+ if (STRETCH.idx >= targets.length){ finishStretchLadder(); return; }
+ STRETCH.target = targets[STRETCH.idx];
+ render();
+ let delay = 0;
+ STRETCH.timers.push(setTimeout(() => {
+  if (gen === App.echo.gen) Audio5.playTone(midiToFreq(STRETCH.base), 1.0, 0.5);
+ }, delay));
+ delay += 1200;
+ STRETCH.timers.push(setTimeout(() => {
+  if (gen === App.echo.gen) Audio5.playTone(midiToFreq(STRETCH.target), 1.2, 0.5);
+ }, delay));
+ delay += 1500;
+ STRETCH.timers.push(setTimeout(() => {
+  if (gen !== App.echo.gen) return;
+  STRETCH.midis = []; STRETCH.gate = true; App.ignoreUntil = 0; render();
+ }, delay));
+ delay += 3500;
+ STRETCH.timers.push(setTimeout(() => {
+  if (gen !== App.echo.gen) return;
+  STRETCH.gate = false;
+  scoreStretchRound();
+  STRETCH.idx++;
+  playStretchRound(targets, gen);
+ }, delay));
+}
+function scoreStretchRound(){
+ const performed = App._stretchMidis && App._stretchMidis.length
+  ? performedSemitones(App._stretchMidis, STRETCH.base) : null;
+ const reached = stretchReached(performed, STRETCH.target, STRETCH.base);
+ if (reached) STRETCH.reached++;
+ App._stretchTip = stretchFeedback(reached, STRETCH.target, STRETCH.base, performed);
+ App._stretchMidis = [];
+}
+function finishStretchLadder(){
+ App.listening = false; Audio5.stopMic(); App.ignoreUntil = 0;
+ const score = Math.round(STRETCH.reached / 3 * 100);
+ App.lastScore = score;
+ App.lastGrade = score >= 90 ? "S" : score >= 80 ? "A" : score >= 70 ? "B" : score >= 60 ? "C" : "D";
+ Store.data.pitchRecords.push({ t: Date.now(), target: "고음 확장", acc: score,
+  lo: App.lo, hi: App.hi, dur: Math.round((Date.now() - App.sessionStart) / 1000) });
+ Store.save();
+ toast(`고음 확장 <b style="font-size:20px;">${score}점</b><br>3라운드 중 ${STRETCH.reached}개 도달<br><span style="font-size:12px;color:var(--text-secondary);">${App._stretchTip || ""}</span>`, 4000);
+ render();
+}
+window.startStretchLadder = startStretchLadder;
 function passaggioZoneOf(vtype){
  const zones = { tenor:[66,69], baritone:[64,67], bass:[62,65],
   contralto:[74,77], mezzo:[74,77], soprano:[74,78] };
@@ -2261,6 +2356,7 @@ async function startTracking(){
  else if (App.trMode === "harmony") startHarmonyCheck();
  else if (App.trMode === "song") startSongFlow();
  else if (App.trMode === "passaggio") startPassaggioDrill();
+ else if (App.trMode === "stretch") startStretchLadder();
 }
 function stopTracking(){
  if (VOWEL_GAME.active){ VOWEL_GAME.active = false; VOWEL_GAME.idx = 99; App.listening = false; Audio5.stopMic(); render(); return; }
@@ -2380,6 +2476,9 @@ function trackerPitchHandler(f, note, cents, voiced){
  }
  if (["scale", "melody", "song"].includes(App.trMode) && App.echo.midis.length){
   (App._windowMidis = App._windowMidis || [])[App.echo.idx] = midiOf(f);
+ }
+ if (App.trMode === "stretch" && STRETCH.gate){
+  (App._stretchMidis = App._stretchMidis || []).push(midiOf(f));
  }
  if (App.trMode === "harmony" && HARMONY_CHECK.phase === "recording"){
   HARMONY_CHECK.cents.push(cents);

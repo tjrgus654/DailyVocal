@@ -122,6 +122,18 @@ public struct PitchTrackerView: View {
                             .frame(maxWidth: .infinity)
                         songPickerBar
                     }
+                    if viewModel.mode == .stretch {
+                        Text("라운드 \(min(viewModel.stretchRoundIndex + 1, 3))/3 · \(VocalLogic.stretchRoundLabel(index: viewModel.stretchRoundIndex)) — 기준음에서 목표음까지 미끄러지듯 올라가 길게 유지하세요")
+                            .font(.caption2)
+                            .foregroundColor(.brandSecondary)
+                            .frame(maxWidth: .infinity)
+                        if let tip = viewModel.lastStretchTip {
+                            Text(tip)
+                                .font(.caption2)
+                                .foregroundColor(.textSecondary)
+                                .multilineTextAlignment(.center)
+                        }
+                    }
                     if viewModel.mode == .harmony {
                         Text(viewModel.harmonyPhase == .guide
                              ? "드론이 울립니다 — 끝나면 그 음의 \(viewModel.harmonyPart.rawValue) 화음을 길게 유지하세요"

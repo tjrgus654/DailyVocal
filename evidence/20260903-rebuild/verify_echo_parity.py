@@ -70,6 +70,10 @@ check("noteCount param", "melodyPhrase(contourKey, base, roll, noteCount)" in js
       and "noteCount: Int? = nil" in sw)
 check("band clamp", "Math.min(72, Math.max(43, m))" in js and "min(band.upperBound, max(band.lowerBound" in sw)
 check("one demo pass", "function drillTimings" in js and "DrillTempo.timings" in vm)
+check("stretch ladder fn", "function stretchTargets" in js and "func stretchTargets" in sw)
+check("stretch +0/+1/+2 rule", "[0, 1, 2].map" in sw and "[0, 1, 2].map" in js)
+check("stretch reached tolerance", "target - 1" in js and "targetMidi - 1" in sw)
+check("stretch note names in feedback", "midiNoteName" in js and "func noteName(forMidi" in sw)
 check("song step-error fingerprint", "[.scale, .melody, .song].contains(mode)" in vm and "songStepError" in js)
 check("song evidence coaching", ("곡에서 평균" in js) and ("첫 소절 가사를 소리 내어" in js) and ("첫 소절 가사를 소리 내어" in sw))
 check("BPM timings (0.85/0.15/1.5 of a beat)", "beat * 0.85" in js and "beat * 0.15" in js and "beat * 1.5" in js

@@ -241,6 +241,7 @@ public final class PitchTrackerViewModel {
         case harmony = "화음 부르기"
         case song = "민요 따라부르기"
         case passaggio = "파사지오 왕복"
+        case stretch = "고음 확장"
         case interval = "음정 게임"
         case ear = "귀훈련"
         public var id: String { rawValue }
@@ -456,6 +457,8 @@ public final class PitchTrackerViewModel {
             startSongFlow()
         } else if mode == .passaggio {
             startPassaggioDrill()
+        } else if mode == .stretch {
+            startStretchLadder()
         } else if isListenFirstMode {
             // Ear-training flow: hear the target twice first, then sing with
             // the visuals hidden (revealed on stop).
@@ -514,6 +517,11 @@ public final class PitchTrackerViewModel {
             harmonyPhase = .idle
             harmonyCents = []
             harmonyTargetMidi = 0
+        }
+        if mode == .stretch {
+            stretchRoundIndex = 0
+            stretchMidis = []
+            stretchRecordGate = false
         }
         ignorePitchUntil = Date.distantPast
         audio.isSpectrumWanted = false
@@ -860,6 +868,98 @@ public final class PitchTrackerViewModel {
             comfortableLowMidi: low, comfortableHighMidi: high,
             absoluteHighMidi: Int(base.rounded()),
             isFemale: profile.prefersHigherKeyGuide ? true : nil)
+    }
+
+    // MARK: - Range extension (stretch ladder) flow
+
+    public private(set) var stretchRoundIndex = 0
+    public private(set) var stretchTargetMidi = 0
+    public private(set) var stretchBaseMidi = 0
+    public private(set) var lastStretchTip: String?
+    public private(set) var stretchReachedCount = 0
+    private var stretchMidis: [Double] = []
+    private var stretchRecordGate = false
+
+    /// Ceiling from the profile's measured range (falls back to a
+    /// comfortable E4 when nothing is measured yet).
+    private var measuredCeilingMidi: Int {
+        let profile = (try? modelContext?.fetch(FetchDescriptor<UserProfile>()))?.first
+        guard let profile, profile.highestFrequency > 0 else { return 64 }
+        return Int(VocalAudioEngine.midiNumber(forFrequency: profile.highestFrequency).rounded())
+    }
+
+    /// Progressive stretch: base sounds, then the target (ceiling, ceiling+1,
+    /// ceiling+2 — one per round), then a 3.5 s window to reach for it.
+    private func startStretchLadder() {
+        echoGeneration += 1
+        let generation = echoGeneration
+        stretchRoundIndex = 0
+        stretchReachedCount = 0
+        lastStretchTip = nil
+        let targets = VocalLogic.stretchTargets(ceilingMidi: measuredCeilingMidi)
+        stretchBaseMidi = VocalLogic.stretchBaseMidi(ceilingMidi: measuredCeilingMidi)
+        LiveActivityManager.shared.startGameActivity(gameMode: "고음 확장", totalRounds: targets.count)
+        playStretchRound(targets: targets, generation: generation)
+    }
+
+    private func playStretchRound(targets: [Int], generation: Int) {
+        guard stretchRoundIndex < targets.count else {
+            finishStretchLadder()
+            return
+        }
+        stretchTargetMidi = targets[stretchRoundIndex]
+        LiveActivityManager.shared.updateGameRound(stretchRoundIndex + 1, of: targets.count)
+        ignorePitchUntil = .distantFuture
+        echoPhaseTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            // 1) Demo: base tone, then the stretch target above it.
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.audio.playTone(
+                frequency: VocalAudioEngine.frequency(forMidi: Double(self.stretchBaseMidi)),
+                duration: 1.0, volume: 0.5)
+            try? await Task.sleep(for: .seconds(1.2))
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.audio.playTone(
+                frequency: VocalAudioEngine.frequency(forMidi: Double(self.stretchTargetMidi)),
+                duration: 1.2, volume: 0.5)
+            try? await Task.sleep(for: .seconds(1.5))
+            // 2) Record: glide up and hold.
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.stretchMidis = []
+            self.stretchRecordGate = true
+            self.ignorePitchUntil = Date()
+            try? await Task.sleep(for: .seconds(3.5))
+            self.stretchRecordGate = false
+            // 3) Score and advance.
+            guard !Task.isCancelled, generation == self.echoGeneration else { return }
+            self.scoreStretchRound()
+            self.stretchRoundIndex += 1
+            self.playStretchRound(targets: targets, generation: generation)
+        }
+    }
+
+    private func scoreStretchRound() {
+        defer { stretchMidis = [] }
+        let performed = VocalLogic.performedSemitones(midiEstimates: stretchMidis, baseMidi: stretchBaseMidi)
+        let reached = VocalLogic.stretchReached(
+            performedSemitones: performed, targetMidi: stretchTargetMidi, baseMidi: stretchBaseMidi)
+        if reached { stretchReachedCount += 1 }
+        lastStretchTip = VocalLogic.stretchFeedback(
+            reached: reached, targetMidi: stretchTargetMidi,
+            baseMidi: stretchBaseMidi, performedSemitones: performed)
+    }
+
+    private func finishStretchLadder() {
+        accuracyScore = Double(stretchReachedCount) / 3.0 * 100.0
+        lastSessionScore = Int(accuracyScore.rounded())
+        lastSessionGrade = VocalLogic.sessionGrade(forScore: lastSessionScore ?? 0)
+        lastSessionTargetLabel = "고음 확장"
+        haptics.routineCompleted()
+        isListening = false
+        LiveActivityManager.shared.endLiveActivity()
+        audio.stopMicrophone()
+        audio.onPitchUpdate = nil
+        persistSessionSummary()
     }
 
     // MARK: - Interval game flow
@@ -1235,6 +1335,9 @@ public final class PitchTrackerViewModel {
         }
         if mode == .interval, intervalPhase == .recording {
             intervalMidis.append(VocalAudioEngine.midiNumber(forFrequency: frequency))
+        }
+        if mode == .stretch, stretchRecordGate {
+            stretchMidis.append(VocalAudioEngine.midiNumber(forFrequency: frequency))
         }
         if [.scale, .melody, .song].contains(mode), !windowMidis.isEmpty {
             windowMidis[windowMidis.count - 1] = VocalAudioEngine.midiNumber(forFrequency: frequency)

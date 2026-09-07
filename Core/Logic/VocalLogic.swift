@@ -1487,6 +1487,58 @@ public enum VocalLogic {
         }
     }
 
+    // MARK: - Range extension ladder (stretch drills)
+
+    /// Range-extension targets from the measured ceiling: the ceiling itself
+    /// (re-establish), then +1 and +2 semitones (stretch). One round each,
+    /// sung over a base a comfortable fifth below — the progressive-overload
+    /// ladder the 2026 trend research identified as the differentiator.
+    public static func stretchTargets(ceilingMidi: Int, band: ClosedRange<Int> = 43...72) -> [Int] {
+        [0, 1, 2].map { min(band.upperBound, ceilingMidi + $0) }
+    }
+
+    /// Comfortable base a fifth below the ceiling for the glide demos.
+    public static func stretchBaseMidi(ceilingMidi: Int, band: ClosedRange<Int> = 43...72) -> Int {
+        max(band.lowerBound, ceilingMidi - 7)
+    }
+
+    /// Round label shown in the caption.
+    public static func stretchRoundLabel(index: Int) -> String {
+        switch index {
+        case 0: return "최고음 재확인"
+        case 1: return "한 음 위 도전"
+        default: return "두 음 위 도전"
+        }
+    }
+
+    /// Did the sung window reach the stretch target? Returns "reached" when
+    /// the performed note is within 1 semitone of (or above) the target.
+    public static func stretchReached(performedSemitones: Int?, targetMidi: Int, baseMidi: Int) -> Bool {
+        guard let performed = performedSemitones else { return false }
+        return baseMidi + performed >= targetMidi - 1
+    }
+
+    /// Coaching for a stretch attempt.
+    public static func stretchFeedback(reached: Bool, targetMidi: Int, baseMidi: Int, performedSemitones: Int?) -> String {
+        let noteName = noteName(forMidi: targetMidi)
+        guard reached else {
+            if let performed = performedSemitones {
+                let short = targetMidi - (baseMidi + performed)
+                return "아직 \(short)반음 아래 — 목표 \(noteName). 목을 놓고 '야~'로 가볍게 던져보세요"
+            }
+            return "소리가 잡히지 않았어요 — 기준음에서 시작해 \(noteName)까지 미끄러지듯 올라가보세요"
+        }
+        return "\(noteName) 닿았습니다! 다음 단계로 — 무리하지 말고 가벼운 감각 유지"
+    }
+
+    /// MIDI -> note name for feedback ("F4").
+    static func noteName(forMidi midi: Int) -> String {
+        let pitches = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+        let pitch = pitches[(((midi % 12) + 12) % 12)]
+        let octave = midi / 12 - 1
+        return "\(pitch)\(octave)"
+    }
+
     // MARK: - Harmony sing-along (drone + part)
 
     /// Sing a harmony part over a sustained drone note — the drill the
