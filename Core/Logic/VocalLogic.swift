@@ -1889,6 +1889,17 @@ public enum VocalLogic {
                 SongNote(0, 4),
             ]
         ),
+        FolkSong(
+            title: "성주풀이",
+            origin: "경상 민요(성주굿 무가 유래 — 안동 지역) — 전통 원형",
+            firstLyric: "성주야 성주로구나 성주 근본이 어디메요",
+            notes: [
+                SongNote(0, 1), SongNote(0, 1), SongNote(3, 1), SongNote(5, 1),
+                SongNote(7, 1), SongNote(5, 1), SongNote(3, 2),
+                SongNote(5, 1), SongNote(7, 1), SongNote(10, 1), SongNote(7, 1),
+                SongNote(5, 3),
+            ]
+        ),
     ]
 
     /// The song's note sequence as midis from `baseMidi`, clamped to the
