@@ -1809,6 +1809,17 @@ public enum VocalLogic {
                 SongNote(0, 4),
             ]
         ),
+        FolkSong(
+            title: "쑥대머리",
+            origin: "서남해안 민요(진도 지역) — 전통 원형",
+            firstLyric: "쑥대머리 동무 쑥대머리",
+            notes: [
+                SongNote(0, 1), SongNote(3, 1), SongNote(5, 1), SongNote(3, 1),
+                SongNote(0, 1), SongNote(3, 2),
+                SongNote(5, 1), SongNote(3, 1), SongNote(0, 1), SongNote(3, 1),
+                SongNote(0, 4),
+            ]
+        ),
     ]
 
     /// The song's note sequence as midis from `baseMidi`, clamped to the

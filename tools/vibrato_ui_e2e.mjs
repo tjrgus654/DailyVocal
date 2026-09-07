@@ -488,7 +488,7 @@ const folk = await page.evaluate(`(() => {
   const at60 = songNoteDurations(FOLK_SONGS[1], 60);
   const at80 = songNoteDurations(FOLK_SONGS[1], 80);
   return {
-    three: FOLK_SONGS.length === 21 && FOLK_SONGS.map(s => s.title).join(",") === "아리랑,강강술래,한오백년,정선아리랑,둥당기타령,도라지타령,난봉가,매화타령,신고산타령,오죽령,닐리리야,새타령,변강쇠타령,쾌지나칭칭나네,진도아리랑,오돌또기,베틀가,칭칭야,어랑타령,돈돌라,범피중류",
+    three: FOLK_SONGS.length === 22 && FOLK_SONGS.map(s => s.title).join(",") === "아리랑,강강술래,한오백년,정선아리랑,둥당기타령,도라지타령,난봉가,매화타령,신고산타령,오죽령,닐리리야,새타령,변강쇠타령,쾌지나칭칭나네,진도아리랑,오돌또기,베틀가,칭칭야,어랑타령,돈돌라,범피중류,쑥대머리",
     origins: FOLK_SONGS.every(s => s.origin.includes("전통")),
     seq: seq[0] === 55 + 7 && seq[seq.length - 1] === 55 + 3,
     clamp: clamped.every(m => m >= 43 && m <= 72) && Math.max(...clamped) === 72,
@@ -496,7 +496,7 @@ const folk = await page.evaluate(`(() => {
     ends: FOLK_SONGS.every(s => s.notes[s.notes.length - 1][1] >= 3),
   };
 })()`);
-ok("folk library ships 21 songs", folk.three);
+ok("folk library ships 22 songs", folk.three);
 ok("folk origins cite tradition", folk.origins);
 ok("folk arirang sequence", folk.seq);
 ok("folk band clamp", folk.clamp);
